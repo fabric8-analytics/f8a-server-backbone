@@ -1,0 +1,28 @@
+version: "2"
+services:
+  f8a-server-backbone:
+    build:
+      context: .
+#    image: spicemit/fabric8-analytics-server-backbone:rest_4
+    network_mode: bridge
+#    command: ["python3", "/graph/create_graph_schema.py"]
+    entrypoint:
+      - /bin/entrypoint.sh
+    environment:
+      BAYESIAN_GREMLIN_HTTP_SERVICE_HOST: "bayesian-gremlin-http"
+      BAYESIAN_GREMLIN_HTTP_SERVICE_PORT: "8182"
+      PGBOUNCER_SERVICE_HOST: "bayesian-pgbouncer"
+      PGBOUNCER_SERVICE_PORT: "5432"
+      LICENSE_SERVICE_HOST: "f8a-license-analysis"
+      LICENSE_SERVICE_PORT: "6162"
+      PGM_SERVICE_HOST: "bayesian-kronos"
+      PGM_SERVICE_PORT : "6006"
+      POSTGRESQL_USER: "user"
+      POSTGRESQL_PASSWORD: "password"
+      POSTGRESQL_DATABASE: "dbname"
+      API_BACKBONE_SERVICE_TIMEOUT: "60"
+      API_BACKBONE_SERVICE_PORT: "5000"
+      NUMBER_WORKER_PROCESS: "2"
+      CLASS_TYPE: "gevent"
+    ports:
+      - "5000:5000"
