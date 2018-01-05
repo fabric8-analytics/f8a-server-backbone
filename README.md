@@ -67,7 +67,7 @@ API Endpoint `api/v1/stack_aggregator`
 
 ```
 {
-    "external_request_id": "mitesh",
+    "external_request_id": "req-id",
     "stack_aggregator": "success"
 }
 ```
