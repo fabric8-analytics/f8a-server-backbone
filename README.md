@@ -22,7 +22,6 @@ It then persists the above data in the Database and returns a response.
 
 * curl localhost:<SERVICE_PORT>/api/v1/readiness should return `{}` with status 200
 
-
 #### Payload Information
 ```
 {
@@ -68,7 +67,7 @@ API Endpoint `api/v1/stack_aggregator`
 
 ```
 {
-    "external_request_id": "mitesh",
+    "external_request_id": "req-id",
     "stack_aggregator": "success"
 }
 ```
