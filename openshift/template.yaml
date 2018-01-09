@@ -124,7 +124,7 @@ parameters:
   displayName: CPU request
   required: true
   name: CPU_REQUEST
-  value: "500m"
+  value: "128m"
 
 - description: CPU limit
   displayName: CPU limit
