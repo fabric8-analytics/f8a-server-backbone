@@ -146,17 +146,26 @@ def create_package_dict(graph_results, alt_dict=None):
     return pkg_list
 
 
-def select_latest_version(libio, anitya):
-    libio_latest_version = libio if libio else '0.0.0'
-    anitya_latest_version = anitya if anitya else '0.0.0'
-    libio_latest_version = libio_latest_version.replace('.', '-', 3)
-    libio_latest_version = libio_latest_version.replace('-', '.', 2)
-    anitya_latest_version = anitya_latest_version.replace('.', '-', 3)
-    anitya_latest_version = anitya_latest_version.replace('-', '.', 2)
+def convert_version_to_proper_semantic(version):
+    """needed for maven version like 1.5.2.RELEASE to be converted to
+    1.5.2-RELEASE for semantic version to work'"""
+    version = version.replace('.', '-', 3)
+    version = version.replace('-', '.', 2)
+    return version
+
+
+def select_latest_version(input_version, libio, anitya):
+    libio_latest_version = convert_version_to_proper_semantic(libio) if libio else '0.0.0'
+    anitya_latest_version = convert_version_to_proper_semantic(anitya) if anitya else '0.0.0'
+    input_version = convert_version_to_proper_semantic(input_version) if input_version else '0.0.0'
+
     try:
         latest_version = libio if libio else ''
         if sv.SpecItem('<' + anitya_latest_version).match(sv.Version(libio_latest_version)):
             latest_version = anitya
+        if sv.SpecItem('<' + input_version).match(sv.Version(latest_version)):
+            # User provided version is higher. Do not show the latest version in the UI
+            latest_version = ''
     except ValueError:
         pass
 

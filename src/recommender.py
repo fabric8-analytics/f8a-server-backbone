@@ -73,7 +73,8 @@ import re
 import semantic_version as sv
 
 from utils import (create_package_dict, get_session_retry, select_latest_version,
-                   GREMLIN_SERVER_URL_REST, LICENSE_SCORING_URL_REST, Postgres)
+                   GREMLIN_SERVER_URL_REST, LICENSE_SCORING_URL_REST, Postgres,
+                   convert_version_to_proper_semantic)
 from stack_aggregator import extract_user_stack_package_licenses
 from data_base import WorkerResult
 from sqlalchemy.exc import SQLAlchemyError
@@ -155,8 +156,7 @@ class GraphDB:
             version = epv.get('ver', {}).get('version', [''])[0]
             # needed for maven version like 1.5.2.RELEASE to be converted to
             # 1.5.2-RELEASE for semantic version to work'
-            semversion = version.replace('.', '-', 3)
-            semversion = semversion.replace('-', '.', 2)
+            semversion = convert_version_to_proper_semantic(semversion)
             if name and version:
                 # Select Latest Version and add to filter_list if
                 # latest version is > current version
@@ -529,39 +529,45 @@ class RecommendationTask:
                     alt_packages = create_package_dict(topics_comp_packages_graph, final_dict)
                     recommendation['alternate'] = alt_packages
 
-            recommendations.append(recommendation)
+                    recommendations.append(recommendation)
 
-        ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
-        audit = {
-            'started_at': started_at,
-            'ended_at': ended_at,
-            'version': 'v1'
-        }
+                ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
+                audit = {
+                    'started_at': started_at,
+                    'ended_at': ended_at,
+                    'version': 'v1'
+                }
 
-        task_result = {
-            'recommendations': recommendations,
-            '_audit': audit,
-            '_release': 'None:None:None'
-        }
+                task_result = {
+                    'recommendations': recommendations,
+                    '_audit': audit,
+                    '_release': 'None:None:None'
+                }
 
-        wr = WorkerResult(
-            worker='recommendation_v2',
-            worker_id=None,
-            external_request_id=external_request_id,
-            analysis_id=None,
-            task_result=task_result,
-            error=False
-        )
+                wr = WorkerResult(
+                    worker='recommendation_v2',
+                    worker_id=None,
+                    external_request_id=external_request_id,
+                    analysis_id=None,
+                    task_result=task_result,
+                    error=False
+                )
 
-        # Store the result in RDS
-        try:
-            session.add(wr)
-            session.commit()
-        except SQLAlchemyError as e:
-            session.rollback()
-            return {
-                'recommendation': 'database error',
-                'external_request_id': external_request_id,
-                'message': '%s' % e}
+                # Store the result in RDS
+                try:
+                    session.add(wr)
+                    session.commit()
+                except SQLAlchemyError as e:
+                    session.rollback()
+                    return {
+                        'recommendation': 'database error',
+                        'external_request_id': external_request_id,
+                        'message': '%s' % e}
+            else:
+                return {
+                    'recommendation': 'pgm_error',
+                    'external_request_id': external_request_id,
+                    'message': 'PGM Fetching error'
+                }
 
         return {'recommendation': 'success', 'external_request_id': external_request_id}
