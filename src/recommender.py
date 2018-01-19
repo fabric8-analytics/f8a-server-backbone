@@ -426,7 +426,9 @@ class RecommendationTask:
                     # Append Topics for User Stack
                     recommendation['input_stack_topics'] = pgm_result.get('package_to_topic_dict',
                                                                           {})
-
+                    # Add missing packages unknown to PGM
+                    recommendation['missing_packages_pgm'] = pgm_result.get(
+                        'missing_packages', [])
                     for pkg in pgm_result['companion_packages']:
                         companion_packages.append(pkg['package_name'])
 
