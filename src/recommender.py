@@ -156,7 +156,7 @@ class GraphDB:
             version = epv.get('ver', {}).get('version', [''])[0]
             # needed for maven version like 1.5.2.RELEASE to be converted to
             # 1.5.2-RELEASE for semantic version to work'
-            semversion = convert_version_to_proper_semantic(semversion)
+            semversion = convert_version_to_proper_semantic(version)
             if name and version:
                 # Select Latest Version and add to filter_list if
                 # latest version is > current version
