@@ -156,13 +156,15 @@ class GraphDB:
             version = epv.get('ver', {}).get('version', [''])[0]
             # needed for maven version like 1.5.2.RELEASE to be converted to
             # 1.5.2-RELEASE for semantic version to work'
-            semversion = convert_version_to_proper_semantic(semversion)
+            semversion = convert_version_to_proper_semantic(version)
             if name and version:
                 # Select Latest Version and add to filter_list if
                 # latest version is > current version
                 latest_version = select_latest_version(
+                    version,
                     epv.get('pkg').get('libio_latest_version', [''])[0],
-                    epv.get('pkg').get('latest_version', [''])[0])
+                    epv.get('pkg').get('latest_version', [''])[0]
+                )
                 if latest_version and latest_version == version:
                     try:
                         if sv.SpecItem('>=' + input_stack.get(name, '0.0.0')).match(
