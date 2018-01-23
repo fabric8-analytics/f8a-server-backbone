@@ -161,8 +161,10 @@ class GraphDB:
                 # Select Latest Version and add to filter_list if
                 # latest version is > current version
                 latest_version = select_latest_version(
+                    version,
                     epv.get('pkg').get('libio_latest_version', [''])[0],
-                    epv.get('pkg').get('latest_version', [''])[0])
+                    epv.get('pkg').get('latest_version', [''])[0]
+                )
                 if latest_version and latest_version == version:
                     try:
                         if sv.SpecItem('>=' + input_stack.get(name, '0.0.0')).match(
