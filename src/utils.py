@@ -74,8 +74,10 @@ def create_package_dict(graph_results, alt_dict=None):
                 'version': version,
                 'licenses': epv['ver'].get('declared_licenses', []),
                 'latest_version': select_latest_version(
+                    version,
                     epv['pkg'].get('libio_latest_version', [''])[0],
-                    epv['pkg'].get('latest_version', [''])[0]),
+                    epv['pkg'].get('latest_version', [''])[0]
+                ),
                 'security': [],
                 'osio_user_count': osio_user_count,
                 'topic_list': epv['pkg'].get('pgm_topics', []),
@@ -154,10 +156,10 @@ def convert_version_to_proper_semantic(version):
     return version
 
 
-def select_latest_version(input_version, libio, anitya):
-    libio_latest_version = convert_version_to_proper_semantic(libio) if libio else '0.0.0'
-    anitya_latest_version = convert_version_to_proper_semantic(anitya) if anitya else '0.0.0'
-    input_version = convert_version_to_proper_semantic(input_version) if input_version else '0.0.0'
+def select_latest_version(input_version='0.0.0', libio='0.0.0', anitya='0.0.0'):
+    libio_latest_version = convert_version_to_proper_semantic(libio)
+    anitya_latest_version = convert_version_to_proper_semantic(anitya)
+    input_version = convert_version_to_proper_semantic(input_version)
 
     try:
         latest_version = libio if libio else ''
