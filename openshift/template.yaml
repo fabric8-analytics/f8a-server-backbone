@@ -166,7 +166,7 @@ parameters:
   displayName: Number of deployment replicas
   required: true
   name: REPLICAS
-  value: "3"
+  value: "1"
 
 - description: Port Number
   displayName: Port Number
