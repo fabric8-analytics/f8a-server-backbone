@@ -162,16 +162,20 @@ def select_latest_version(input_version='0.0.0', libio='0.0.0', anitya='0.0.0'):
     input_version = convert_version_to_proper_semantic(input_version)
 
     try:
-        latest_version = libio if libio else ''
+        latest_version = libio_latest_version
+        return_version = libio
         if sv.SpecItem('<' + anitya_latest_version).match(sv.Version(libio_latest_version)):
-            latest_version = anitya
+            latest_version = anitya_latest_version
+            return_version = anitya
         if sv.SpecItem('<' + input_version).match(sv.Version(latest_version)):
             # User provided version is higher. Do not show the latest version in the UI
-            latest_version = ''
+            return_version = ''
     except ValueError:
+        # In case of failure let's not show any latest version at all
+        return_version = ''
         pass
 
-    return latest_version
+    return return_version
 
 
 def get_session_retry(retries=3, backoff_factor=0.2, status_forcelist=(404, 500, 502, 504),
