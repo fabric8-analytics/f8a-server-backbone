@@ -70,19 +70,21 @@ objects:
           ports:
           - containerPort: ${{API_BACKBONE_SERVICE_PORT}}
           livenessProbe:
-            httpGet:
-              path: /api/v1/liveness
-              port: ${{API_BACKBONE_SERVICE_PORT}}
-            initialDelaySeconds: 15
+            initialDelaySeconds: 60
             periodSeconds: 60
-            timeoutSeconds: 15
+            timeoutSeconds: 30
+            failureThreshold: 3
+            successThreshold: 1
+            tcpSocket:
+              port: ${{API_BACKBONE_SERVICE_PORT}}
           readinessProbe:
-            httpGet:
-              path: /api/v1/readiness
+            tcpSocket:
               port: ${{API_BACKBONE_SERVICE_PORT}}
-            initialDelaySeconds: 15
+            failureThreshold: 3
+            successThreshold: 1
+            initialDelaySeconds: 60
             periodSeconds: 60
-            timeoutSeconds: 15
+            timeoutSeconds: 30
           resources:
             requests:
               cpu: ${CPU_REQUEST}
