@@ -349,7 +349,6 @@ class RecommendationTask:
                 PGM_SERVICE_HOST = os.getenv("PGM_SERVICE_HOST") + "-" + payload[0]['ecosystem']
                 PGM_URL_REST = "http://{host}:{port}".format(host=PGM_SERVICE_HOST,
                                                              port=os.getenv("PGM_SERVICE_PORT"))
-
                 pgm_url = PGM_URL_REST + "/api/v1/schemas/kronos_scoring"
                 response = get_session_retry().post(pgm_url, json=payload)
                 if response.status_code != 200:
@@ -374,7 +373,6 @@ class RecommendationTask:
         input_task_for_pgm = []
         recommendations = []
         input_stack = {}
-        print(json.dumps(results))
         for result in results:
             temp_input_stack = {d["package"]: d["version"] for d in
                                 result.get("details", [])[0].get("_resolved")}
@@ -532,7 +530,7 @@ class RecommendationTask:
                     alt_packages = create_package_dict(topics_comp_packages_graph, final_dict)
                     recommendation['alternate'] = alt_packages
 
-                    recommendations.append(recommendation)
+                recommendations.append(recommendation)
             else:
                 return {
                     'recommendation': 'pgm_error',
@@ -548,8 +546,6 @@ class RecommendationTask:
             '_audit': audit,
             '_release': 'None:None:None'
         }
-
-        print(json.dumps(task_result))
 
         wr = WorkerResult(
             worker='recommendation_v2',
