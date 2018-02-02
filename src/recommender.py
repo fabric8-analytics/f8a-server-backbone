@@ -374,6 +374,7 @@ class RecommendationTask:
         input_task_for_pgm = []
         recommendations = []
         input_stack = {}
+        print(json.dumps(results))
         for result in results:
             temp_input_stack = {d["package"]: d["version"] for d in
                                 result.get("details", [])[0].get("_resolved")}
@@ -539,33 +540,35 @@ class RecommendationTask:
                     'message': 'PGM Fetching error'
                 }
 
-            ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
-            audit = {'started_at': started_at, 'ended_at': ended_at, 'version': 'v1'}
+        ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
+        audit = {'started_at': started_at, 'ended_at': ended_at, 'version': 'v1'}
 
-            task_result = {
-                'recommendations': recommendations,
-                '_audit': audit,
-                '_release': 'None:None:None'
+        task_result = {
+            'recommendations': recommendations,
+            '_audit': audit,
+            '_release': 'None:None:None'
+        }
+
+        print(json.dumps(task_result))
+
+        wr = WorkerResult(
+            worker='recommendation_v2',
+            worker_id=None,
+            external_request_id=external_request_id,
+            analysis_id=None,
+            task_result=task_result,
+            error=False
+        )
+
+        # Store the result in RDS
+        try:
+            session.add(wr)
+            session.commit()
+        except SQLAlchemyError as e:
+            session.rollback()
+            return {
+                'recommendation': 'database error',
+                'external_request_id': external_request_id,
+                'message': '%s' % e
             }
-
-            wr = WorkerResult(
-                worker='recommendation_v2',
-                worker_id=None,
-                external_request_id=external_request_id,
-                analysis_id=None,
-                task_result=task_result,
-                error=False
-            )
-
-            # Store the result in RDS
-            try:
-                session.add(wr)
-                session.commit()
-            except SQLAlchemyError as e:
-                session.rollback()
-                return {
-                    'recommendation': 'database error',
-                    'external_request_id': external_request_id,
-                    'message': '%s' % e
-                }
         return {'recommendation': 'success', 'external_request_id': external_request_id}
