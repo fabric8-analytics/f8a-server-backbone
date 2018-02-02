@@ -349,7 +349,6 @@ class RecommendationTask:
                 PGM_SERVICE_HOST = os.getenv("PGM_SERVICE_HOST") + "-" + payload[0]['ecosystem']
                 PGM_URL_REST = "http://{host}:{port}".format(host=PGM_SERVICE_HOST,
                                                              port=os.getenv("PGM_SERVICE_PORT"))
-
                 pgm_url = PGM_URL_REST + "/api/v1/schemas/kronos_scoring"
                 response = get_session_retry().post(pgm_url, json=payload)
                 if response.status_code != 200:
@@ -531,40 +530,7 @@ class RecommendationTask:
                     alt_packages = create_package_dict(topics_comp_packages_graph, final_dict)
                     recommendation['alternate'] = alt_packages
 
-                    recommendations.append(recommendation)
-
-                ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
-                audit = {
-                    'started_at': started_at,
-                    'ended_at': ended_at,
-                    'version': 'v1'
-                }
-
-                task_result = {
-                    'recommendations': recommendations,
-                    '_audit': audit,
-                    '_release': 'None:None:None'
-                }
-
-                wr = WorkerResult(
-                    worker='recommendation_v2',
-                    worker_id=None,
-                    external_request_id=external_request_id,
-                    analysis_id=None,
-                    task_result=task_result,
-                    error=False
-                )
-
-                # Store the result in RDS
-                try:
-                    session.add(wr)
-                    session.commit()
-                except SQLAlchemyError as e:
-                    session.rollback()
-                    return {
-                        'recommendation': 'database error',
-                        'external_request_id': external_request_id,
-                        'message': '%s' % e}
+                recommendations.append(recommendation)
             else:
                 return {
                     'recommendation': 'pgm_error',
@@ -572,4 +538,33 @@ class RecommendationTask:
                     'message': 'PGM Fetching error'
                 }
 
+        ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
+        audit = {'started_at': started_at, 'ended_at': ended_at, 'version': 'v1'}
+
+        task_result = {
+            'recommendations': recommendations,
+            '_audit': audit,
+            '_release': 'None:None:None'
+        }
+
+        wr = WorkerResult(
+            worker='recommendation_v2',
+            worker_id=None,
+            external_request_id=external_request_id,
+            analysis_id=None,
+            task_result=task_result,
+            error=False
+        )
+
+        # Store the result in RDS
+        try:
+            session.add(wr)
+            session.commit()
+        except SQLAlchemyError as e:
+            session.rollback()
+            return {
+                'recommendation': 'database error',
+                'external_request_id': external_request_id,
+                'message': '%s' % e
+            }
         return {'recommendation': 'success', 'external_request_id': external_request_id}
