@@ -27,7 +27,7 @@ class StackRecommender:
         try:
             tasks = [asyncio.ensure_future(self.recommender_result(input_json, persist)),
                      asyncio.ensure_future(self.aggregator_result(input_json, persist))
-                     ]
+                    ]
             self.loop.run_until_complete(asyncio.gather(*tasks))
             return {
                 'status': 'success',
