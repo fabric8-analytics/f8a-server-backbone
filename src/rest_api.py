@@ -37,6 +37,7 @@ def stack_recommender():
 
     return flask.jsonify(r), status
 
+
 @app.route('/api/v1/recommender', methods=['POST'])
 def recommender():
     r = {'recommendation': 'failure', 'external_request_id': None}
