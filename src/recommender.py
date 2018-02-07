@@ -76,7 +76,7 @@ from utils import (create_package_dict, get_session_retry, select_latest_version
                    GREMLIN_SERVER_URL_REST, LICENSE_SCORING_URL_REST, Postgres,
                    convert_version_to_proper_semantic)
 from stack_aggregator import extract_user_stack_package_licenses
-from models import WorkerResult
+from f8a_worker.models import WorkerResult
 from sqlalchemy.exc import SQLAlchemyError
 
 _logger = logging.getLogger(__name__)

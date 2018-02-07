@@ -5,7 +5,7 @@ by stack-analyses endpoint
 Output: TBD
 
 """
-from models import WorkerResult
+from f8a_worker.models import WorkerResult
 from sqlalchemy.exc import SQLAlchemyError
 import json
 import datetime
