@@ -78,6 +78,7 @@ from utils import (create_package_dict, get_session_retry, select_latest_version
 from stack_aggregator import extract_user_stack_package_licenses
 from f8a_worker.models import WorkerResult
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.dialects.postgresql import insert
 
 _logger = logging.getLogger(__name__)
 session = Postgres().session
@@ -365,7 +366,7 @@ class RecommendationTask:
             _logger.error("%s" % e)
             return None
 
-    def execute(self, arguments=None):
+    def execute(self, arguments=None, persist=True):
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         results = arguments.get('result', None)
         external_request_id = arguments.get('external_request_id', None)
@@ -547,24 +548,34 @@ class RecommendationTask:
             '_release': 'None:None:None'
         }
 
-        wr = WorkerResult(
-            worker='recommendation_v2',
-            worker_id=None,
-            external_request_id=external_request_id,
-            analysis_id=None,
-            task_result=task_result,
-            error=False
-        )
-
-        # Store the result in RDS
-        try:
-            session.add(wr)
-            session.commit()
-        except SQLAlchemyError as e:
-            session.rollback()
-            return {
-                'recommendation': 'database error',
-                'external_request_id': external_request_id,
-                'message': '%s' % e
-            }
-        return {'recommendation': 'success', 'external_request_id': external_request_id}
+        if persist:
+            # Store the result in RDS
+            try:
+                insert_stmt = insert(WorkerResult).values(
+                    worker='recommendation_v2',
+                    worker_id=None,
+                    external_request_id=external_request_id,
+                    analysis_id=None,
+                    task_result=task_result,
+                    error=False
+                )
+                do_update_stmt = insert_stmt.on_conflict_do_update(
+                    index_elements=['id'],
+                    set_=dict(task_result=task_result)
+                )
+                session.execute(do_update_stmt)
+                session.commit()
+                return {'recommendation': 'success',
+                        'external_request_id': external_request_id,
+                        'result': task_result}
+            except SQLAlchemyError as e:
+                session.rollback()
+                return {
+                    'recommendation': 'database error',
+                    'external_request_id': external_request_id,
+                    'message': '%s' % e
+                }
+        else:
+            return {'recommendation': 'success',
+                    'external_request_id': external_request_id,
+                    'result': task_result}
