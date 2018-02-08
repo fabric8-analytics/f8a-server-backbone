@@ -1,5 +1,5 @@
 # f8a-server-backbone
-Server backbone service based on a given stack components does two tasks
+Server backbone service based on a given stack components does two tasks.
  - Stack Aggregation
  - Recommendation
 
