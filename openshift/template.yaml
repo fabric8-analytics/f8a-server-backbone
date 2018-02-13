@@ -62,9 +62,9 @@ objects:
           - name: API_BACKBONE_SERVICE_TIMEOUT
             value: "60"
           - name: NUMBER_WORKER_PROCESS
-            value: "2"
+            value: "4"
           - name: CLASS_TYPE
-            value: "gevent"
+            value: "sync"
           image: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${IMAGE_TAG}"
           name: f8a-server-backbone
           ports:
