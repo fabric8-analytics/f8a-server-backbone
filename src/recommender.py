@@ -488,17 +488,24 @@ class RecommendationTask:
                     _logger.info("Alternate Packages Filtered for external_request_id {} {}"
                                  .format(external_request_id,
                                          filtered_alternate_packages))
+                    if persist:
+                        # apply license based filters
+                        list_user_stack_comp = extract_user_stack_package_licenses(
+                            resolved, ecosystem)
+                        license_filter_output = apply_license_filter(list_user_stack_comp,
+                                                                     filtered_alt_packages_graph,
+                                                                     filtered_comp_packages_graph)
 
-                    # apply license based filters
-                    list_user_stack_comp = extract_user_stack_package_licenses(resolved, ecosystem)
-                    license_filter_output = apply_license_filter(list_user_stack_comp,
-                                                                 filtered_alt_packages_graph,
-                                                                 filtered_comp_packages_graph)
-
-                    lic_filtered_alt_graph = license_filter_output['filtered_alt_packages_graph']
-                    lic_filtered_comp_graph = license_filter_output['filtered_comp_packages_graph']
-                    lic_filtered_list_alt = license_filter_output['filtered_list_pkg_names_alt']
-                    lic_filtered_list_com = license_filter_output['filtered_list_pkg_names_com']
+                        lic_filtered_alt_graph = license_filter_output[
+                            'filtered_alt_packages_graph']
+                        lic_filtered_comp_graph = license_filter_output[
+                            'filtered_comp_packages_graph']
+                        lic_filtered_list_alt = license_filter_output['filtered_list_pkg_names_alt']
+                        lic_filtered_list_com = license_filter_output['filtered_list_pkg_names_com']
+                    else:
+                        lic_filtered_alt_graph = filtered_alt_packages_graph
+                        lic_filtered_comp_graph = filtered_comp_packages_graph
+                        lic_filtered_list_alt = lic_filtered_list_com = list()
 
                     if len(lic_filtered_list_alt) > 0:
                         s = set(filtered_alternate_packages).difference(set(lic_filtered_list_alt))
