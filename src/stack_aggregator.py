@@ -287,7 +287,7 @@ def extract_user_stack_package_licenses(resolved, ecosystem):
     return list_package_licenses
 
 
-def aggregate_stack_data(stack, manifest_file, ecosystem, deps, manifest_file_path):
+def aggregate_stack_data(stack, manifest_file, ecosystem, deps, manifest_file_path, persist):
     dependencies = []
     licenses = []
     license_score_list = []
@@ -308,8 +308,11 @@ def aggregate_stack_data(stack, manifest_file, ecosystem, deps, manifest_file_pa
     stack_distinct_licenses = set(licenses)
 
     # Call License Scoring to Get Stack License
-    license_analysis, dependencies = perform_license_analysis(license_score_list, dependencies)
-    stack_license_conflict = len(license_analysis.get('f8a_stack_licenses', [])) == 0
+    if persist:
+        license_analysis, dependencies = perform_license_analysis(license_score_list, dependencies)
+        stack_license_conflict = len(license_analysis.get('f8a_stack_licenses', [])) == 0
+    else:
+        license_analysis = stack_license_conflict = None
 
     all_dependencies = {(dependency['package'], dependency['version']) for dependency in deps}
     analyzed_dependencies = {(dependency['name'], dependency['version'])
@@ -390,7 +393,7 @@ class StackAggregator:
             finished = get_dependency_data(resolved, ecosystem)
             if finished is not None:
                 stack_data.append(aggregate_stack_data(finished, manifest, ecosystem.lower(),
-                                  resolved, manifest_file_path))
+                                  resolved, manifest_file_path, persist))
 
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         audit = {
