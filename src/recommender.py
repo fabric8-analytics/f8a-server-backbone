@@ -346,6 +346,14 @@ class RecommendationTask:
         try:
             # TODO remove hardcodedness for payloads with multiple ecosystems
             if payload and 'ecosystem' in payload[0]:
+                # Uncomment PGM_SERVICE_HOST and PGM_URL_REST once, wildfly goes
+                # to prodcution.
+                # PGM_SERVICE_HOST = os.getenv(
+                #     "PGM_SERVICE_HOST") + "-" + payload[0]['ecosystem']
+                # PGM_URL_REST = "http://{host}:{port}".format(host=PGM_SERVICE_HOST,
+                #                                              port=os.getenv("PGM_SERVICE_PORT"))
+                # Delete the line below once wildfly goes to production
+                PGM_URL_REST = "http://bayesian-kronos-maven-kronos-wildlfy.dev.rdu2c.fabric8.io/"
 
                 PGM_SERVICE_HOST = os.getenv("PGM_SERVICE_HOST") + "-" + payload[0]['ecosystem']
                 PGM_URL_REST = "http://{host}:{port}".format(host=PGM_SERVICE_HOST,
