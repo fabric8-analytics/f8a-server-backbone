@@ -312,7 +312,8 @@ def aggregate_stack_data(stack, manifest_file, ecosystem, deps, manifest_file_pa
         license_analysis, dependencies = perform_license_analysis(license_score_list, dependencies)
         stack_license_conflict = len(license_analysis.get('f8a_stack_licenses', [])) == 0
     else:
-        license_analysis = stack_license_conflict = None
+        license_analysis = dict()
+        stack_license_conflict = None
 
     all_dependencies = {(dependency['package'], dependency['version']) for dependency in deps}
     analyzed_dependencies = {(dependency['name'], dependency['version'])
@@ -382,7 +383,9 @@ class StackAggregator:
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         finished = []
         stack_data = []
-        external_request_id = aggregated.get('external_request_id', None)
+        external_request_id = aggregated.get('external_request_id')
+        # TODO multiple license file support
+        current_stack_license = aggregated.get('current_stack_license', {}).get('1', {})
 
         for result in aggregated['result']:
             resolved = result['details'][0]['_resolved']
@@ -392,8 +395,13 @@ class StackAggregator:
 
             finished = get_dependency_data(resolved, ecosystem)
             if finished is not None:
-                stack_data.append(aggregate_stack_data(finished, manifest, ecosystem.lower(),
-                                  resolved, manifest_file_path, persist))
+                output = aggregate_stack_data(finished, manifest, ecosystem.lower(),
+                                              resolved, manifest_file_path, persist)
+                if output and output.get('user_stack_info'):
+                    output['user_stack_info']['license_analysis'].update({
+                        "current_stack_license": current_stack_license
+                    })
+                stack_data.append(output)
 
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         audit = {
