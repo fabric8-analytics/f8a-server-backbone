@@ -22,6 +22,8 @@ def liveness():
 @app.route('/api/v1/stack-recommender', methods=['POST'])
 def stack_recommender():
     input_json = request.get_json()
+    r = {'status': 'failure', 'external_request_id': None, 'message': 'Invalid request'}
+    status = 400
     if input_json and 'external_request_id' in input_json and input_json['external_request_id']:
         try:
             persist = request.args.get('persist', 'true') == 'true'
