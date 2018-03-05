@@ -1,1 +1,12 @@
 .idea/
+.env
+env/
+venv/
+cache/
+__pycache__/
+*.pyc
+config.py
+error.log
+*.ipynb
+derby.log
+metastore_db/
