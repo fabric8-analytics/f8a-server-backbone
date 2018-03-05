@@ -27,7 +27,9 @@ def stack_recommender():
     if input_json and 'external_request_id' in input_json and input_json['external_request_id']:
         try:
             persist = request.args.get('persist', 'true') == 'true'
-            r = StackRecommender().execute(input_json, persist)
+            check_license = request.args.get(
+                'check_license', 'false') == 'true'
+            r = StackRecommender().execute(input_json, persist, check_license)
             status = 200
         except Exception as e:
             r = {

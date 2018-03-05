@@ -366,7 +366,7 @@ class RecommendationTask:
             _logger.error("%s" % e)
             return None
 
-    def execute(self, arguments=None, persist=True):
+    def execute(self, arguments=None, persist=True, check_license=False):
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         results = arguments.get('result', None)
         external_request_id = arguments.get('external_request_id', None)
@@ -488,7 +488,7 @@ class RecommendationTask:
                     _logger.info("Alternate Packages Filtered for external_request_id {} {}"
                                  .format(external_request_id,
                                          filtered_alternate_packages))
-                    if persist:
+                    if check_license:
                         # apply license based filters
                         list_user_stack_comp = extract_user_stack_package_licenses(
                             resolved, ecosystem)
