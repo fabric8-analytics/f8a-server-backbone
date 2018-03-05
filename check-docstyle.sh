@@ -1,4 +1,4 @@
-directories="src test"
+directories="src tests"
 pass=0
 fail=0
 
