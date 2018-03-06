@@ -17,19 +17,19 @@ class StackRecommender:
         asyncio.set_event_loop(self.loop)
 
     @asyncio.coroutine
-    def recommender_result(self, input_json, persist, check_license):
+    def recommender_result(self, input_json, persist):
         self.recommender_task = yield from self.loop.run_in_executor(
-            self.executor, RecommendationTask().execute, input_json, persist, check_license)
+            self.executor, RecommendationTask().execute, input_json, persist)
 
     @asyncio.coroutine
     def aggregator_result(self, input_json, persist):
         self.stack_aggregator_task = yield from self.loop.run_in_executor(
-            self.executor, StackAggregator().execute, input_json, persist, check_license)
+            self.executor, StackAggregator().execute, input_json, persist)
 
-    def execute(self, input_json, persist=True, check_license=False):
+    def execute(self, input_json, persist=True):
         try:
-            tasks = [self.recommender_result(input_json, persist, check_license),
-                     self.aggregator_result(input_json, persist, check_license)]
+            tasks = [self.recommender_result(input_json, persist),
+                     self.aggregator_result(input_json, persist)]
             self.loop.run_until_complete(asyncio.gather(*tasks))
             return {
                 'status': 'success',
