@@ -153,23 +153,25 @@ def convert_version_to_proper_semantic(version):
     1.5.2-RELEASE for semantic version to work'"""
     version = version.replace('.', '-', 3)
     version = version.replace('-', '.', 2)
+    if version in ('', -1, None):
+        return '0.0.0'
     return version
 
 
-def select_latest_version(input_version='0.0.0', libio='0.0.0', anitya='0.0.0'):
+def select_latest_version(input_version='', libio='', anitya=''):
     libio_latest_version = convert_version_to_proper_semantic(libio)
     anitya_latest_version = convert_version_to_proper_semantic(anitya)
     input_version = convert_version_to_proper_semantic(input_version)
 
     try:
-        latest_version = libio_latest_version
-        return_version = libio
-        if sv.SpecItem('<' + anitya_latest_version).match(sv.Version(libio_latest_version)):
-            latest_version = anitya_latest_version
+        return_version = ''
+        if sv.Version(libio_latest_version) >= sv.Version(anitya_latest_version)\
+                and sv.Version(libio_latest_version) >= sv.Version(input_version):
+            return_version = libio
+
+        if sv.Version(anitya_latest_version) >= sv.Version(libio_latest_version)\
+                and sv.Version(anitya_latest_version) >= sv.Version(input_version):
             return_version = anitya
-        if sv.SpecItem('<' + input_version).match(sv.Version(latest_version)):
-            # User provided version is higher. Do not show the latest version in the UI
-            return_version = ''
     except ValueError:
         # In case of failure let's not show any latest version at all
         return_version = ''
