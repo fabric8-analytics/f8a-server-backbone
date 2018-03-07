@@ -168,8 +168,8 @@ class GraphDB:
                 )
                 if latest_version and latest_version == version:
                     try:
-                        if sv.SpecItem('>=' + input_stack.get(name, '0.0.0')).match(
-                                sv.Version(semversion)):
+                        if sv.SpecItem('>=' + convert_version_to_proper_semantic(
+                                input_stack.get(name, ''))).match(sv.Version(semversion)):
                             pkg_dict[name]['latest_version'] = latest_version
                             new_dict[name]['latest_version'] = epv.get('ver')
                             new_dict[name]['pkg'] = epv.get('pkg')
@@ -185,8 +185,8 @@ class GraphDB:
                                     deps_count > pkg_dict[name].get('deps_count', {}).get(
                                 'deps_count', 0):
                         try:
-                            if sv.SpecItem('>=' + input_stack.get(name, '0.0.0')).match(
-                                    sv.Version(semversion)):
+                            if sv.SpecItem('>=' + convert_version_to_proper_semantic(
+                                    input_stack.get(name, ''))).match(sv.Version(semversion)):
                                 pkg_dict[name]['deps_count'] = {"version": version,
                                                                 "deps_count": deps_count}
                                 new_dict[name]['deps_count'] = epv.get('ver')
@@ -204,8 +204,8 @@ class GraphDB:
                                     pkg_dict[name].get('gh_release_date', {}).get('gh_release_date',
                                                                                   0):
                         try:
-                            if sv.SpecItem('>=' + input_stack.get(name, '0.0.0')).match(
-                                    sv.Version(semversion)):
+                            if sv.SpecItem('>=' + convert_version_to_proper_semantic(
+                                    input_stack.get(name, ''))).match(sv.Version(semversion)):
                                 pkg_dict[name]['gh_release_date'] = {
                                     "version": version,
                                     "gh_release_date": gh_release_date}
