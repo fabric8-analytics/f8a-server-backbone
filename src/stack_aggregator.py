@@ -334,8 +334,8 @@ def aggregate_stack_data(stack, manifest_file, ecosystem, deps, manifest_file_pa
                 "ecosystem": ecosystem,
                 "analyzed_dependencies_count": len(dependencies),
                 "analyzed_dependencies": dependencies,
-                "unknown_dependencies_count": len(deps) - len(dependencies),
                 "unknown_dependencies": unknown_dependencies,
+                "unknown_dependencies_count": len(unknown_dependencies),
                 "recommendation_ready": True,  # based on the percentage of dependencies analysed
                 "total_licenses": len(stack_distinct_licenses),
                 "distinct_licenses": list(stack_distinct_licenses),
