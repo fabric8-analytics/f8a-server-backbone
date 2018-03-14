@@ -67,8 +67,7 @@ def stack_aggregator():
     input_json = request.get_json()
     if input_json and 'external_request_id' in input_json and input_json['external_request_id']:
         try:
-            check_license = request.args.get('check_license', 'false') == 'true'
-            s = StackAggregator().execute(input_json, check_license=check_license)
+            s = StackAggregator().execute(input_json)
         except Exception as e:
             s = {
                 'stack_aggregator': 'unexpected error',
