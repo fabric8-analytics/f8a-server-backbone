@@ -288,7 +288,7 @@ def extract_user_stack_package_licenses(resolved, ecosystem):
 
 
 def aggregate_stack_data(stack, manifest_file, ecosystem, deps, manifest_file_path,
-                         persist, check_license):
+                         persist):
     dependencies = []
     licenses = []
     license_score_list = []
@@ -320,12 +320,8 @@ def aggregate_stack_data(stack, manifest_file, ecosystem, deps, manifest_file_pa
     analyzed_dependencies = {(dependency['name'], dependency['version'])
                              for dependency in dependencies}
     unknown_dependencies = list()
-    if check_license:
-        """If we are checking_license for companion/alternate,
-        then we can display unknown_deps as well.
-        Since both require version level info."""
-        for name, version in all_dependencies.difference(analyzed_dependencies):
-            unknown_dependencies.append({'name': name, 'version': version})
+    for name, version in all_dependencies.difference(analyzed_dependencies):
+        unknown_dependencies.append({'name': name, 'version': version})
 
     data = {
             "manifest_name": manifest_file,
@@ -385,7 +381,7 @@ def get_dependency_data(resolved, ecosystem):
 class StackAggregator:
 
     @staticmethod
-    def execute(aggregated=None, persist=True, check_license=False):
+    def execute(aggregated=None, persist=True):
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         finished = []
         stack_data = []
@@ -402,7 +398,7 @@ class StackAggregator:
             finished = get_dependency_data(resolved, ecosystem)
             if finished is not None:
                 output = aggregate_stack_data(finished, manifest, ecosystem.lower(),
-                                              resolved, manifest_file_path, persist, check_license)
+                                              resolved, manifest_file_path, persist)
                 if output and output.get('user_stack_info'):
                     output['user_stack_info']['license_analysis'].update({
                         "current_stack_license": current_stack_license
