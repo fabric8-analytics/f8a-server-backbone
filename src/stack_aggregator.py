@@ -381,7 +381,7 @@ def get_dependency_data(resolved, ecosystem):
 class StackAggregator:
 
     @staticmethod
-    def execute(aggregated=None, persist=False):
+    def execute(aggregated=None, persist=True):
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         finished = []
         stack_data = []
