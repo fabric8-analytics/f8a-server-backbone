@@ -4,12 +4,11 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import requests
 import os
-import logging
 import json
 import datetime
 import semantic_version as sv
+from flask import current_app
 
-logger = logging.getLogger(__name__)
 
 GREMLIN_SERVER_URL_REST = "http://{host}:{port}".format(
     host=os.environ.get("BAYESIAN_GREMLIN_HTTP_SERVICE_HOST", "localhost"),
@@ -52,8 +51,8 @@ def get_osio_user_count(ecosystem, name, version):
         json_response = response.json()
         return json_response['result']['data'][0]
     except Exception as e:
-        logger.error("Failed retrieving Gremlin data.")
-        logger.error("%r" % e)
+        current_app.logger.error("Failed retrieving Gremlin data.")
+        current_app.logger.error("%r" % e)
         return -1
 
 

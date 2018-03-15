@@ -65,6 +65,8 @@ objects:
             value: "4"
           - name: CLASS_TYPE
             value: "sync"
+          - name: FLASK_LOGGING_LEVEL
+            value: ${FLASK_LOGGING_LEVEL}
           image: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${IMAGE_TAG}"
           name: f8a-server-backbone
           ports:
@@ -175,3 +177,9 @@ parameters:
   required: true
   name: API_BACKBONE_SERVICE_PORT
   value: "5000"
+
+- description: "Flask logging level (see: https://docs.python.org/3/library/logging.html#levels)"
+  displayName: Flask logging level
+  required: false
+  name: FLASK_LOGGING_LEVEL
+  value: "INFO"
