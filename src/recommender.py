@@ -360,7 +360,9 @@ class RecommendationTask:
                     json_response = response.json()
                     return json_response
             else:
-                current_app.logger.error('Payload information not passed in the call, Quitting! PGM\'s call')
+                current_app.logger.error(
+                    'Payload information not passed in the call, Quitting! PGM\'s call'
+                )
         except Exception as e:
             current_app.logger.error("Failed retrieving PGM data.")
             current_app.logger.error("%s" % e)
@@ -444,9 +446,10 @@ class RecommendationTask:
 
                     filtered_companion_packages = \
                         set(companion_packages).difference(set(filtered_list))
-                    current_app.logger.info("Companion Packages Filtered for external_request_id {} {}"
-                                     .format(external_request_id,
-                                         filtered_companion_packages))
+                    current_app.logger.info(
+                        "Companion Packages Filtered for external_request_id {} {}"
+                        .format(external_request_id, filtered_companion_packages)
+                    )
 
                     # Get the topmost alternate package for each input package
 
@@ -485,9 +488,10 @@ class RecommendationTask:
 
                     filtered_alternate_packages = \
                         set(alternate_packages).difference(set(filtered_list))
-                    current_app.logger.info("Alternate Packages Filtered for external_request_id {} {}"
-                                     .format(external_request_id,
-                                         filtered_alternate_packages))
+                    current_app.logger.info(
+                        "Alternate Packages Filtered for external_request_id {} {}"
+                        .format(external_request_id, filtered_alternate_packages)
+                    )
                     if check_license:
                         # apply license based filters
                         list_user_stack_comp = extract_user_stack_package_licenses(
