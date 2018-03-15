@@ -7,7 +7,7 @@ from stack_aggregator import StackAggregator
 from concurrent import futures
 
 
-class StackRecommender:
+class DependencyEditor:
 
     def __init__(self):
         self.recommender_task = None
