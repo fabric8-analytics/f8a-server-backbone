@@ -37,7 +37,7 @@ def liveness():
 @app.route('/api/v1/stack-recommender', methods=['POST'])
 def stack_recommender():
     input_json = request.get_json()
-    current_app.logger.debug('stack-recommender/ request with payload: {p}'.format(p=input_json))
+    app.logger.debug('stack-recommender/ request with payload: {p}'.format(p=input_json))
 
     r = {'status': 'failure', 'external_request_id': None, 'message': 'Invalid request'}
     status = 400
@@ -62,7 +62,7 @@ def recommender():
     r = {'recommendation': 'failure', 'external_request_id': None}
     status = 400
     input_json = request.get_json()
-    current_app.logger.debug('recommender/ request with payload: {p}'.format(p=input_json))
+    app.logger.debug('recommender/ request with payload: {p}'.format(p=input_json))
 
     if input_json and 'external_request_id' in input_json and input_json['external_request_id']:
         try:
@@ -84,7 +84,7 @@ def recommender():
 def stack_aggregator():
     s = {'stack_aggregator': 'failure', 'external_request_id': None}
     input_json = request.get_json()
-    current_app.logger.debug('stack_aggregator/ request with payload: {p}'.format(p=input_json))
+    app.logger.debug('stack_aggregator/ request with payload: {p}'.format(p=input_json))
 
     if input_json and 'external_request_id' in input_json and input_json['external_request_id']:
         try:
