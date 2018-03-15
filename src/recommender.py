@@ -64,7 +64,6 @@ Output:
 from __future__ import division
 import json
 import datetime
-import logging
 import traceback
 import requests
 import os
@@ -79,8 +78,9 @@ from stack_aggregator import extract_user_stack_package_licenses
 from f8a_worker.models import WorkerResult
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert
+from flask import current_app
 
-_logger = logging.getLogger(__name__)
+
 session = Postgres().session
 
 danger_word_list = ["drop\(\)", "V\(\)", "count\(\)"]
@@ -103,12 +103,12 @@ class GraphDB:
 
                 return json_response
             else:
-                _logger.error("HTTP error {}. Error retrieving Gremlin data.".format(
+                current_app.logger.error("HTTP error {}. Error retrieving Gremlin data.".format(
                     response.status_code))
                 return None
 
         except Exception:
-            _logger.error(traceback.format_exc())
+            current_app.logger.error(traceback.format_exc())
             return None
 
     @staticmethod
@@ -271,7 +271,7 @@ def invoke_license_analysis_service(user_stack_packages, alternate_packages, com
         lic_response.raise_for_status()  # raise exception for bad http-status codes
         json_response = lic_response.json()
     except requests.exceptions.RequestException:
-        _logger.exception("Unexpected error happened while invoking license analysis!")
+        current_app.logger.exception("Unexpected error happened while invoking license analysis!")
         pass
 
     return json_response
@@ -329,7 +329,7 @@ def apply_license_filter(user_stack_components, epv_list_alt, epv_list_com):
         'filtered_comp_packages_graph': epv_list_com,
         'filtered_list_pkg_names_com': list_pkg_names_com
     }
-    _logger.info("License Filter output: {}".format(json.dumps(output)))
+    current_app.logger.info("License Filter output: {}".format(json.dumps(output)))
 
     return output
 
@@ -353,17 +353,17 @@ class RecommendationTask:
                 pgm_url = PGM_URL_REST + "/api/v1/schemas/kronos_scoring"
                 response = get_session_retry().post(pgm_url, json=payload)
                 if response.status_code != 200:
-                    _logger.error("HTTP error {}. Error retrieving PGM data.".format(
+                    current_app.logger.error("HTTP error {}. Error retrieving PGM data.".format(
                         response.status_code))
                     return None
                 else:
                     json_response = response.json()
                     return json_response
             else:
-                _logger.error('Payload information not passed in the call, Quitting! PGM\'s call')
+                current_app.logger.error('Payload information not passed in the call, Quitting! PGM\'s call')
         except Exception as e:
-            _logger.error("Failed retrieving PGM data.")
-            _logger.error("%s" % e)
+            current_app.logger.error("Failed retrieving PGM data.")
+            current_app.logger.error("%s" % e)
             return None
 
     def execute(self, arguments=None, persist=True, check_license=False):
@@ -410,7 +410,7 @@ class RecommendationTask:
             msg = 'It took {t} seconds to get response from PGM ' \
                   'for external request {e}.'.format(t=elapsed_seconds,
                                                      e=external_request_id)
-            _logger.info(msg)
+            current_app.logger.info(msg)
 
             # From PGM response process companion and alternate packages and
             # then get Data from Graph
@@ -444,8 +444,8 @@ class RecommendationTask:
 
                     filtered_companion_packages = \
                         set(companion_packages).difference(set(filtered_list))
-                    _logger.info("Companion Packages Filtered for external_request_id {} {}"
-                                 .format(external_request_id,
+                    current_app.logger.info("Companion Packages Filtered for external_request_id {} {}"
+                                     .format(external_request_id,
                                          filtered_companion_packages))
 
                     # Get the topmost alternate package for each input package
@@ -485,8 +485,8 @@ class RecommendationTask:
 
                     filtered_alternate_packages = \
                         set(alternate_packages).difference(set(filtered_list))
-                    _logger.info("Alternate Packages Filtered for external_request_id {} {}"
-                                 .format(external_request_id,
+                    current_app.logger.info("Alternate Packages Filtered for external_request_id {} {}"
+                                     .format(external_request_id,
                                          filtered_alternate_packages))
                     if check_license:
                         # apply license based filters
@@ -512,13 +512,13 @@ class RecommendationTask:
                         msg = \
                             "Alternate Packages filtered (licenses) for external_request_id {} {}" \
                             .format(external_request_id, s)
-                        _logger.info(msg)
+                        current_app.logger.info(msg)
 
                     if len(lic_filtered_list_com) > 0:
                         s = set(filtered_companion_packages).difference(set(lic_filtered_list_com))
                         msg = "Companion Packages filtered (licenses) for external_request_id {} " \
                               "{}".format(external_request_id, s)
-                        _logger.info(msg)
+                        current_app.logger.info(msg)
 
                     # Get Topics Added to Filtered Packages
                     topics_comp_packages_graph = GraphDB(). \

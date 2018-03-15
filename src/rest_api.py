@@ -1,11 +1,26 @@
+import os
 import flask
+import logging
 from flask import Flask, request
 from flask_cors import CORS
 from recommender import RecommendationTask
 from stack_aggregator import StackAggregator
 from stack_recommender import StackRecommender
 
+
+def setup_logging(flask_app):
+    """Perform the setup of logging (file, log level) for this application."""
+    if not flask_app.debug:
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter(
+            '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'))
+        log_level = os.environ.get('FLASK_LOGGING_LEVEL', logging.getLevelName(logging.WARNING))
+        handler.setLevel(log_level)
+        flask_app.logger.addHandler(handler)
+
+
 app = Flask(__name__)
+setup_logging(app)
 CORS(app)
 
 

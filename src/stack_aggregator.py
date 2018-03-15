@@ -10,14 +10,13 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert
 import json
 import datetime
+from flask import current_app
 
-import logging
 import requests
 
 from utils import (get_session_retry, select_latest_version, LICENSE_SCORING_URL_REST,
                    GREMLIN_SERVER_URL_REST, Postgres)
 
-_logger = logging.getLogger(__name__)
 session = Postgres().session
 
 
@@ -234,7 +233,7 @@ def perform_license_analysis(license_score_list, dependencies):
         lic_response.raise_for_status()  # raise exception for bad http-status codes
         resp = lic_response.json()
     except requests.exceptions.RequestException:
-        _logger.exception("Unexpected error happened while invoking license analysis!")
+        current_app.logger.exception("Unexpected error happened while invoking license analysis!")
         flag_stack_license_exception = True
         pass
 
@@ -347,7 +346,7 @@ def get_dependency_data(resolved, ecosystem):
     result = []
     for elem in resolved:
         if elem["package"] is None or elem["version"] is None:
-            _logger.warning("Either component name or component version is missing")
+            current_app.logger.warning("Either component name or component version is missing")
             continue
 
         qstring = \
@@ -369,10 +368,10 @@ def get_dependency_data(resolved, ecosystem):
 
                 result.append(graph_resp["result"])
             else:
-                _logger.error("Failed retrieving dependency data.")
+                current_app.logger.error("Failed retrieving dependency data.")
                 continue
         except Exception:
-            _logger.exception("Error retrieving dependency data!")
+            current_app.logger.exception("Error retrieving dependency data!")
             continue
 
     return {"result": result}
