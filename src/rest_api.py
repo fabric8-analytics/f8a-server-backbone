@@ -5,7 +5,7 @@ from flask import Flask, request, current_app
 from flask_cors import CORS
 from recommender import RecommendationTask
 from stack_aggregator import StackAggregator
-from stack_recommender import StackRecommender
+from dependency_editor import DependencyEditor
 
 
 def setup_logging(flask_app):
@@ -37,8 +37,8 @@ def liveness():
     return flask.jsonify({}), 200
 
 
-@app.route('/api/v1/stack-recommender', methods=['POST'])
-def stack_recommender():
+@app.route('/api/v1/dep-editor', methods=['POST'])
+def dep_editor():
     input_json = request.get_json()
     current_app.logger.debug('stack-recommender/ request with payload: {p}'.format(p=input_json))
 
@@ -47,7 +47,7 @@ def stack_recommender():
     if input_json and 'external_request_id' in input_json and input_json['external_request_id']:
         try:
             persist = request.args.get('persist', 'true') == 'true'
-            r = StackRecommender().execute(input_json, persist)
+            r = DependencyEditor().execute(input_json, persist)
             status = 200
         except Exception as e:
             r = {
