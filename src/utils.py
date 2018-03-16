@@ -159,8 +159,12 @@ def convert_version_to_proper_semantic(version):
 
 
 def select_latest_version(input_version='', libio='', anitya=''):
-    libio_latest_version = convert_version_to_proper_semantic(libio)
-    anitya_latest_version = convert_version_to_proper_semantic(anitya)
+    libio_latest_version = '0.0.0'
+    anitya_latest_version = '0.0.0'
+    if libio and libio != "-1":
+        libio_latest_version = convert_version_to_proper_semantic(libio)
+    if anitya and anitya != "-1":
+        anitya_latest_version = convert_version_to_proper_semantic(anitya)
     input_version = convert_version_to_proper_semantic(input_version)
 
     try:
