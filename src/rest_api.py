@@ -16,7 +16,10 @@ def setup_logging(flask_app):
             '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'))
         log_level = os.environ.get('FLASK_LOGGING_LEVEL', logging.getLevelName(logging.WARNING))
         handler.setLevel(log_level)
+
         flask_app.logger.addHandler(handler)
+        flask_app.config['LOGGER_HANDLER_POLICY'] = 'never'
+        flask_app.logger.setLevel(logging.DEBUG)
 
 
 app = Flask(__name__)
