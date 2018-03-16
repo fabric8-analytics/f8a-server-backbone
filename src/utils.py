@@ -148,12 +148,16 @@ def create_package_dict(graph_results, alt_dict=None):
 
 
 def convert_version_to_proper_semantic(version):
-    """needed for maven version like 1.5.2.RELEASE to be converted to
+    """Perform Semantic versioning.
+    :param version: The raw input version that needs to be converted.
+    :return: The semantic version of raw input version.
+
+    Needed for maven version like 1.5.2.RELEASE to be converted to
     1.5.2-RELEASE for semantic version to work'"""
+    if version in ('', '-1', None):
+        return '0.0.0'
     version = version.replace('.', '-', 3)
     version = version.replace('-', '.', 2)
-    if version in ('', -1, None):
-        return '0.0.0'
     return version
 
 
