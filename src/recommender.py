@@ -140,7 +140,7 @@ class GraphDB:
         return response
 
     @staticmethod
-    def filter_versions(epv_list, input_stack):
+    def filter_versions(epv_list, input_stack, external_request_id):
         """First filter fetches only EPVs that
         1. has No CVEs
         2. are Present in Graph
@@ -214,6 +214,10 @@ class GraphDB:
                                 filtered_comp_list.append(name)
                         except ValueError:
                             pass
+
+        current_app.logger.info(
+            "Data Dict new_dict for external_request_id {} is {}"
+            .format(external_request_id, new_dict))
 
         new_list = []
         for package, contents in new_dict.items():
@@ -442,7 +446,7 @@ class RecommendationTask:
 
                     # Apply Version Filters
                     filtered_comp_packages_graph, filtered_list = GraphDB().filter_versions(
-                        comp_packages_graph, input_stack)
+                        comp_packages_graph, input_stack, external_request_id)
 
                     filtered_companion_packages = \
                         set(companion_packages).difference(set(filtered_list))
@@ -484,7 +488,7 @@ class RecommendationTask:
 
                     # Apply Version Filters
                     filtered_alt_packages_graph, filtered_list = GraphDB().filter_versions(
-                        alt_packages_graph, input_stack)
+                        alt_packages_graph, input_stack, external_request_id)
 
                     filtered_alternate_packages = \
                         set(alternate_packages).difference(set(filtered_list))
