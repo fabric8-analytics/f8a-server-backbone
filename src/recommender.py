@@ -215,6 +215,10 @@ class GraphDB:
                         except ValueError:
                             pass
 
+        current_app.logger.info(
+            "Data Dict new_dict for external_request_id {} {}"
+            .format(external_request_id, new_dict))
+
         new_list = []
         for package, contents in new_dict.items():
             if 'latest_version' in contents:
