@@ -70,7 +70,9 @@ def recommender():
     if input_json and 'external_request_id' in input_json and input_json['external_request_id']:
         try:
             check_license = request.args.get('check_license', 'false') == 'true'
-            r = RecommendationTask().execute(input_json, check_license=check_license)
+            persist = request.args.get('persist', 'true') == 'true'
+            r = RecommendationTask().execute(input_json, persist=persist,
+                                             check_license=check_license)
             status = 200
         except Exception as e:
             r = {
@@ -88,10 +90,10 @@ def stack_aggregator():
     s = {'stack_aggregator': 'failure', 'external_request_id': None}
     input_json = request.get_json()
     current_app.logger.debug('stack_aggregator/ request with payload: {p}'.format(p=input_json))
-
     if input_json and 'external_request_id' in input_json and input_json['external_request_id']:
         try:
-            s = StackAggregator().execute(input_json)
+            persist = request.args.get('persist', 'true') == 'true'
+            s = StackAggregator().execute(input_json, persist=persist)
         except Exception as e:
             s = {
                 'stack_aggregator': 'unexpected error',
