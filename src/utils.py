@@ -20,7 +20,10 @@ LICENSE_SCORING_URL_REST = "http://{host}:{port}".format(
 
 
 # Create Postgres Connection Session
+
+
 class Postgres:
+
     def __init__(self):
         self.connection = 'postgresql://{user}:{password}@{pgbouncer_host}:{pgbouncer_port}' \
                           '/{database}?sslmode=disable'. \
@@ -167,16 +170,21 @@ def select_latest_version(input_version='', libio='', anitya=''):
     input_version = convert_version_to_proper_semantic(input_version)
 
     try:
-        return_version = ''
+        return_version = input_version
         if sv.Version(libio_latest_version) >= sv.Version(anitya_latest_version)\
                 and sv.Version(libio_latest_version) >= sv.Version(input_version):
             return_version = libio
 
-        if sv.Version(anitya_latest_version) >= sv.Version(libio_latest_version)\
+        elif sv.Version(anitya_latest_version) >= sv.Version(libio_latest_version)\
                 and sv.Version(anitya_latest_version) >= sv.Version(input_version):
             return_version = anitya
+
+        if return_version == '0.0.0':
+            return_version = ''
     except ValueError:
         # In case of failure let's not show any latest version at all
+        current_app.logger.exception(
+            "Unexpected ValueError while selecting latest version!")
         return_version = ''
         pass
 
