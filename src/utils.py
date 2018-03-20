@@ -33,7 +33,8 @@ class Postgres:
                           '/{database}?sslmode=disable'. \
             format(user=os.getenv('POSTGRESQL_USER'),
                    password=os.getenv('POSTGRESQL_PASSWORD'),
-                   pgbouncer_host=os.getenv('PGBOUNCER_SERVICE_HOST', 'bayesian-pgbouncer'),
+                   pgbouncer_host=os.getenv(
+                       'PGBOUNCER_SERVICE_HOST', 'bayesian-pgbouncer'),
                    pgbouncer_port=os.getenv('PGBOUNCER_SERVICE_PORT', '5432'),
                    database=os.getenv('POSTGRESQL_DATABASE'))
         engine = create_engine(self.connection)
@@ -56,7 +57,8 @@ def get_osio_user_count(ecosystem, name, version):
     }
 
     try:
-        response = get_session_retry().post(GREMLIN_SERVER_URL_REST, data=json.dumps(payload))
+        response = get_session_retry().post(
+            GREMLIN_SERVER_URL_REST, data=json.dumps(payload))
         json_response = response.json()
         return json_response['result']['data'][0]
     except Exception as e:
@@ -84,7 +86,8 @@ def create_package_dict(graph_results, alt_dict=None):
                 'latest_version': select_latest_version(
                     version,
                     epv['pkg'].get('libio_latest_version', [''])[0],
-                    epv['pkg'].get('latest_version', [''])[0]
+                    epv['pkg'].get('latest_version', [''])[0],
+                    name
                 ),
                 'security': [],
                 'osio_user_count': osio_user_count,
@@ -167,6 +170,16 @@ def convert_version_to_proper_semantic(version):
     """
     if version in ('', '-1', None):
         return '0.0.0'
+    vsplit_components = version.split('.')
+    len_vsplit = len(vsplit_components)
+    if len_vsplit == 1:
+        version = version + ".0.0"
+    elif len_vsplit == 2:
+        version = version + ".0"
+    elif len_vsplit == 3 and len(vsplit_components[1].split('-')) == 1 \
+            and vsplit_components[-1][0].isalpha():
+        version = '.'.join(vsplit_components[
+                           :-1]) + '.0.' + vsplit_components[-1]
     version = version.replace('.', '-', 3)
     version = version.replace('-', '.', 2)
     return version
@@ -193,11 +206,11 @@ def select_latest_version(input_version='', libio='', anitya=''):
     except ValueError:
         # In case of failure let's not show any latest version at all
         current_app.logger.exception(
-            "Unexpected ValueError while selecting latest version!")
+            "Unexpected ValueError while selecting latest version for package {}!"
+            .format(package_name))
         return_version = ''
-        pass
-
-    return return_version
+    finally:
+        return return_version
 
 
 def get_session_retry(retries=3, backoff_factor=0.2, status_forcelist=(404, 500, 502, 504),
