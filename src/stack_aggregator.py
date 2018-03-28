@@ -1,4 +1,5 @@
-"""
+"""An implementation of stack aggregator.
+
 Gathers component data from the graph database and aggregate the data to be presented
 by stack-analyses endpoint
 
@@ -21,6 +22,7 @@ session = Postgres().session
 
 
 def extract_component_details(component):
+    """Extract details from given component."""
     github_details = {
         "dependent_projects":
             component.get("package", {}).get("libio_dependents_projects", [-1])[0],
@@ -103,7 +105,8 @@ def extract_component_details(component):
 
 
 def _extract_conflict_packages(license_service_output):
-    """
+    """Extract conflict licenses.
+
     This helper function extracts conflict licenses from the given output
     of license analysis REST service.
 
@@ -135,7 +138,8 @@ def _extract_conflict_packages(license_service_output):
 
 
 def _extract_unknown_licenses(license_service_output):
-    """
+    """Extract unknown licenses.
+
     This helper function extracts unknown licenses information from the given
     output of license analysis REST service.
 
@@ -199,7 +203,8 @@ def _extract_unknown_licenses(license_service_output):
 
 
 def _extract_license_outliers(license_service_output):
-    """
+    """Extract license outliers.
+
     This helper function extracts license outliers from the given output of
     license analysis REST service.
 
@@ -221,6 +226,7 @@ def _extract_license_outliers(license_service_output):
 
 
 def perform_license_analysis(license_score_list, dependencies):
+    """Pass given license_score_list to stack_license analysis and process response."""
     license_url = LICENSE_SCORING_URL_REST + "/api/v1/stack_license"
 
     payload = {
@@ -269,6 +275,7 @@ def perform_license_analysis(license_score_list, dependencies):
 
 
 def extract_user_stack_package_licenses(resolved, ecosystem):
+    """Extract user stack package licenses."""
     user_stack = get_dependency_data(resolved, ecosystem)
     list_package_licenses = []
     if user_stack is not None:
@@ -288,6 +295,7 @@ def extract_user_stack_package_licenses(resolved, ecosystem):
 
 def aggregate_stack_data(stack, manifest_file, ecosystem, deps, manifest_file_path,
                          persist):
+    """Aggregate stack data."""
     dependencies = []
     licenses = []
     license_score_list = []
@@ -343,6 +351,7 @@ def aggregate_stack_data(stack, manifest_file, ecosystem, deps, manifest_file_pa
 
 
 def get_dependency_data(resolved, ecosystem):
+    """Get dependency data from graph."""
     result = []
     for elem in resolved:
         if elem["package"] is None or elem["version"] is None:
@@ -378,9 +387,11 @@ def get_dependency_data(resolved, ecosystem):
 
 
 class StackAggregator:
+    """Aggregate stack data from components."""
 
     @staticmethod
     def execute(aggregated=None, persist=True):
+        """Task code."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         finished = []
         stack_data = []

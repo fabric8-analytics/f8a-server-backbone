@@ -25,8 +25,10 @@ LICENSE_SCORING_URL_REST = "http://{host}:{port}".format(
 
 
 class Postgres:
+    """Postgres connection session handler."""
 
     def __init__(self):
+        """Initialize the connection to Postgres database."""
         self.connection = 'postgresql://{user}:{password}@{pgbouncer_host}:{pgbouncer_port}' \
                           '/{database}?sslmode=disable'. \
             format(user=os.getenv('POSTGRESQL_USER'),
@@ -40,10 +42,12 @@ class Postgres:
         self.session = self.Session()
 
     def session(self):
+        """Return the established session."""
         return self.session
 
 
 def get_osio_user_count(ecosystem, name, version):
+    """Send query to the graph database to get # of uses for the provided E+P+V."""
     str_gremlin = "g.V().has('pecosystem','{}').has('pname','{}').has('version','{}').".format(
         ecosystem, name, version)
     str_gremlin += "in('uses').count();"
@@ -154,11 +158,13 @@ def create_package_dict(graph_results, alt_dict=None):
 
 def convert_version_to_proper_semantic(version):
     """Perform Semantic versioning.
+
     :param version: The raw input version that needs to be converted.
     :return: The semantic version of raw input version.
 
     Needed for maven version like 1.5.2.RELEASE to be converted to
-    1.5.2-RELEASE for semantic version to work'"""
+    1.5.2-RELEASE for semantic version to work'
+    """
     if version in ('', '-1', None):
         return '0.0.0'
     version = version.replace('.', '-', 3)
@@ -167,6 +173,7 @@ def convert_version_to_proper_semantic(version):
 
 
 def select_latest_version(input_version='', libio='', anitya=''):
+    """Select latest version from input sequence(s)."""
     libio_latest_version = convert_version_to_proper_semantic(libio)
     anitya_latest_version = convert_version_to_proper_semantic(anitya)
     input_version = convert_version_to_proper_semantic(input_version)
