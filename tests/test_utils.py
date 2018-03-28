@@ -26,7 +26,7 @@ def test_semantic_versioning():
 
 
 def test_version_info_tuple():
-    """Check the function vt()"""
+    """Check the function vt()."""
     version_str = "2.0.rc1"
     version_obj = cvs(version_str)
     version_info = vt(version_obj)

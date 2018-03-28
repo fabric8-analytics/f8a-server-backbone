@@ -161,10 +161,12 @@ def create_package_dict(graph_results, alt_dict=None):
 
 def convert_version_to_proper_semantic(version):
     """Perform Semantic versioning.
+
     : type version: string
     : param version: The raw input version that needs to be converted.
     : type return: semantic_version.base.Version
-    : return: The semantic version of raw input version."""
+    : return: The semantic version of raw input version.
+    """
     if version in ('', '-1', None):
         version = '0.0.0'
     """Needed for maven version like 1.5.2.RELEASE to be converted to
@@ -178,9 +180,11 @@ def convert_version_to_proper_semantic(version):
 
 def version_info_tuple(version):
     """Return the version information in form of (major, minor, patch, build) for a given sem Version.
+
     : type version: semantic_version.base.Version
     : param version: The semantic version whole details are needed.
-    return: A tuple in form of Version.(major, minor, patch, build)"""
+    : return: A tuple in form of Version.(major, minor, patch, build)
+    """
     if type(version) == sv.base.Version:
         return(version.major,
                version.minor,
@@ -196,17 +200,24 @@ def select_latest_version(input_version='', libio='', anitya='', package_name=No
     input_sem_version = convert_version_to_proper_semantic(input_version)
 
     try:
-        return_version = input_version
-        if version_info_tuple(libio_sem_version) >= version_info_tuple(anitya_sem_version)\
-                and version_info_tuple(libio_sem_version) >= version_info_tuple(input_sem_version):
-            return_version = libio
-
-        elif version_info_tuple(anitya_sem_version) >= version_info_tuple(libio_sem_version)\
-                and version_info_tuple(anitya_sem_version) >= version_info_tuple(input_sem_version):
-            return_version = anitya
-
-        if return_version in ('', '-1', None):
+        if str(libio_sem_version) == '0.0.0'\
+                and str(anitya_sem_version) == '0.0.0'\
+                and str(input_sem_version) == '0.0.0':
             return_version = ''
+        else:
+            return_version = input_version
+
+            if version_info_tuple(libio_sem_version) >=\
+                    version_info_tuple(anitya_sem_version)\
+                    and version_info_tuple(libio_sem_version) >=\
+                    version_info_tuple(input_sem_version):
+                return_version = libio
+
+            elif version_info_tuple(anitya_sem_version) >=\
+                    version_info_tuple(libio_sem_version)\
+                    and version_info_tuple(anitya_sem_version) >=\
+                    version_info_tuple(input_sem_version):
+                return_version = anitya
     except ValueError:
         """In case of failure let's not show any latest version at all.
         Also, no generation of stack trace,
