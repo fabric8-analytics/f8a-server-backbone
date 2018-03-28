@@ -43,6 +43,7 @@ def test_version_info_tuple():
     assert version_info[2] == 0
     assert version_info[3] == tuple()
 
+
 if __name__ == '__main__':
     test_semantic_versioning()
     test_version_info_tuple()
