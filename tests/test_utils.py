@@ -1,7 +1,10 @@
+"""Tests for the 'utils' module."""
+
 from src.utils import convert_version_to_proper_semantic as cvs
 
 
-def test_semantic_versionin():
+def test_semantic_versioning():
+    """Check the function cvs()."""
     version = "-1"
     assert cvs(version) == "0.0.0"
     version = ""
@@ -12,3 +15,7 @@ def test_semantic_versionin():
     assert cvs(version) == "1.5.2-RELEASE"
     version = "1.5-2.RELEASE"
     assert cvs(version) == "1.5.2-RELEASE"
+
+
+if __name__ == '__main__':
+    test_semantic_versioning()
