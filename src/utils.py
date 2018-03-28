@@ -189,7 +189,7 @@ def version_info_tuple(version):
     return (0, 0, 0, tuple())
 
 
-def select_latest_version(input_version='', libio='', anitya=''):
+def select_latest_version(input_version='', libio='', anitya='', package_name=None):
     """Select latest version from input sequence(s)."""
     libio_sem_version = convert_version_to_proper_semantic(libio)
     anitya_sem_version = convert_version_to_proper_semantic(anitya)
