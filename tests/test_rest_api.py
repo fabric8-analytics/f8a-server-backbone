@@ -1,3 +1,5 @@
+"""Tests for the REST API of the backbone service."""
+
 import requests
 import os
 
@@ -36,6 +38,7 @@ url = "http://localhost:{port}/api/v1".format(port=port)
 
 
 def test_stack_api_endpoint():
+    """Check the /stack_aggregator REST API endpoint."""
     stack_resp = requests.post(url + "/stack_aggregator", json=payload)
     jsn = stack_resp.json()
     assert(jsn['stack_aggregator'] == 'failure')
@@ -43,7 +46,13 @@ def test_stack_api_endpoint():
 
 
 def test_recommendation_api_endpoint():
+    """Check the /recommender REST API endpoint."""
     rec_resp = requests.post(url + "/recommender", json=payload)
     jsn = rec_resp.json()
     assert(jsn['recommendation'] == 'failure')
     assert(jsn['external_request_id'] is None)
+
+
+if __name__ == '__main__':
+    test_stack_api_endpoint()
+    test_recommendation_api_endpoint()
