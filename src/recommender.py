@@ -1,6 +1,6 @@
-"""
-Gets Alternate and Companion Components recommendation from the recommendation engine. It also
-gives a list of packages that are not known to the recommendation engine for further crowd
+"""Gets Alternate and Companion Components recommendation from the recommendation engine.
+
+It also gives a list of packages that are not known to the recommendation engine for further crowd
 sourcing.
 
 Output:
@@ -61,6 +61,7 @@ Output:
 ]
 
 """
+
 from __future__ import division
 import json
 import datetime
@@ -91,6 +92,7 @@ pattern_n2_remove = re.compile(pattern_to_save)
 
 
 class GraphDB:
+    """Graph database interface."""
 
     @staticmethod
     def execute_gremlin_dsl(payload):
@@ -113,11 +115,15 @@ class GraphDB:
 
     @staticmethod
     def get_response_data(json_response, data_default):
-        """Data default parameters takes what should data to be returned."""
+        """Retrieve data from the JSON response.
+
+        Data default parameters takes what should data to be returned.
+        """
         return json_response.get("result", {}).get("data", data_default)
 
     def get_version_information(self, input_list, ecosystem):
-        """Fetch the version information for each of the packages
+        """Fetch the version information for each of the packages.
+
         Also remove EPVs with CVEs and ones not present in Graph
         """
         input_packages = [package for package in input_list]
@@ -141,13 +147,16 @@ class GraphDB:
 
     @staticmethod
     def filter_versions(epv_list, input_stack, external_request_id=None, rec_type=None):
-        """First filter fetches only EPVs that
+        """Filter the EPVs according to following rules.
+
+        First filter fetches only EPVs that
         1. has No CVEs
         2. are Present in Graph
         Apply additional filter based on following. That is sorted based on
         3. Latest Version
         4. Dependents Count in Github Manifest Data
-        5. Github Release Date"""
+        5. Github Release Date
+        """
         current_app.logger.info("Filtering {} for external_request_id {}".format(
             rec_type, external_request_id))
 
@@ -243,7 +252,7 @@ class GraphDB:
 
     @staticmethod
     def get_topics_for_alt(comp_list, pgm_dict):
-        """Gets topics from pgm and associate with filtered versions from Graph"""
+        """Get topics from pgm and associate with filtered versions from Graph."""
         for epv in comp_list:
             name = epv.get('pkg', {}).get('name', [''])[0]
             if name:
@@ -256,7 +265,7 @@ class GraphDB:
 
     @staticmethod
     def get_topics_for_comp(comp_list, pgm_list):
-        """Gets topics from pgm and associate with filtered versions from Graph"""
+        """Get topics from pgm and associate with filtered versions from Graph."""
         for epv in comp_list:
             name = epv.get('pkg', {}).get('name', [''])[0]
             if name:
@@ -272,6 +281,7 @@ class GraphDB:
 
 
 def invoke_license_analysis_service(user_stack_packages, alternate_packages, companion_packages):
+    """Pass given args to stack_license analysis."""
     license_url = LICENSE_SCORING_URL_REST + "/api/v1/stack_license"
 
     payload = {
@@ -293,6 +303,7 @@ def invoke_license_analysis_service(user_stack_packages, alternate_packages, com
 
 
 def apply_license_filter(user_stack_components, epv_list_alt, epv_list_com):
+    """License Filter."""
     license_score_list_alt = []
     for epv in epv_list_alt:
         license_scoring_input = {
@@ -350,14 +361,18 @@ def apply_license_filter(user_stack_components, epv_list_alt, epv_list_com):
 
 
 class RecommendationTask:
+    """Recommendation task."""
+
     _analysis_name = 'recommendation_v2'
     description = 'Get Recommendation'
 
     @staticmethod
     def call_pgm(payload):
+        """Call the PGM model.
 
-        """Calls the PGM model with the normalized manifest information to get
-        the relevant packages"""
+        Calls the PGM model with the normalized manifest information to get
+        the relevant packages.
+        """
         try:
             # TODO remove hardcodedness for payloads with multiple ecosystems
             if payload and 'ecosystem' in payload[0]:
@@ -384,6 +399,7 @@ class RecommendationTask:
             return None
 
     def execute(self, arguments=None, persist=True, check_license=False):
+        """Execute task."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         results = arguments.get('result', None)
         external_request_id = arguments.get('external_request_id', None)

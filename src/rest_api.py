@@ -1,3 +1,5 @@
+"""Implementation of the REST API for the backbone service."""
+
 import os
 import flask
 import logging
@@ -29,16 +31,19 @@ CORS(app)
 
 @app.route('/api/v1/readiness')
 def readiness():
+    """Handle GET requests that are sent to /api/v1/readiness REST API endpoint."""
     return flask.jsonify({}), 200
 
 
 @app.route('/api/v1/liveness')
 def liveness():
+    """Handle GET requests that are sent to /api/v1/liveness REST API endpoint."""
     return flask.jsonify({}), 200
 
 
 @app.route('/api/v1/dep-editor', methods=['POST'])
 def dep_editor():
+    """Handle POST requests that are sent to /api/v1/dep-editor REST API endpoint."""
     input_json = request.get_json()
     current_app.logger.debug('stack-recommender/ request with payload: {p}'.format(p=input_json))
 
@@ -62,6 +67,7 @@ def dep_editor():
 
 @app.route('/api/v1/recommender', methods=['POST'])
 def recommender():
+    """Handle POST requests that are sent to /api/v1/recommender REST API endpoint."""
     r = {'recommendation': 'failure', 'external_request_id': None}
     status = 400
     input_json = request.get_json()
@@ -87,6 +93,7 @@ def recommender():
 
 @app.route('/api/v1/stack_aggregator', methods=['POST'])
 def stack_aggregator():
+    """Handle POST requests that are sent to /api/v1/stack_aggregator REST API endpoint."""
     s = {'stack_aggregator': 'failure', 'external_request_id': None}
     input_json = request.get_json()
     current_app.logger.debug('stack_aggregator/ request with payload: {p}'.format(p=input_json))
