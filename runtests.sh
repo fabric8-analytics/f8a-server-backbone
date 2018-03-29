@@ -27,6 +27,7 @@ source venv/bin/activate
 pip install -U pip
 pip install -r requirements.txt
 
-py.test -s tests/
+cd tests
+PYTHONDONTWRITEBYTECODE=1 python `which pytest` --cov=../src/ --cov-report term-missing -vv .
 
 rm -rf venv/
