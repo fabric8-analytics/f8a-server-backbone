@@ -10,6 +10,7 @@ prep(){
 	yum install -y epel-release
 	yum install -y gcc git python34-pip python34-requests httpd httpd-devel python34-devel
 	yum clean all
+	pip install -U pip
 }
 prep
 
