@@ -19,13 +19,18 @@ function start_backbone_service {
 start_backbone_service
 
 export PYTHONPATH=`pwd`/src
-
 echo "Create Virtualenv for Python deps ..."
-virtualenv venv
-source venv/bin/activate
-
-pip install -U pip
-pip install -r requirements.txt
+function prepare_venv() {
+    VIRTUALENV=`which virtualenv`
+    if [ $? -eq 1 ]; then
+        # python34 which is in CentOS does not have virtualenv binary
+        VIRTUALENV=`which virtualenv-3`
+    fi
+    ${VIRTUALENV} -p python3 venv && source venv/bin/activate
+}
+prepare_venv
+pip3 install -r requirements.txt
+pip3 install git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@561636c
 
 cd tests
 PYTHONDONTWRITEBYTECODE=1 python `which pytest` --cov=../src/ --cov-report term-missing -vv .
