@@ -21,13 +21,17 @@ start_backbone_service
 export PYTHONPATH=`pwd`/src
 
 echo "Create Virtualenv for Python deps ..."
-virtualenv venv
-source venv/bin/activate
+function prepare_venv() {
+    VIRTUALENV=`which virtualenv`
+    if [ $? -eq 1 ]; then
+        # python34 which is in CentOS does not have virtualenv binary
+        VIRTUALENV=`which virtualenv-3`
+    fi
 
-pip install -U pip
-pip install -r requirements.txt
+    ${VIRTUALENV} -p python3 venv && source venv/bin/activate && python3 `which pip3` install -r requirements.txt
+}
+
+[ "$NOVENV" == "1" ] || prepare_venv || exit 1
 
 cd tests
-PYTHONDONTWRITEBYTECODE=1 python `which pytest` --cov=../src/ --cov-report term-missing -vv .
-
-rm -rf venv/
+PYTHONDONTWRITEBYTECODE=1 python3 `which pytest` --cov=../src/ --cov-report term-missing -vv .
