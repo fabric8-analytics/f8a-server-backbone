@@ -29,12 +29,12 @@ function prepare_venv() {
         # python34 which is in CentOS does not have virtualenv binary
         VIRTUALENV=`which virtualenv-3`
     fi
-    ${VIRTUALENV} -p `which python3` venv && source venv/bin/activate
+    ${VIRTUALENV} -p python3 venv && source venv/bin/activate
 }
 prepare_venv
 pip3 install -r requirements.txt
 pip3 install git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@561636c
 
-`which python3` `which pytest` --cov=src/ --cov-report term-missing -vv tests/
+python3 `which pytest` --cov=src/ --cov-report term-missing -vv tests/
 
 rm -rf venv/
