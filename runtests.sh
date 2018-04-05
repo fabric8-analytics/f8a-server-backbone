@@ -34,6 +34,6 @@ pip3 install -r requirements.txt
 pip3 install git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@561636c
 pip3 install pytest
 
-python3 `which pytest` --cov=src/ --cov-report term-missing -vv tests/
+PYTHONDONTWRITEBYTECODE=1 python3 `which pytest` --cov=src/ --cov-report term-missing -vv tests/
 
 rm -rf venv/
