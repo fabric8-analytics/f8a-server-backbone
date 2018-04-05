@@ -5,7 +5,7 @@ gc() {
   docker-compose -f docker-compose.yml down -v || :
   exit $retval
 }
-trap gc EXIT SIGINT
+# trap gc EXIT SIGINT
 
 # Enter local-setup/ directory
 # Run local instances for: dynamodb, gremlin-websocket, gremlin-http
@@ -16,7 +16,7 @@ function start_backbone_service {
     #popd
 }
 
-start_backbone_service
+# start_backbone_service
 
 export PYTHONPATH=`pwd`/src
 
