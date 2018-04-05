@@ -2,11 +2,11 @@
 
 set -ex
 
-. cico_setup.sh
+prep() {
+    yum -y update
+    yum -y install epel-release
+    yum -y install python34 python34-virtualenv which libarchive
+}
 
-# not needed for tests, but we can check that the image actually builds
-build_image
-
+prep
 ./runtests.sh
-
-push_image
