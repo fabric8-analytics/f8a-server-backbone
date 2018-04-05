@@ -33,7 +33,8 @@ class Postgres:
                           '/{database}?sslmode=disable'. \
             format(user=os.getenv('POSTGRESQL_USER'),
                    password=os.getenv('POSTGRESQL_PASSWORD'),
-                   pgbouncer_host=os.getenv('PGBOUNCER_SERVICE_HOST', 'bayesian-pgbouncer'),
+                   pgbouncer_host=os.getenv(
+                       'PGBOUNCER_SERVICE_HOST', 'bayesian-pgbouncer'),
                    pgbouncer_port=os.getenv('PGBOUNCER_SERVICE_PORT', '5432'),
                    database=os.getenv('POSTGRESQL_DATABASE'))
         engine = create_engine(self.connection)
@@ -56,7 +57,8 @@ def get_osio_user_count(ecosystem, name, version):
     }
 
     try:
-        response = get_session_retry().post(GREMLIN_SERVER_URL_REST, data=json.dumps(payload))
+        response = get_session_retry().post(
+            GREMLIN_SERVER_URL_REST, data=json.dumps(payload))
         json_response = response.json()
         return json_response['result']['data'][0]
     except Exception as e:
@@ -84,7 +86,8 @@ def create_package_dict(graph_results, alt_dict=None):
                 'latest_version': select_latest_version(
                     version,
                     epv['pkg'].get('libio_latest_version', [''])[0],
-                    epv['pkg'].get('latest_version', [''])[0]
+                    epv['pkg'].get('latest_version', [''])[0],
+                    name
                 ),
                 'security': [],
                 'osio_user_count': osio_user_count,
@@ -159,45 +162,73 @@ def create_package_dict(graph_results, alt_dict=None):
 def convert_version_to_proper_semantic(version):
     """Perform Semantic versioning.
 
-    :param version: The raw input version that needs to be converted.
-    :return: The semantic version of raw input version.
-
-    Needed for maven version like 1.5.2.RELEASE to be converted to
-    1.5.2-RELEASE for semantic version to work'
+    : type version: string
+    : param version: The raw input version that needs to be converted.
+    : type return: semantic_version.base.Version
+    : return: The semantic version of raw input version.
     """
     if version in ('', '-1', None):
-        return '0.0.0'
+        version = '0.0.0'
+    """Needed for maven version like 1.5.2.RELEASE to be converted to
+    1.5.2 - RELEASE for semantic version to work."""
     version = version.replace('.', '-', 3)
     version = version.replace('-', '.', 2)
-    return version
+    # Needed to add this so that -RELEASE is account as a Version.build
+    version = version.replace('-', '+', 3)
+    return sv.Version.coerce(version)
 
 
-def select_latest_version(input_version='', libio='', anitya=''):
+def version_info_tuple(version):
+    """Return the version information in form of (major, minor, patch, build) for a given sem Version.
+
+    : type version: semantic_version.base.Version
+    : param version: The semantic version whole details are needed.
+    : return: A tuple in form of Version.(major, minor, patch, build)
+    """
+    if type(version) == sv.base.Version:
+        return(version.major,
+               version.minor,
+               version.patch,
+               version.build)
+    return (0, 0, 0, tuple())
+
+
+def select_latest_version(input_version='', libio='', anitya='', package_name=None):
     """Select latest version from input sequence(s)."""
-    libio_latest_version = convert_version_to_proper_semantic(libio)
-    anitya_latest_version = convert_version_to_proper_semantic(anitya)
-    input_version = convert_version_to_proper_semantic(input_version)
+    libio_sem_version = convert_version_to_proper_semantic(libio)
+    anitya_sem_version = convert_version_to_proper_semantic(anitya)
+    input_sem_version = convert_version_to_proper_semantic(input_version)
 
     try:
-        return_version = input_version
-        if sv.Version(libio_latest_version) >= sv.Version(anitya_latest_version)\
-                and sv.Version(libio_latest_version) >= sv.Version(input_version):
-            return_version = libio
-
-        elif sv.Version(anitya_latest_version) >= sv.Version(libio_latest_version)\
-                and sv.Version(anitya_latest_version) >= sv.Version(input_version):
-            return_version = anitya
-
-        if return_version == '0.0.0':
+        if str(libio_sem_version) == '0.0.0'\
+                and str(anitya_sem_version) == '0.0.0'\
+                and str(input_sem_version) == '0.0.0':
             return_version = ''
+        else:
+            return_version = input_version
+
+            if version_info_tuple(libio_sem_version) >=\
+                    version_info_tuple(anitya_sem_version)\
+                    and version_info_tuple(libio_sem_version) >=\
+                    version_info_tuple(input_sem_version):
+                return_version = libio
+
+            elif version_info_tuple(anitya_sem_version) >=\
+                    version_info_tuple(libio_sem_version)\
+                    and version_info_tuple(anitya_sem_version) >=\
+                    version_info_tuple(input_sem_version):
+                return_version = anitya
     except ValueError:
-        # In case of failure let's not show any latest version at all
-        current_app.logger.exception(
-            "Unexpected ValueError while selecting latest version!")
+        """In case of failure let's not show any latest version at all.
+        Also, no generation of stack trace,
+        as we are only intersted in the package that is causing the error."""
+        current_app.logger.info(
+            "Unexpected ValueError while selecting latest version for package {}!"
+            .format(package_name))
         return_version = ''
         pass
-
-    return return_version
+    finally:
+        return return_version
 
 
 def get_session_retry(retries=3, backoff_factor=0.2, status_forcelist=(404, 500, 502, 504),
