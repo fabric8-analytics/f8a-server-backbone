@@ -10,4 +10,5 @@ error.log
 *.ipynb
 derby.log
 metastore_db/
+tests/.coverage
 .coverage

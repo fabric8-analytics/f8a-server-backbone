@@ -1,7 +1,8 @@
 """Tests for the 'utils' module."""
 from src.utils import (
     convert_version_to_proper_semantic as cvs,
-    version_info_tuple as vt)
+    version_info_tuple as vt,
+    select_latest_version as slv)
 import semantic_version as sv
 
 
@@ -44,6 +45,17 @@ def test_version_info_tuple():
     assert version_info[3] == tuple()
 
 
+def test_select_latest_version():
+    """Check fucntion slv()."""
+    input_version = "1.2.2"
+    libio = "1.2.3"
+    anitya = "1.3.4"
+    package_name = "test_package"
+    result_version = slv(input_version, libio, anitya, package_name)
+    assert result_version == anitya
+
+
 if __name__ == '__main__':
     test_semantic_versioning()
     test_version_info_tuple()
+    test_select_latest_version()
