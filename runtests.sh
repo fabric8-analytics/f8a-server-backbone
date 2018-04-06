@@ -28,13 +28,16 @@ function prepare_venv() {
         VIRTUALENV=`which virtualenv-3`
     fi
 
-    ${VIRTUALENV} -p python3 venv && source venv/bin/activate && python3 `which pip3` install -r requirements.txt
+    ${VIRTUALENV} -p python3 venv && source venv/bin/activate 
+    pip install -U pip
+    python3 `which pip3` install -r requirements.txt
 
 }
 
 [ "$NOVENV" == "1" ] || prepare_venv || exit 1
 
 `which pip3` install git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@561636c
+`which pip3` install pytest
+`which pip3` install pytest-cov
 
-cd tests
-PYTHONDONTWRITEBYTECODE=1 python3 `which pytest` --cov=../src/ --cov-report term-missing -vv .
+PYTHONDONTWRITEBYTECODE=1 python3 `which pytest` --cov=src/ --cov-report term-missing -vv tests/
