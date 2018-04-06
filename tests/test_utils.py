@@ -46,12 +46,14 @@ def test_version_info_tuple():
 
 
 def test_select_latest_version():
+    """Check fucntion slv()."""
     input_version = "1.2.2"
     libio = "1.2.3"
     anitya = "1.3.4"
     package_name = "test_package"
     result_version = slv(input_version, libio, anitya, package_name)
     assert result_version == anitya
+
 
 if __name__ == '__main__':
     test_semantic_versioning()
