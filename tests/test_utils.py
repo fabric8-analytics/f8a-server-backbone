@@ -53,6 +53,11 @@ def test_select_latest_version():
     package_name = "test_package"
     result_version = slv(input_version, libio, anitya, package_name)
     assert result_version == anitya
+    input_version = ""
+    libio = ""
+    anitya = ""
+    result_version = slv(input_version, libio, anitya, package_name)
+    assert result_version == ""
 
 
 if __name__ == '__main__':
