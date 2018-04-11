@@ -84,10 +84,10 @@ from flask import current_app
 
 session = Postgres().session
 
-danger_word_list = ["drop\(\)", "V\(\)", "count\(\)"]
+danger_word_list = [r"drop\(\)", r"V\(\)", r"count\(\)"]
 remove = '|'.join(danger_word_list)
 pattern = re.compile(r'(' + remove + ')', re.IGNORECASE)
-pattern_to_save = '[^\w\*\.Xx\-\>\=\<\~\^\|\/\:]'
+pattern_to_save = r'[^\w\*\.Xx\-\>\=\<\~\^\|\/\:]'
 pattern_n2_remove = re.compile(pattern_to_save)
 
 
