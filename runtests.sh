@@ -1,4 +1,4 @@
-#!/usr/bin/bash -ex
+#!/bin/bash -ex
 
 gc() {
   retval=$?
@@ -28,7 +28,7 @@ function prepare_venv() {
         VIRTUALENV=`which virtualenv-3`
     fi
 
-    ${VIRTUALENV} -p python3 venv && source venv/bin/activate 
+    ${VIRTUALENV} -p python3 venv && source venv/bin/activate
     pip install -U pip
     python3 `which pip3` install -r requirements.txt
 
@@ -40,4 +40,4 @@ function prepare_venv() {
 `which pip3` install pytest
 `which pip3` install pytest-cov
 
-PYTHONDONTWRITEBYTECODE=1 python3 `which pytest` --cov=src/ --cov-report term-missing -vv tests/
+PYTHONDONTWRITEBYTECODE=1 CHESTER_SERVICE_HOST='chester' PGM_SERVICE_HOST='pgm' PGM_SERVICE_PORT='6006' python3 `which pytest` --cov=src/ --cov-report term-missing -vv tests/
