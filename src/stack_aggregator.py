@@ -87,8 +87,7 @@ def extract_component_details(component):
     latest_version = select_latest_version(
         version,
         component.get("package", {}).get("libio_latest_version", [""])[0],
-        component.get("package", {}).get("latest_version", [""])[0],
-        name
+        component.get("package", {}).get("latest_version", [""])[0]
     )
     component_summary = {
         "ecosystem": ecosystem,
