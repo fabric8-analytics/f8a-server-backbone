@@ -223,8 +223,9 @@ def select_latest_version(input_version='', libio='', anitya='', package_name=No
         Also, no generation of stack trace,
         as we are only intersted in the package that is causing the error."""
         current_app.logger.info(
-            "Unexpected ValueError while selecting latest version for package {}!"
-            .format(package_name))
+            "Unexpected ValueError while selecting latest version for package {}!, debug: {}"
+            .format(package_name,
+                    {'input_version': input_version, 'libio': libio, 'anitya': anitya}))
         return_version = ''
         pass
     finally:
