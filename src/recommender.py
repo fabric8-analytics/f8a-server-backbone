@@ -366,9 +366,11 @@ class RecommendationTask:
 
     _analysis_name = 'recommendation_v2'
     description = 'Get Recommendation'
+    kronos_ecosystems = ['maven']
+    chester_ecosystems = ['npm']
 
     @staticmethod
-    def call_pgm(payload):
+    def call_insights_recommender(payload):
         """Call the PGM model.
 
         Calls the PGM model with the normalized manifest information to get
@@ -378,24 +380,34 @@ class RecommendationTask:
             # TODO remove hardcodedness for payloads with multiple ecosystems
             if payload and 'ecosystem' in payload[0]:
 
-                PGM_SERVICE_HOST = os.getenv("PGM_SERVICE_HOST") + "-" + payload[0]['ecosystem']
-                PGM_URL_REST = "http://{host}:{port}".format(host=PGM_SERVICE_HOST,
-                                                             port=os.getenv("PGM_SERVICE_PORT"))
-                pgm_url = PGM_URL_REST + "/api/v1/schemas/kronos_scoring"
-                response = get_session_retry().post(pgm_url, json=payload)
+                if payload[0]['ecosystem'] in RecommendationTask.chester_ecosystems:
+                    INSIGHTS_SERVICE_HOST = os.getenv("CHESTER_SERVICE_HOST")
+                else:
+                    INSIGHTS_SERVICE_HOST = os.getenv("PGM_SERVICE_HOST") + "-" + \
+                                            payload[0]['ecosystem']
+                INSIGHTS_URL_REST = "http://{host}:{port}".format(
+                        host=INSIGHTS_SERVICE_HOST,
+                        port=os.getenv("PGM_SERVICE_PORT"))
+                if payload[0]['ecosystem'] in RecommendationTask.chester_ecosystems:
+                    insights_url = INSIGHTS_URL_REST + "/api/v1/companion_recommendation"
+                else:
+                    insights_url = INSIGHTS_URL_REST + "/api/v1/schemas/kronos_scoring"
+                response = get_session_retry().post(insights_url, json=payload)
                 if response.status_code != 200:
-                    current_app.logger.error("HTTP error {}. Error retrieving PGM data.".format(
-                        response.status_code))
+                    current_app.logger.error(
+                            "HTTP error {}. Error retrieving insights data.".format(
+                                    response.status_code))
                     return None
                 else:
                     json_response = response.json()
                     return json_response
             else:
                 current_app.logger.error(
-                    'Payload information not passed in the call, Quitting! PGM\'s call'
+                    'Payload information not passed in the call, Quitting! inights '
+                    'recommender\'s call'
                 )
         except Exception as e:
-            current_app.logger.error("Failed retrieving PGM data.")
+            current_app.logger.error("Failed retrieving insights data.")
             current_app.logger.error("%s" % e)
             return None
 
@@ -405,7 +417,7 @@ class RecommendationTask:
         results = arguments.get('result', None)
         external_request_id = arguments.get('external_request_id', None)
 
-        input_task_for_pgm = []
+        input_task_for_insights_recommender = []
         recommendations = []
         input_stack = {}
         for result in results:
@@ -427,19 +439,24 @@ class RecommendationTask:
             new_arr = [r['package'] for r in resolved]
             json_object = {
                 'ecosystem': details['ecosystem'],
-                'comp_package_count_threshold': int(os.environ.get('MAX_COMPANION_PACKAGES', 5)),
-                'alt_package_count_threshold': int(os.environ.get('MAX_ALTERNATE_PACKAGES', 2)),
-                'outlier_probability_threshold': float(os.environ.get('OUTLIER_THRESHOLD', 0.6)),
                 'unknown_packages_ratio_threshold':
                     float(os.environ.get('UNKNOWN_PACKAGES_THRESHOLD', 0.3)),
-                'user_persona': "1",  # TODO - remove janus hardcoded value
-                'package_list': new_arr
+                'package_list': new_arr,
+                'comp_package_count_threshold': int(os.environ.get(
+                        'MAX_COMPANION_PACKAGES', 5))
             }
-            input_task_for_pgm.append(json_object)
+            if details['ecosystem'] in self.kronos_ecosystems:
+                json_object.update({
+                    'alt_package_count_threshold': int(os.environ.get('MAX_ALTERNATE_PACKAGES', 2)),
+                    'outlier_probability_threshold': float(os.environ.get('OUTLIER_THRESHOLD',
+                                                                          0.6)),
+                    'user_persona': "1",  # TODO - remove janus hardcoded value
+                })
+            input_task_for_insights_recommender.append(json_object)
 
             # Call PGM and get the response
             start = datetime.datetime.utcnow()
-            pgm_response = self.call_pgm(input_task_for_pgm)
+            insights_response = self.call_insights_recommender(input_task_for_insights_recommender)
             elapsed_seconds = (datetime.datetime.utcnow() - start).total_seconds()
             msg = 'It took {t} seconds to get response from PGM ' \
                   'for external request {e}.'.format(t=elapsed_seconds,
@@ -450,22 +467,22 @@ class RecommendationTask:
             # then get Data from Graph
             # TODO - implement multiple manifest file support for below loop
 
-            if pgm_response is not None:
-                for pgm_result in pgm_response:
+            if insights_response is not None:
+                for insights_result in insights_response:
                     companion_packages = []
-                    ecosystem = pgm_result['ecosystem']
+                    ecosystem = insights_result['ecosystem']
 
                     # Get usage based outliers
                     recommendation['usage_outliers'] = \
-                        pgm_result['outlier_package_list']
+                        insights_result.get('outlier_package_list', [])
 
                     # Append Topics for User Stack
-                    recommendation['input_stack_topics'] = pgm_result.get('package_to_topic_dict',
-                                                                          {})
+                    recommendation['input_stack_topics'] = insights_result.get(
+                            'package_to_topic_dict', {})
                     # Add missing packages unknown to PGM
-                    recommendation['missing_packages_pgm'] = pgm_result.get(
+                    recommendation['missing_packages_pgm'] = insights_result.get(
                         'missing_packages', [])
-                    for pkg in pgm_result['companion_packages']:
+                    for pkg in insights_result['companion_packages']:
                         companion_packages.append(pkg['package_name'])
 
                     # Get Companion Packages from Graph
@@ -488,7 +505,7 @@ class RecommendationTask:
                     # Create intermediate dict to Only Get Top 1 companion
                     # packages for the time being.
                     temp_dict = {}
-                    for pkg_name, contents in pgm_result['alternate_packages'].items():
+                    for pkg_name, contents in insights_result.get('alternate_packages', {}).items():
                         pkg = {}
                         for ind in contents:
                             pkg[ind['package_name']] = ind['similarity_score']
@@ -559,7 +576,7 @@ class RecommendationTask:
                     # Get Topics Added to Filtered Packages
                     topics_comp_packages_graph = GraphDB(). \
                         get_topics_for_comp(lic_filtered_comp_graph,
-                                            pgm_result['companion_packages'])
+                                            insights_result.get('companion_packages', []))
 
                     # Create Companion Block
                     comp_packages = create_package_dict(topics_comp_packages_graph)
@@ -568,7 +585,7 @@ class RecommendationTask:
                     # Get Topics Added to Filtered Packages
                     topics_comp_packages_graph = GraphDB(). \
                         get_topics_for_alt(lic_filtered_alt_graph,
-                                           pgm_result['alternate_packages'])
+                                           insights_result.get('alternate_packages', {}))
 
                     # Create Alternate Dict
                     alt_packages = create_package_dict(topics_comp_packages_graph, final_dict)
