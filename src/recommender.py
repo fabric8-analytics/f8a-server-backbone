@@ -175,8 +175,7 @@ class GraphDB:
                 latest_version = select_latest_version(
                     version,
                     epv.get('pkg').get('libio_latest_version', [''])[0],
-                    epv.get('pkg').get('latest_version', [''])[0],
-                    name
+                    epv.get('pkg').get('latest_version', [''])[0]
                 )
                 if latest_version and latest_version == version:
                     try:
