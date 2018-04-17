@@ -182,7 +182,7 @@ def version_info_tuple(version):
     : param version: The semantic version whole details are needed.
     : return: A tuple in form of Version.(major, minor, patch, build)
     """
-    if type(version) == sv.base.Version:
+    if isinstance(version, sv.Version):
         return(version.major,
                version.minor,
                version.patch,
