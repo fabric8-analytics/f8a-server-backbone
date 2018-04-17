@@ -169,7 +169,10 @@ class GraphDB:
             version = epv.get('ver', {}).get('version', [''])[0]
             # needed for maven version like 1.5.2.RELEASE to be converted to
             # 1.5.2-RELEASE for semantic version to work'
-            semversion = convert_version_to_proper_semantic(version)
+            semversion_tuple = version_info_tuple(
+                convert_version_to_proper_semantic(version))
+            input_stack_tuple = version_info_tuple(convert_version_to_proper_semantic(
+                input_stack.get(name, '')))
             if name and version:
                 # Select Latest Version and add to filter_list if
                 # latest version is > current version
@@ -181,8 +184,7 @@ class GraphDB:
                 )
                 if latest_version and latest_version == version:
                     try:
-                        if version_info_tuple(convert_version_to_proper_semantic(
-                                input_stack.get(name, ''))) >= version_info_tuple(semversion):
+                        if input_stack_tuple >= semversion_tuple:
                             pkg_dict[name]['latest_version'] = latest_version
                             new_dict[name]['latest_version'] = epv.get('ver')
                             new_dict[name]['pkg'] = epv.get('pkg')
@@ -200,8 +202,7 @@ class GraphDB:
                                     deps_count > pkg_dict[name].get('deps_count', {}).get(
                                 'deps_count', 0):
                         try:
-                            if version_info_tuple(convert_version_to_proper_semantic(
-                                    input_stack.get(name, ''))) >= version_info_tuple(semversion):
+                            if input_stack_tuple >= semversion_tuple:
                                 pkg_dict[name]['deps_count'] = {"version": version,
                                                                 "deps_count": deps_count}
                                 new_dict[name]['deps_count'] = epv.get('ver')
@@ -221,8 +222,7 @@ class GraphDB:
                                     pkg_dict[name].get('gh_release_date', {}).get('gh_release_date',
                                                                                   0):
                         try:
-                            if version_info_tuple(convert_version_to_proper_semantic(
-                                    input_stack.get(name, ''))) >= version_info_tuple(semversion):
+                            if input_stack_tuple >= semversion_tuple:
                                 pkg_dict[name]['gh_release_date'] = {
                                     "version": version,
                                     "gh_release_date": gh_release_date}
