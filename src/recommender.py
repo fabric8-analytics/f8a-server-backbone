@@ -74,7 +74,8 @@ import semantic_version as sv
 
 from utils import (create_package_dict, get_session_retry, select_latest_version,
                    GREMLIN_SERVER_URL_REST, LICENSE_SCORING_URL_REST, Postgres,
-                   convert_version_to_proper_semantic)
+                   convert_version_to_proper_semantic,
+                   version_info_tuple)
 from stack_aggregator import extract_user_stack_package_licenses
 from f8a_worker.models import WorkerResult
 from sqlalchemy.exc import SQLAlchemyError
@@ -175,12 +176,13 @@ class GraphDB:
                 latest_version = select_latest_version(
                     version,
                     epv.get('pkg').get('libio_latest_version', [''])[0],
-                    epv.get('pkg').get('latest_version', [''])[0]
+                    epv.get('pkg').get('latest_version', [''])[0],
+                    name
                 )
                 if latest_version and latest_version == version:
                     try:
-                        if sv.SpecItem('>=' + convert_version_to_proper_semantic(
-                                input_stack.get(name, ''))).match(sv.Version(semversion)):
+                        if version_info_tuple(convert_version_to_proper_semantic(
+                                input_stack.get(name, ''))) >= version_info_tuple(semversion):
                             pkg_dict[name]['latest_version'] = latest_version
                             new_dict[name]['latest_version'] = epv.get('ver')
                             new_dict[name]['pkg'] = epv.get('pkg')
@@ -198,8 +200,8 @@ class GraphDB:
                                     deps_count > pkg_dict[name].get('deps_count', {}).get(
                                 'deps_count', 0):
                         try:
-                            if sv.SpecItem('>=' + convert_version_to_proper_semantic(
-                                    input_stack.get(name, ''))).match(sv.Version(semversion)):
+                            if version_info_tuple(convert_version_to_proper_semantic(
+                                    input_stack.get(name, ''))) >= version_info_tuple(semversion):
                                 pkg_dict[name]['deps_count'] = {"version": version,
                                                                 "deps_count": deps_count}
                                 new_dict[name]['deps_count'] = epv.get('ver')
@@ -219,8 +221,8 @@ class GraphDB:
                                     pkg_dict[name].get('gh_release_date', {}).get('gh_release_date',
                                                                                   0):
                         try:
-                            if sv.SpecItem('>=' + convert_version_to_proper_semantic(
-                                    input_stack.get(name, ''))).match(sv.Version(semversion)):
+                            if version_info_tuple(convert_version_to_proper_semantic(
+                                    input_stack.get(name, ''))) >= version_info_tuple(semversion):
                                 pkg_dict[name]['gh_release_date'] = {
                                     "version": version,
                                     "gh_release_date": gh_release_date}
