@@ -10,3 +10,5 @@ build_image
 prep
 
 ./runtests.sh
+
+push_image
