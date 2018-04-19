@@ -170,9 +170,9 @@ class GraphDB:
             # needed for maven version like 1.5.2.RELEASE to be converted to
             # 1.5.2-RELEASE for semantic version to work'
             semversion_tuple = version_info_tuple(
-                convert_version_to_proper_semantic(version))
+                convert_version_to_proper_semantic(version, name))
             input_stack_tuple = version_info_tuple(convert_version_to_proper_semantic(
-                input_stack.get(name, '')))
+                input_stack.get(name, ''), name))
             if name and version:
                 # Select Latest Version and add to filter_list if
                 # latest version is > current version

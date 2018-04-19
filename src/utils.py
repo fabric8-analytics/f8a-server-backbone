@@ -156,7 +156,7 @@ def create_package_dict(graph_results, alt_dict=None):
     return pkg_list
 
 
-def convert_version_to_proper_semantic(version):
+def convert_version_to_proper_semantic(version, package_name=None):
     """Perform Semantic versioning.
 
     : type version: string
@@ -164,15 +164,24 @@ def convert_version_to_proper_semantic(version):
     : type return: semantic_version.base.Version
     : return: The semantic version of raw input version.
     """
-    if version in ('', '-1', None):
-        version = '0.0.0'
-    """Needed for maven version like 1.5.2.RELEASE to be converted to
-    1.5.2 - RELEASE for semantic version to work."""
-    version = version.replace('.', '-', 3)
-    version = version.replace('-', '.', 2)
-    # Needed to add this so that -RELEASE is account as a Version.build
-    version = version.replace('-', '+', 3)
-    return sv.Version.coerce(version)
+    conv_version = sv.Version.coerce('0.0.0')
+    try:
+        if version in ('', '-1', None):
+            version = '0.0.0'
+        """Needed for maven version like 1.5.2.RELEASE to be converted to
+        1.5.2 - RELEASE for semantic version to work."""
+        version = version.replace('.', '-', 3)
+        version = version.replace('-', '.', 2)
+        # Needed to add this so that -RELEASE is account as a Version.build
+        version = version.replace('-', '+', 3)
+        conv_version = sv.Version.coerce(version)
+    except ValueError:
+        current_app.logger.info(
+            "Unexpected ValueError for the package {} due to version {}"
+            .format(package_name, version))
+        pass
+    finally:
+        return conv_version
 
 
 def version_info_tuple(version):
@@ -192,10 +201,12 @@ def version_info_tuple(version):
 
 def select_latest_version(input_version='', libio='', anitya='', package_name=None):
     """Select latest version from input sequence(s)."""
-    libio_sem_version = convert_version_to_proper_semantic(libio)
-    anitya_sem_version = convert_version_to_proper_semantic(anitya)
-    input_sem_version = convert_version_to_proper_semantic(input_version)
-
+    libio_sem_version = convert_version_to_proper_semantic(libio, package_name)
+    anitya_sem_version = convert_version_to_proper_semantic(
+        anitya, package_name)
+    input_sem_version = convert_version_to_proper_semantic(
+        input_version, package_name)
+    return_version = ''
     try:
         if libio_sem_version == zero_version\
                 and anitya_sem_version == zero_version\
