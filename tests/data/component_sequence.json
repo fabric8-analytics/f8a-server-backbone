@@ -1,0 +1,93 @@
+{
+    "package": {
+        "ecosystem": [
+            "npm"
+        ],
+        "gh_forks": [
+            -1
+        ],
+        "gh_issues_last_month_closed": [
+            -1
+        ],
+        "gh_issues_last_month_opened": [
+            -1
+        ],
+        "gh_issues_last_year_closed": [
+            -1
+        ],
+        "gh_issues_last_year_opened": [
+            -1
+        ],
+        "gh_prs_last_month_closed": [
+            -1
+        ],
+        "gh_prs_last_month_opened": [
+            -1
+        ],
+        "gh_prs_last_year_closed": [
+            -1
+        ],
+        "gh_prs_last_year_opened": [
+            -1
+        ],
+        "gh_stargazers": [
+            -1
+        ],
+        "last_updated": [
+            1499943756.71
+        ],
+        "latest_version": [
+            "3.0.0"
+        ],
+        "name": [
+            "sequence"
+        ],
+        "package_dependents_count": [
+            -1
+        ],
+        "package_relative_used": [
+            "not used"
+        ],
+        "tokens": [
+            "sequence"
+        ],
+        "vertex_label": [
+            "Package"
+        ]
+    },
+    "version": {
+        "cm_avg_cyclomatic_complexity": [
+            -1.0
+        ],
+        "cm_loc": [
+            123
+        ],
+        "cm_num_files": [
+            3
+        ],
+        "dependents_count": [
+            -1
+        ],
+        "description": [
+            "the sequence module of futuresjs enderjs and nodejs"
+        ],
+        "last_updated": [
+            1499943756.71
+        ],
+        "pecosystem": [
+            "npm"
+        ],
+        "pname": [
+            "sequence"
+        ],
+        "shipped_as_downstream": [
+            false
+        ],
+        "version": [
+            "2.2.0"
+        ],
+        "vertex_label": [
+            "Version"
+        ]
+    }
+}
