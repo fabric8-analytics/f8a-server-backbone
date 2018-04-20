@@ -9,7 +9,7 @@ import json
 
 def test_extract_component_details():
     """Test the function validate_request_data."""
-    with open("data/component_sequence.json", "r") as fin:
+    with open("tests/data/component_sequence.json", "r") as fin:
         payload = json.load(fin)
     results = stack_aggregator.extract_component_details(payload)
     expected_keys = (
