@@ -163,6 +163,7 @@ def _extract_unknown_licenses(license_service_output):
     if not license_service_output:
         return really_unknown_licenses
 
+    # TODO: refactoring
     if license_service_output.get('status', '') == 'Unknown':
         list_components = license_service_output.get('packages', [])
         for comp in list_components:
@@ -176,6 +177,7 @@ def _extract_unknown_licenses(license_service_output):
                         'license': lic
                     })
 
+    # TODO: refactoring
     if license_service_output.get('status', '') == 'ComponentLicenseConflict':
         list_components = license_service_output.get('packages', [])
         for comp in list_components:
@@ -235,6 +237,7 @@ def perform_license_analysis(license_score_list, dependencies):
     }
     resp = {}
     flag_stack_license_exception = False
+    # TODO: refactoring
     try:
         lic_response = get_session_retry().post(license_url, data=json.dumps(payload))
         lic_response.raise_for_status()  # raise exception for bad http-status codes
@@ -242,7 +245,6 @@ def perform_license_analysis(license_score_list, dependencies):
     except requests.exceptions.RequestException:
         current_app.logger.exception("Unexpected error happened while invoking license analysis!")
         flag_stack_license_exception = True
-        pass
 
     stack_license = []
     stack_license_status = None
@@ -428,6 +430,7 @@ class StackAggregator:
             '_release': 'None:None:None'
         }
         if persist:
+            # TODO: refactoring
             # Store the result in RDS
             try:
                 insert_stmt = insert(WorkerResult).values(
