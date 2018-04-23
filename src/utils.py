@@ -93,6 +93,7 @@ def create_package_dict(graph_results, alt_dict=None):
                 'cooccurrence_count': epv['pkg'].get('cooccurrence_count', 0)
             }
 
+            # TODO: refactoring
             github_dict = {
                 'dependent_projects': epv['pkg'].get('libio_dependents_projects', [-1])[0],
                 'dependent_repos': epv['pkg'].get('libio_dependents_repos', [-1])[0],
