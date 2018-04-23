@@ -164,6 +164,7 @@ class GraphDB:
         pkg_dict = defaultdict(dict)
         new_dict = defaultdict(dict)
         filtered_comp_list = []
+        # TODO: refactoring
         for epv in epv_list:
             name = epv.get('pkg', {}).get('name', [''])[0]
             version = epv.get('ver', {}).get('version', [''])[0]
@@ -241,6 +242,7 @@ class GraphDB:
             "Data List filtered_comp_list for external_request_id {} is {}"
             .format(external_request_id, filtered_comp_list))
 
+        # TODO: refactoring
         new_list = []
         for package, contents in new_dict.items():
             if 'latest_version' in contents:
@@ -306,6 +308,7 @@ def invoke_license_analysis_service(user_stack_packages, alternate_packages, com
 
 def apply_license_filter(user_stack_components, epv_list_alt, epv_list_com):
     """License Filter."""
+    # TODO: refactoring
     license_score_list_alt = []
     for epv in epv_list_alt:
         license_scoring_input = {
@@ -315,6 +318,7 @@ def apply_license_filter(user_stack_components, epv_list_alt, epv_list_com):
         }
         license_score_list_alt.append(license_scoring_input)
 
+    # TODO: refactoring
     license_score_list_com = []
     for epv in epv_list_com:
         license_scoring_input = {
@@ -337,6 +341,7 @@ def apply_license_filter(user_stack_components, epv_list_alt, epv_list_com):
         conflict_packages_com = license_filter.get('companion_packages', {}) \
             .get('conflict_packages', [])
 
+    # TODO: refactoring
     list_pkg_names_alt = []
     for epv in epv_list_alt[:]:
         name = epv.get('pkg', {}).get('name', [''])[0]
@@ -344,6 +349,7 @@ def apply_license_filter(user_stack_components, epv_list_alt, epv_list_com):
             list_pkg_names_alt.append(name)
             epv_list_alt.remove(epv)
 
+    # TODO: refactoring
     list_pkg_names_com = []
     for epv in epv_list_com[:]:
         name = epv.get('pkg', {}).get('name', [''])[0]
@@ -420,6 +426,7 @@ class RecommendationTask:
 
         input_task_for_insights_recommender = []
         recommendations = []
+        # TODO: refactoring
         input_stack = {}
         for result in results:
             temp_input_stack = {d["package"]: d["version"] for d in
