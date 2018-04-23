@@ -60,7 +60,7 @@ def test_extract_user_stack_package_licenses_2(mocked_function):
 
 def test_stack_aggregator_constructor():
     """Test the constructor for the StackAggregator class."""
-    obj = StackAggregator()
+    obj = stack_aggregator.StackAggregator()
     assert obj
 
 
