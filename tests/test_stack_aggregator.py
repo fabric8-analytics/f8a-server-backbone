@@ -58,8 +58,15 @@ def test_extract_user_stack_package_licenses_2(mocked_function):
     assert result
 
 
+def test_stack_aggregator_constructor():
+    """Test the constructor for the StackAggregator class."""
+    obj = StackAggregator()
+    assert obj
+
+
 if __name__ == '__main__':
     test_extract_component_details()
     test_aggregate_stack_data()
     test_extract_user_stack_package_licenses()
     test_extract_user_stack_package_licenses_2()
+    test_stack_aggregator_constructor()
