@@ -185,7 +185,7 @@ class GraphDB:
                 )
                 if latest_version and latest_version == version:
                     try:
-                        if input_stack_tuple >= semversion_tuple:
+                        if semversion_tuple >= input_stack_tuple:
                             pkg_dict[name]['latest_version'] = latest_version
                             new_dict[name]['latest_version'] = epv.get('ver')
                             new_dict[name]['pkg'] = epv.get('pkg')
@@ -203,7 +203,7 @@ class GraphDB:
                                     deps_count > pkg_dict[name].get('deps_count', {}).get(
                                 'deps_count', 0):
                         try:
-                            if input_stack_tuple >= semversion_tuple:
+                            if semversion_tuple >= input_stack_tuple:
                                 pkg_dict[name]['deps_count'] = {"version": version,
                                                                 "deps_count": deps_count}
                                 new_dict[name]['deps_count'] = epv.get('ver')
@@ -223,7 +223,7 @@ class GraphDB:
                                     pkg_dict[name].get('gh_release_date', {}).get('gh_release_date',
                                                                                   0):
                         try:
-                            if input_stack_tuple >= semversion_tuple:
+                            if semversion_tuple >= input_stack_tuple:
                                 pkg_dict[name]['gh_release_date'] = {
                                     "version": version,
                                     "gh_release_date": gh_release_date}
