@@ -39,5 +39,19 @@ function prepare_venv() {
 `which pip3` install git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@561636c
 `which pip3` install pytest
 `which pip3` install pytest-cov
+`which pip3` install radon
 
+echo "*****************************************"
+echo "*** Cyclomatic complexity measurement ***"
+echo "*****************************************"
+radon cc -s -a -i venv .
+
+echo "*****************************************"
+echo "*** Maintainability Index measurement ***"
+echo "*****************************************"
+radon mi -s -i venv .
+
+echo "*****************************************"
+echo "*** Unit tests ***"
+echo "*****************************************"
 PYTHONDONTWRITEBYTECODE=1 CHESTER_SERVICE_HOST='chester' PGM_SERVICE_HOST='pgm' PGM_SERVICE_PORT='6006' python3 `which pytest` --cov=src/ --cov-report term-missing -vv tests/
