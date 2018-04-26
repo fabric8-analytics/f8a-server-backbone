@@ -41,7 +41,7 @@ objects:
           - name: PGM_SERVICE_HOST
             value: bayesian-kronos
           - name: CHESTER_SERVICE_HOST
-            value: f8a-chester
+            value: f8a-npm-insights
           - name: PGM_SERVICE_PORT
             value: "6006"
           - name: POSTGRESQL_DATABASE
