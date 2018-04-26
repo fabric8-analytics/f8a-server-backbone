@@ -38,7 +38,7 @@ class TestRecommendationTask(TestCase):
             called_url_json = RecommendationTask.call_insights_recommender([{
                 "ecosystem": "npm"
             }])
-            self.assertTrue('chester' in called_url_json['url'])
+            self.assertTrue('npm-insights' in called_url_json['url'])
             # Now test whether the correct service is called for maven.
             called_url_json = RecommendationTask.call_insights_recommender([{
                 "ecosystem": "maven"
