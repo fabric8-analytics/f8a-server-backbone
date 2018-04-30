@@ -24,5 +24,8 @@ test:
 get-image-name:
 	@echo $(REGISTRY)/$(REPOSITORY):$(DEFAULT_TAG)
 
+get-image-repository:
+	@echo $(REPOSITORY)
+
 get-push-registry:
 	@echo $(REGISTRY)
