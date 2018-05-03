@@ -158,6 +158,7 @@ class GraphDB:
         4. Dependents Count in Github Manifest Data
         5. Github Release Date
         """
+        # TODO: reduce cyclomatic complexity
         current_app.logger.info("Filtering {} for external_request_id {}".format(
             rec_type, external_request_id))
 
@@ -420,6 +421,7 @@ class RecommendationTask:
 
     def execute(self, arguments=None, persist=True, check_license=False):
         """Execute task."""
+        # TODO: reduce cyclomatic complexity
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         results = arguments.get('result', None)
         external_request_id = arguments.get('external_request_id', None)
