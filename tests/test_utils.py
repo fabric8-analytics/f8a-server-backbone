@@ -31,6 +31,7 @@ def test_semantic_versioning():
 
 def test_version_info_tuple():
     """Check the function vt()."""
+    # TODO: reduce cyclomatic complexity
     version_str = "2.0.rc1"
     package_name = "test_package"
     version_obj = cvs(version_str, package_name)
