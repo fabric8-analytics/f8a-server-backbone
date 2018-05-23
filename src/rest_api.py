@@ -7,7 +7,6 @@ from flask import Flask, request, current_app
 from flask_cors import CORS
 from recommender import RecommendationTask
 from stack_aggregator import StackAggregator
-from dependency_editor import DependencyEditor
 
 
 def setup_logging(flask_app):
@@ -39,30 +38,6 @@ def readiness():
 def liveness():
     """Handle GET requests that are sent to /api/v1/liveness REST API endpoint."""
     return flask.jsonify({}), 200
-
-
-@app.route('/api/v1/dep-editor', methods=['POST'])
-def dep_editor():
-    """Handle POST requests that are sent to /api/v1/dep-editor REST API endpoint."""
-    input_json = request.get_json()
-    current_app.logger.debug('stack-recommender/ request with payload: {p}'.format(p=input_json))
-
-    r = {'status': 'failure', 'external_request_id': None, 'message': 'Invalid request'}
-    status = 400
-    if input_json and 'external_request_id' in input_json and input_json['external_request_id']:
-        try:
-            persist = request.args.get('persist', 'true') == 'true'
-            r = DependencyEditor().execute(input_json, persist)
-            status = 200
-        except Exception as e:
-            r = {
-                'status': 'unexpected error',
-                'external_request_id': input_json.get('external_request_id'),
-                'message': '%s' % e
-            }
-            status = 500
-
-    return flask.jsonify(r), status
 
 
 @app.route('/api/v1/recommender', methods=['POST'])

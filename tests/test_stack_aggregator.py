@@ -64,9 +64,70 @@ def test_stack_aggregator_constructor():
     assert obj
 
 
+def test_extract_conflict_packages():
+    f = open("tests/data/license_component_conflict.json", "r")
+    license_payload = json.loads(f.read())
+
+    packages = stack_aggregator._extract_conflict_packages(license_payload)
+    assert(len(packages) == 1)
+
+
+def test_execute():
+    f = open("tests/data/stack_aggregator_execute_input.json", "r")
+    payload = json.loads(f.read())
+
+    s = stack_aggregator.StackAggregator()
+    out = s.execute(payload,False,unit_test=True)
+    assert(out['stack_aggregator'] == "success")
+
+
+def test_extract_unknown_packages():
+    f = open("tests/data/license_unknown.json", "r")
+    license_payload = json.loads(f.read())
+
+    packages = stack_aggregator._extract_unknown_licenses(license_payload)
+    assert(len(packages) == 2)
+
+    f = open("tests/data/license_component_conflict.json", "r")
+    license_payload = json.loads(f.read())
+
+    packages = stack_aggregator._extract_unknown_licenses(license_payload)
+    assert (len(packages) == 2)
+
+
+def test_extract_license_outliers():
+    f = open("tests/data/license_component_conflict.json", "r")
+    license_payload = json.loads(f.read())
+
+    packages = stack_aggregator._extract_license_outliers(license_payload)
+    assert(len(packages) == 1)
+
+
+def test_perform_license_analysis():
+    out,deps = stack_aggregator.perform_license_analysis([],[],unit_test=True)
+    assert (len(deps) == 0)
+
+
+def test_get_dependency_data():
+    resolved=[{"package": "io.vertx:vertx-core","version": "3.4.2"}]
+    out = stack_aggregator.get_dependency_data(resolved, "maven", unit_test=True)
+    assert(len(out['result']) == 1)
+
+
+def test_aggregate_stack_data():
+    out = stack_aggregator.aggregate_stack_data({}, "pom.xml", "maven", [], "/home/JohnDoe", False)
+    assert (out['manifest_name'] == "pom.xml")
+
+
 if __name__ == '__main__':
     test_extract_component_details()
     test_aggregate_stack_data()
     test_extract_user_stack_package_licenses()
     test_extract_user_stack_package_licenses_2()
     test_stack_aggregator_constructor()
+    test_extract_conflict_packages()
+    test_extract_unknown_packages()
+    test_perform_license_analysis()
+    test_get_dependency_data()
+    test_aggregate_stack_data()
+    test_execute()
