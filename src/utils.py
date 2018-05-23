@@ -46,7 +46,7 @@ class Postgres:
         return self.session
 
 
-def get_osio_user_count(ecosystem, name, version):
+def get_osio_user_count(ecosystem, name, version, unit_test=False):
     """Send query to the graph database to get # of uses for the provided E+P+V."""
     str_gremlin = "g.V().has('pecosystem','{}').has('pname','{}').has('version','{}').".format(
         ecosystem, name, version)
@@ -56,7 +56,12 @@ def get_osio_user_count(ecosystem, name, version):
     }
 
     try:
-        response = get_session_retry().post(GREMLIN_SERVER_URL_REST, data=json.dumps(payload))
+        if unit_test:
+            url='http://bayesian-gremlin-http-preview-b6ff-bayesian-preview.b6ff.' \
+                'rh-idev.openshiftapps.com/'
+            response = get_session_retry().post(url, data=json.dumps(payload))
+        else:
+            response = get_session_retry().post(GREMLIN_SERVER_URL_REST, data=json.dumps(payload))
         json_response = response.json()
         return json_response['result']['data'][0]
     except Exception as e:

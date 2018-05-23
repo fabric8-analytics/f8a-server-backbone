@@ -87,5 +87,7 @@ def test_recommendation_api_endpoint(client):
 
 
 if __name__ == '__main__':
+    test_readiness_endpoint()
+    test_liveness_endpoint()
     test_stack_api_endpoint()
     test_recommendation_api_endpoint()

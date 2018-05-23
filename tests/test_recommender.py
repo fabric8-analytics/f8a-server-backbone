@@ -1,10 +1,11 @@
 """Tests for the recommender module."""
 from unittest import TestCase
 from unittest import mock
+import json
 import logging
 logger = logging.getLogger(__name__)
 
-from recommender import RecommendationTask
+from recommender import RecommendationTask, GraphDB
 from rest_api import app
 
 
@@ -44,3 +45,33 @@ class TestRecommendationTask(TestCase):
                 "ecosystem": "maven"
             }])
             self.assertTrue('pgm' in called_url_json['url'])
+
+
+def test_execute():
+    f = open("tests/data/stack_aggregator_execute_input.json", "r")
+    payload = json.loads(f.read())
+
+    r = RecommendationTask()
+    out = r.execute(arguments=payload,persist=False,unit_test=True)
+    assert(out['recommendation'] == "success")
+
+    r = RecommendationTask()
+    out = r.execute(arguments=payload, check_license=True, persist=False, unit_test=True)
+    assert (out['recommendation'] == "success")
+
+
+def test_filter_versions():
+    input_stack = {"io.vertx:vertx-web": "3.4.2", "io.vertx:vertx-core": "3.4.2"}
+
+    f = open("tests/data/companion_pkg_graph.json", "r")
+    companion_packages_graph = json.loads(f.read())
+
+    g = GraphDB()
+    filtered_comp_packages_graph, filtered_list = g.filter_versions(companion_packages_graph,
+                                                                    input_stack)
+    assert (len(filtered_comp_packages_graph) > 0)
+    assert (len(filtered_list) > 0)
+
+
+if __name__ == '__main__':
+    test_execute()

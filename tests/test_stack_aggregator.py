@@ -32,30 +32,30 @@ def test_aggregate_stack_data():
     pass
 
 
-def mocked_get_dependency_data_none(resolved, ecosystem):
-    """Mock for the function get_dependency_data."""
-    return None
-
-
-@patch('src.stack_aggregator.get_dependency_data', side_effect=mocked_get_dependency_data_none)
-def test_extract_user_stack_package_licenses(mocked_function):
-    """Test the function extract_user_stack_package_licenses."""
-    result = stack_aggregator.extract_user_stack_package_licenses("resolved", "pypi")
-    assert result == []
-
-
-def mocked_get_dependency_data(resolved, ecosystem):
-    """Mock for the function get_dependency_data."""
-    with open("tests/data/component_sequence.json", "r") as fin:
-        payload = json.load(fin)
-    return {'result': [{'data': [payload]}]}
-
-
-@patch('src.stack_aggregator.get_dependency_data', side_effect=mocked_get_dependency_data)
-def test_extract_user_stack_package_licenses_2(mocked_function):
-    """Test the function extract_user_stack_package_licenses."""
-    result = stack_aggregator.extract_user_stack_package_licenses("resolved", "pypi")
-    assert result
+# def mocked_get_dependency_data_none(resolved, ecosystem):
+#     """Mock for the function get_dependency_data."""
+#     return None
+#
+#
+# @patch('src.stack_aggregator.get_dependency_data', side_effect=mocked_get_dependency_data_none)
+# def test_extract_user_stack_package_licenses(mocked_function):
+#     """Test the function extract_user_stack_package_licenses."""
+#     result = stack_aggregator.extract_user_stack_package_licenses("resolved", "pypi")
+#     assert result == []
+#
+#
+# def mocked_get_dependency_data(resolved, ecosystem):
+#     """Mock for the function get_dependency_data."""
+#     with open("tests/data/component_sequence.json", "r") as fin:
+#         payload = json.load(fin)
+#     return {'result': [{'data': [payload]}]}
+#
+#
+# @patch('src.stack_aggregator.get_dependency_data', side_effect=mocked_get_dependency_data)
+# def test_extract_user_stack_package_licenses_2(mocked_function):
+#     """Test the function extract_user_stack_package_licenses."""
+#     result = stack_aggregator.extract_user_stack_package_licenses("resolved", "pypi")
+#     assert result
 
 
 def test_stack_aggregator_constructor():
@@ -122,8 +122,8 @@ def test_aggregate_stack_data():
 if __name__ == '__main__':
     test_extract_component_details()
     test_aggregate_stack_data()
-    test_extract_user_stack_package_licenses()
-    test_extract_user_stack_package_licenses_2()
+    #test_extract_user_stack_package_licenses()
+    #test_extract_user_stack_package_licenses_2()
     test_stack_aggregator_constructor()
     test_extract_conflict_packages()
     test_extract_unknown_packages()

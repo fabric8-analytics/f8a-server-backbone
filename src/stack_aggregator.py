@@ -281,9 +281,9 @@ def perform_license_analysis(license_score_list, dependencies, unit_test=False):
     return output, dependencies
 
 
-def extract_user_stack_package_licenses(resolved, ecosystem):
+def extract_user_stack_package_licenses(resolved, ecosystem, unit_test=False):
     """Extract user stack package licenses."""
-    user_stack = get_dependency_data(resolved, ecosystem)
+    user_stack = get_dependency_data(resolved, ecosystem, unit_test)
     list_package_licenses = []
     if user_stack is not None:
         for component in user_stack.get('result', []):

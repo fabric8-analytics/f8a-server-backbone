@@ -2,7 +2,8 @@
 from src.utils import (
     convert_version_to_proper_semantic as cvs,
     version_info_tuple as vt,
-    select_latest_version as slv)
+    select_latest_version as slv,
+    get_osio_user_count)
 import semantic_version as sv
 
 
@@ -65,7 +66,13 @@ def test_select_latest_version():
     assert result_version == ""
 
 
+def test_get_osio_user_count():
+    out = get_osio_user_count("maven","io.vertx:vertx-core","3.4.2", unit_test=True)
+    assert(isinstance(out, int))
+
+
 if __name__ == '__main__':
     test_semantic_versioning()
     test_version_info_tuple()
     test_select_latest_version()
+    test_get_osio_user_count()
