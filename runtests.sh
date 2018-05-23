@@ -45,7 +45,7 @@ function prepare_venv() {
         exit 1
     fi
     pip install -U pip
-    python3 `which pip3` install -r requirements.txt
+    pip install -r requirements.txt
 
 }
 
@@ -53,10 +53,10 @@ function prepare_venv() {
 
 # now we are surely in the Python virtual environment
 
-`which pip3` install git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@561636c
-`which pip3` install pytest
-`which pip3` install pytest-cov
-`which pip3` install radon
+pip install git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@561636c
+pip install pytest
+pip install pytest-cov
+pip install radon
 
 echo "*****************************************"
 echo "*** Cyclomatic complexity measurement ***"
