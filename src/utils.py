@@ -57,8 +57,8 @@ def get_osio_user_count(ecosystem, name, version, unit_test=False):
 
     try:
         if unit_test:
-            url='http://bayesian-gremlin-http-preview-b6ff-bayesian-preview.b6ff.' \
-                'rh-idev.openshiftapps.com/'
+            url = 'http://bayesian-gremlin-http-preview-b6ff-bayesian-preview.b6ff.' \
+                  'rh-idev.openshiftapps.com/'
             response = get_session_retry().post(url, data=json.dumps(payload))
         else:
             response = get_session_retry().post(GREMLIN_SERVER_URL_REST, data=json.dumps(payload))

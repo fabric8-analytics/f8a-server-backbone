@@ -48,11 +48,12 @@ class TestRecommendationTask(TestCase):
 
 
 def test_execute():
+    """Test the function execute."""
     f = open("tests/data/stack_aggregator_execute_input.json", "r")
     payload = json.loads(f.read())
 
     r = RecommendationTask()
-    out = r.execute(arguments=payload,persist=False,unit_test=True)
+    out = r.execute(arguments=payload, persist=False, unit_test=True)
     assert(out['recommendation'] == "success")
 
     r = RecommendationTask()
@@ -61,6 +62,7 @@ def test_execute():
 
 
 def test_filter_versions():
+    """Test the function filter_versions."""
     input_stack = {"io.vertx:vertx-web": "3.4.2", "io.vertx:vertx-core": "3.4.2"}
 
     f = open("tests/data/companion_pkg_graph.json", "r")

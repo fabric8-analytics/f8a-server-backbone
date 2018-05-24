@@ -374,8 +374,8 @@ def get_dependency_data(resolved, ecosystem, unit_test=False):
 
         try:
             if unit_test:
-                url='http://bayesian-gremlin-http-preview-b6ff-bayesian-preview.b6ff.' \
-                    'rh-idev.openshiftapps.com/'
+                url = 'http://bayesian-gremlin-http-preview-b6ff-bayesian-preview.b6ff.' \
+                      'rh-idev.openshiftapps.com/'
                 graph_req = get_session_retry().post(url, data=json.dumps(payload))
             else:
                 graph_req = get_session_retry().post(GREMLIN_SERVER_URL_REST,

@@ -67,7 +67,8 @@ def test_select_latest_version():
 
 
 def test_get_osio_user_count():
-    out = get_osio_user_count("maven","io.vertx:vertx-core","3.4.2", unit_test=True)
+    """Test the function get_osio_user_count."""
+    out = get_osio_user_count("maven", "io.vertx:vertx-core", "3.4.2", unit_test=True)
     assert(isinstance(out, int))
 
 

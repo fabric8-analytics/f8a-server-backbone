@@ -81,7 +81,7 @@ from stack_aggregator import extract_user_stack_package_licenses
 from f8a_worker.models import WorkerResult
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert
-#from flask import current_app
+# from flask import current_app
 
 logger = logging.getLogger(__file__)
 
