@@ -1,0 +1,55 @@
+[
+    {
+        "alternate_packages": {},
+        "companion_packages": [
+            {
+                "cooccurrence_count": 208,
+                "cooccurrence_probability": 77.61194029850746,
+                "package_name": "io.vertx:vertx-web-client",
+                "topic_list": [
+                    "http-request",
+                    "http",
+                    "vertx-web-client",
+                    "http-response"
+                ]
+            },
+            {
+                "cooccurrence_count": 207,
+                "cooccurrence_probability": 77.23880597014924,
+                "package_name": "org.apache.logging.log4j:log4j-core",
+                "topic_list": [
+                    "java",
+                    "logging"
+                ]
+            },
+            {
+                "cooccurrence_count": 221,
+                "cooccurrence_probability": 82.46268656716418,
+                "package_name": "org.slf4j:slf4j-api",
+                "topic_list": [
+                    "logging",
+                    "dependency-injection",
+                    "api"
+                ]
+            }
+        ],
+        "ecosystem": "maven",
+        "missing_packages": [],
+        "outlier_package_list": [],
+        "package_to_topic_dict": {
+            "io.vertx:vertx-core": [
+                "http",
+                "socket",
+                "cluster",
+                "reactive"
+            ],
+            "io.vertx:vertx-web": [
+                "event-bus",
+                "jwt",
+                "webapp",
+                "routing"
+            ]
+        },
+        "user_persona": "1"
+    }
+]

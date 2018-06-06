@@ -98,16 +98,11 @@ class GraphDB:
     """Graph database interface."""
 
     @staticmethod
-    def execute_gremlin_dsl(payload, unit_test=False):
+    def execute_gremlin_dsl(payload):
         """Execute the gremlin query and return the response."""
         try:
-            if unit_test:
-                url = 'http://bayesian-gremlin-http-preview-b6ff-bayesian-preview.b6ff.' \
-                      'rh-idev.openshiftapps.com/'
-                graph_req = get_session_retry().post(url, data=json.dumps(payload))
-            else:
-                response = get_session_retry().post(GREMLIN_SERVER_URL_REST,
-                                                    data=json.dumps(payload))
+            response = get_session_retry().post(GREMLIN_SERVER_URL_REST,
+                                                data=json.dumps(payload))
 
             if response.status_code == 200:
                 json_response = response.json()
@@ -130,7 +125,7 @@ class GraphDB:
         """
         return json_response.get("result", {}).get("data", data_default)
 
-    def get_version_information(self, input_list, ecosystem, unit_test=False):
+    def get_version_information(self, input_list, ecosystem):
         """Fetch the version information for each of the packages.
 
         Also remove EPVs with CVEs and ones not present in Graph
@@ -148,7 +143,7 @@ class GraphDB:
         }
 
         # Query Gremlin with packages list to get their version information
-        gremlin_response = self.execute_gremlin_dsl(payload, unit_test=unit_test)
+        gremlin_response = self.execute_gremlin_dsl(payload)
         if gremlin_response is None:
             return []
         response = self.get_response_data(gremlin_response, [{0: 0}])
@@ -386,7 +381,7 @@ class RecommendationTask:
     chester_ecosystems = ['npm']
 
     @staticmethod
-    def call_insights_recommender(payload, unit_test=False):
+    def call_insights_recommender(payload):
         """Call the PGM model.
 
         Calls the PGM model with the normalized manifest information to get
@@ -408,12 +403,7 @@ class RecommendationTask:
                 if payload[0]['ecosystem'] in RecommendationTask.chester_ecosystems:
                     insights_url = INSIGHTS_URL_REST + "/api/v1/companion_recommendation"
                 else:
-                    if unit_test:
-                        url = "http://bayesian-kronos-maven-bayesian-preview.b6ff." \
-                                      "rh-idev.openshiftapps.com"
-                        insights_url = url + "/api/v1/schemas/kronos_scoring"
-                    else:
-                        insights_url = INSIGHTS_URL_REST + "/api/v1/schemas/kronos_scoring"
+                    insights_url = INSIGHTS_URL_REST + "/api/v1/schemas/kronos_scoring"
                 response = get_session_retry().post(insights_url, json=payload)
                 if response.status_code != 200:
                     logger.error(
@@ -433,7 +423,7 @@ class RecommendationTask:
             logger.error("%s" % e)
             return None
 
-    def execute(self, arguments=None, persist=True, check_license=False, unit_test=False):
+    def execute(self, arguments=None, persist=True, check_license=False):
         """Execute task."""
         # TODO: reduce cyclomatic complexity
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
@@ -480,8 +470,7 @@ class RecommendationTask:
 
             # Call PGM and get the response
             start = datetime.datetime.utcnow()
-            insights_response = self.call_insights_recommender(input_task_for_insights_recommender,
-                                                               unit_test)
+            insights_response = self.call_insights_recommender(input_task_for_insights_recommender)
             elapsed_seconds = (datetime.datetime.utcnow() - start).total_seconds()
             msg = 'It took {t} seconds to get response from PGM ' \
                   'for external request {e}.'.format(t=elapsed_seconds,
@@ -512,8 +501,7 @@ class RecommendationTask:
 
                     # Get Companion Packages from Graph
                     comp_packages_graph = GraphDB().get_version_information(companion_packages,
-                                                                            ecosystem,
-                                                                            unit_test=unit_test)
+                                                                            ecosystem)
 
                     # Apply Version Filters
                     filtered_comp_packages_graph, filtered_list = GraphDB().filter_versions(
@@ -555,7 +543,7 @@ class RecommendationTask:
                     # if alternate_packages:
                     # Get Alternate Packages from Graph
                     alt_packages_graph = GraphDB().get_version_information(
-                        alternate_packages, ecosystem, unit_test=unit_test)
+                        alternate_packages, ecosystem)
 
                     # Apply Version Filters
                     filtered_alt_packages_graph, filtered_list = GraphDB().filter_versions(
@@ -570,7 +558,7 @@ class RecommendationTask:
                     if check_license:
                         # apply license based filters
                         list_user_stack_comp = extract_user_stack_package_licenses(
-                            resolved, ecosystem, unit_test=unit_test)
+                            resolved, ecosystem)
                         license_filter_output = apply_license_filter(list_user_stack_comp,
                                                                      filtered_alt_packages_graph,
                                                                      filtered_comp_packages_graph)

@@ -229,12 +229,9 @@ def _extract_license_outliers(license_service_output):
     return outliers
 
 
-def perform_license_analysis(license_score_list, dependencies, unit_test=False):
+def perform_license_analysis(license_score_list, dependencies):
     """Pass given license_score_list to stack_license analysis and process response."""
-    if unit_test:
-        license_url = "https://license-analysis.api.prod-preview.openshift.io/api/v1/stack_license"
-    else:
-        license_url = LICENSE_SCORING_URL_REST + "/api/v1/stack_license"
+    license_url = LICENSE_SCORING_URL_REST + "/api/v1/stack_license"
 
     payload = {
         "packages": license_score_list
@@ -244,7 +241,7 @@ def perform_license_analysis(license_score_list, dependencies, unit_test=False):
     # TODO: refactoring
     try:
         lic_response = get_session_retry().post(license_url, data=json.dumps(payload))
-        lic_response.raise_for_status()  # raise exception for bad http-status codes
+        # lic_response.raise_for_status()  # raise exception for bad http-status codes
         resp = lic_response.json()
     except requests.exceptions.RequestException:
         current_app.logger.exception("Unexpected error happened while invoking license analysis!")
@@ -281,9 +278,9 @@ def perform_license_analysis(license_score_list, dependencies, unit_test=False):
     return output, dependencies
 
 
-def extract_user_stack_package_licenses(resolved, ecosystem, unit_test=False):
+def extract_user_stack_package_licenses(resolved, ecosystem):
     """Extract user stack package licenses."""
-    user_stack = get_dependency_data(resolved, ecosystem, unit_test)
+    user_stack = get_dependency_data(resolved, ecosystem)
     list_package_licenses = []
     if user_stack is not None:
         for component in user_stack.get('result', []):
@@ -357,7 +354,7 @@ def aggregate_stack_data(stack, manifest_file, ecosystem, deps, manifest_file_pa
     return data
 
 
-def get_dependency_data(resolved, ecosystem, unit_test=False):
+def get_dependency_data(resolved, ecosystem):
     """Get dependency data from graph."""
     result = []
     for elem in resolved:
@@ -373,13 +370,7 @@ def get_dependency_data(resolved, ecosystem, unit_test=False):
         payload = {'gremlin': qstring}
 
         try:
-            if unit_test:
-                url = 'http://bayesian-gremlin-http-preview-b6ff-bayesian-preview.b6ff.' \
-                      'rh-idev.openshiftapps.com/'
-                graph_req = get_session_retry().post(url, data=json.dumps(payload))
-            else:
-                graph_req = get_session_retry().post(GREMLIN_SERVER_URL_REST,
-                                                     data=json.dumps(payload))
+            graph_req = get_session_retry().post(GREMLIN_SERVER_URL_REST, data=json.dumps(payload))
 
             if graph_req.status_code == 200:
                 graph_resp = graph_req.json()
@@ -403,7 +394,7 @@ class StackAggregator:
     """Aggregate stack data from components."""
 
     @staticmethod
-    def execute(aggregated=None, persist=True, unit_test=False):
+    def execute(aggregated=None, persist=True):
         """Task code."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         finished = []
@@ -418,7 +409,7 @@ class StackAggregator:
             manifest = result['details'][0]['manifest_file']
             manifest_file_path = result['details'][0]['manifest_file_path']
 
-            finished = get_dependency_data(resolved, ecosystem, unit_test=unit_test)
+            finished = get_dependency_data(resolved, ecosystem)
             if finished is not None:
                 output = aggregate_stack_data(finished, manifest, ecosystem.lower(),
                                               resolved, manifest_file_path, persist)

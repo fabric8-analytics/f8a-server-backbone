@@ -17,8 +17,8 @@ GREMLIN_SERVER_URL_REST = "http://{host}:{port}".format(
     port=os.environ.get("BAYESIAN_GREMLIN_HTTP_SERVICE_PORT", "8182"))
 
 LICENSE_SCORING_URL_REST = "http://{host}:{port}".format(
-    host=os.environ.get("LICENSE_SERVICE_HOST"),
-    port=os.environ.get("LICENSE_SERVICE_PORT"))
+    host=os.environ.get("LICENSE_SERVICE_HOST", "localhost"),
+    port=os.environ.get("LICENSE_SERVICE_PORT", "6162"))
 
 zero_version = sv.Version("0.0.0")
 # Create Postgres Connection Session
@@ -46,7 +46,7 @@ class Postgres:
         return self.session
 
 
-def get_osio_user_count(ecosystem, name, version, unit_test=False):
+def get_osio_user_count(ecosystem, name, version):
     """Send query to the graph database to get # of uses for the provided E+P+V."""
     str_gremlin = "g.V().has('pecosystem','{}').has('pname','{}').has('version','{}').".format(
         ecosystem, name, version)
@@ -56,12 +56,7 @@ def get_osio_user_count(ecosystem, name, version, unit_test=False):
     }
 
     try:
-        if unit_test:
-            url = 'http://bayesian-gremlin-http-preview-b6ff-bayesian-preview.b6ff.' \
-                  'rh-idev.openshiftapps.com/'
-            response = get_session_retry().post(url, data=json.dumps(payload))
-        else:
-            response = get_session_retry().post(GREMLIN_SERVER_URL_REST, data=json.dumps(payload))
+        response = get_session_retry().post(GREMLIN_SERVER_URL_REST, data=json.dumps(payload))
         json_response = response.json()
         return json_response['result']['data'][0]
     except Exception as e:

@@ -5,6 +5,40 @@ from src.utils import (
     select_latest_version as slv,
     get_osio_user_count)
 import semantic_version as sv
+from unittest import TestCase, mock
+from src import stack_aggregator
+
+
+def mock_get_osio_user_count(*args, **kwargs):
+    """Mock the call to the insights service."""
+    class MockResponse:
+        """Mock response object."""
+
+        def __init__(self, json_data, status_code):
+            """Create a mock json response."""
+            self.json_data = json_data
+            self.status_code = status_code
+
+        def json(self):
+            """Get the mock json response."""
+            return self.json_data
+
+    # return the URL to check whether we are calling the correct service.
+    resp = {
+        "requestId": "f98d1366-738e-4c14-a3ff-594f359e131c",
+        "status": {
+            "message": "",
+            "code": 200,
+            "attributes": {}
+        },
+        "result": {
+            "data": [
+                0
+            ],
+            "meta": {}
+        }
+    }
+    return MockResponse(resp, 200)
 
 
 def test_semantic_versioning():
@@ -66,9 +100,11 @@ def test_select_latest_version():
     assert result_version == ""
 
 
-def test_get_osio_user_count():
+@mock.patch('requests.get', side_effect=mock_get_osio_user_count)
+@mock.patch('requests.Session.post', side_effect=mock_get_osio_user_count)
+def test_get_osio_user_count(mock_get, mock_post):
     """Test the function get_osio_user_count."""
-    out = get_osio_user_count("maven", "io.vertx:vertx-core", "3.4.2", unit_test=True)
+    out = get_osio_user_count("maven", "io.vertx:vertx-core", "3.4.2")
     assert(isinstance(out, int))
 
 

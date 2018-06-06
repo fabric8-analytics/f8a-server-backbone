@@ -47,18 +47,40 @@ class TestRecommendationTask(TestCase):
             self.assertTrue('pgm' in called_url_json['url'])
 
 
-def test_execute():
+def mocked_response_execute(*args, **kwargs):
+    """Mock the call to the execute."""
+    class MockResponse:
+        """Mock response object."""
+
+        def __init__(self, json_data, status_code):
+            """Create a mock json response."""
+            self.json_data = json_data
+            self.status_code = status_code
+
+        def json(self):
+            """Get the mock json response."""
+            return self.json_data
+
+    # return the URL to check whether we are calling the correct service.
+    f = open('tests/data/companion_pkg_graph.json', 'r')
+    resp = json.loads(f.read())
+    return MockResponse(resp, 200)
+
+
+@mock.patch('src.recommender.RecommendationTask.call_insights_recommender',
+            side_effect=mocked_response_execute)
+def test_execute(mock_call_insights):
     """Test the function execute."""
     f = open("tests/data/stack_aggregator_execute_input.json", "r")
     payload = json.loads(f.read())
 
     r = RecommendationTask()
-    out = r.execute(arguments=payload, persist=False, unit_test=True)
-    assert(out['recommendation'] == "success")
+    out = r.execute(arguments=payload, persist=False)
+    assert(out['recommendation'] == "pgm_error")
 
     r = RecommendationTask()
-    out = r.execute(arguments=payload, check_license=True, persist=False, unit_test=True)
-    assert (out['recommendation'] == "success")
+    out = r.execute(arguments=payload, check_license=True, persist=False)
+    assert (out['recommendation'] == "pgm_error")
 
 
 def test_filter_versions():

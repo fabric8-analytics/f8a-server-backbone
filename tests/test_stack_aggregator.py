@@ -1,7 +1,7 @@
 """Tests for the stack_aggregator module."""
 
 from unittest import TestCase
-from unittest.mock import *
+from unittest import mock
 
 from src import stack_aggregator
 import json
@@ -47,17 +47,59 @@ def test_extract_conflict_packages():
     assert(len(packages) == 1)
 
 
-def test_execute():
+def mock_dependency_response(*args, **kwargs):
+    """Mock the call to the insights service."""
+    class MockResponse:
+        """Mock response object."""
+
+        def __init__(self, json_data, status_code):
+            """Create a mock json response."""
+            self.json_data = json_data
+            self.status_code = status_code
+
+        def json(self):
+            """Get the mock json response."""
+            return self.json_data
+
+    f = open('tests/data/dependency_response.json')
+    resp = json.loads(f.read())
+    return MockResponse(resp, 200)
+
+
+@mock.patch('requests.get', side_effect=mock_dependency_response)
+@mock.patch('requests.Session.post', side_effect=mock_dependency_response)
+def test_execute(mock_get, mock_post):
     """Test the function execute."""
     f = open("tests/data/stack_aggregator_execute_input.json", "r")
     payload = json.loads(f.read())
 
     s = stack_aggregator.StackAggregator()
-    out = s.execute(payload, False, unit_test=True)
+    out = s.execute(payload, False)
     assert(out['stack_aggregator'] == "success")
 
 
-def test_extract_unknown_packages():
+def mock_licenses_resp_component_conflict(*args, **kwargs):
+    """Mock the call to the insights service."""
+    class MockResponse:
+        """Mock response object."""
+
+        def __init__(self, json_data, status_code):
+            """Create a mock json response."""
+            self.json_data = json_data
+            self.status_code = status_code
+
+        def json(self):
+            """Get the mock json response."""
+            return self.json_data
+
+    f = open('tests/data/license_component_conflict.json')
+    resp = json.loads(f.read())
+    return MockResponse(resp, 200)
+
+
+@mock.patch('requests.get', side_effect=mock_licenses_resp_component_conflict)
+@mock.patch('requests.Session.post', side_effect=mock_licenses_resp_component_conflict)
+def test_extract_unknown_packages(mock_get, mock_post):
     """Test the function _extract_unknown_packages."""
     f = open("tests/data/license_unknown.json", "r")
     license_payload = json.loads(f.read())
@@ -72,7 +114,9 @@ def test_extract_unknown_packages():
     assert (len(packages) == 2)
 
 
-def test_extract_license_outliers():
+@mock.patch('requests.get', side_effect=mock_licenses_resp_component_conflict)
+@mock.patch('requests.Session.post', side_effect=mock_licenses_resp_component_conflict)
+def test_extract_license_outliers(mock_get, mock_post):
     """Test the function _extract_license_outliers."""
     f = open("tests/data/license_component_conflict.json", "r")
     license_payload = json.loads(f.read())
@@ -81,16 +125,39 @@ def test_extract_license_outliers():
     assert(len(packages) == 1)
 
 
-def test_perform_license_analysis():
+def mock_licenses_resp_unknown(*args, **kwargs):
+    """Mock the call to the insights service."""
+    class MockResponse:
+        """Mock response object."""
+
+        def __init__(self, json_data, status_code):
+            """Create a mock json response."""
+            self.json_data = json_data
+            self.status_code = status_code
+
+        def json(self):
+            """Get the mock json response."""
+            return self.json_data
+
+    f = open('tests/data/license_unknown.json')
+    resp = json.loads(f.read())
+    return MockResponse(resp, 200)
+
+
+@mock.patch('requests.get', side_effect=mock_licenses_resp_unknown)
+@mock.patch('requests.Session.post', side_effect=mock_licenses_resp_unknown)
+def test_perform_license_analysis(mock_get, mock_post):
     """Test the function perform_license_analysis."""
-    out, deps = stack_aggregator.perform_license_analysis([], [], unit_test=True)
+    out, deps = stack_aggregator.perform_license_analysis([], [])
     assert (len(deps) == 0)
 
 
-def test_get_dependency_data():
+@mock.patch('requests.get', side_effect=mock_dependency_response)
+@mock.patch('requests.Session.post', side_effect=mock_dependency_response)
+def test_get_dependency_data(mock_get, mock_post):
     """Test the function get_dependency_data."""
     resolved = [{"package": "io.vertx:vertx-core", "version": "3.4.2"}]
-    out = stack_aggregator.get_dependency_data(resolved, "maven", unit_test=True)
+    out = stack_aggregator.get_dependency_data(resolved, "maven")
     assert(len(out['result']) == 1)
 
 

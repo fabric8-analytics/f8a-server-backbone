@@ -3,6 +3,7 @@
 import requests
 import os
 import json
+from unittest import mock
 
 payload = {
     "result": [{
@@ -76,9 +77,26 @@ def test_stack_api_endpoint():
     assert(jsn['external_request_id'] is None)
 
 
-def test_recommendation_api_endpoint(client):
+def mock_response(*args, **kwargs):
+    """Mock the call to the insights service."""
+    class MockResponse:
+        """Mock response object."""
+
+        def __init__(self, json_data, status_code):
+            """Create a mock json response."""
+            self.json_data = json_data
+            self.status_code = status_code
+
+        def json(self):
+            """Get the mock json response."""
+            return self.json_data
+
+    return MockResponse({}, 200)
+
+
+@mock.patch('src.recommender.RecommendationTask.execute', side_effect=mock_response)
+def test_recommendation_api_endpoint(mock_object, client):
     """Check the /recommender REST API endpoint."""
-    # rec_resp = requests.post(url + "/recommender", json=payload)
     rec_resp = client.post(api_route_for("recommender"),
                            data=json.dumps(payload), content_type='application/json')
     jsn = get_json_from_response(rec_resp)
