@@ -5,8 +5,8 @@ import json
 import logging
 logger = logging.getLogger(__name__)
 
-from recommender import RecommendationTask, GraphDB
-from rest_api import app
+from src.recommender import RecommendationTask, GraphDB, apply_license_filter
+from src.rest_api import app
 
 
 def mocked_requests_get(*args, **kwargs):
@@ -63,12 +63,12 @@ def mocked_response_execute(*args, **kwargs):
 
     # return the URL to check whether we are calling the correct service.
     f = open('tests/data/companion_pkg_graph.json', 'r')
-    resp = json.loads(f.read())
+    resp = json.load(f)
     return MockResponse(resp, 200)
 
 
 @mock.patch('src.recommender.RecommendationTask.call_insights_recommender',
-            side_effect=mocked_response_execute)
+            return_value=[])
 def test_execute(mock_call_insights):
     """Test the function execute."""
     f = open("tests/data/stack_aggregator_execute_input.json", "r")
@@ -76,11 +76,14 @@ def test_execute(mock_call_insights):
 
     r = RecommendationTask()
     out = r.execute(arguments=payload, persist=False)
-    assert out['recommendation'] == "pgm_error"
+    assert out['recommendation'] == "success"
 
     r = RecommendationTask()
     out = r.execute(arguments=payload, check_license=True, persist=False)
-    assert out['recommendation'] == "pgm_error"
+    assert out['recommendation'] == "success"
+
+    out = r.execute(arguments=payload, persist=True)
+    assert out['recommendation'] == "success"
 
 
 def test_filter_versions():
@@ -97,6 +100,24 @@ def test_filter_versions():
     assert len(filtered_list) > 0
 
 
+@mock.patch('src.recommender.GraphDB.execute_gremlin_dsl', return_value=None)
+@mock.patch('src.recommender.GraphDB.get_response_data', return_value=None)
+def test_get_version_information(mock1, mock2):
+    out = GraphDB().get_version_information([], 'maven')
+    assert len(out) == 0
+
+
+@mock.patch('src.recommender.invoke_license_analysis_service',
+            return_value={'status': 'successful', 'license_filter': {}})
+def test_get_version_information(mock1):
+    f = open('tests/data/epv_list.json', 'r')
+    resp = json.load(f)
+
+    out = apply_license_filter(None, resp, resp)
+    assert isinstance(out, dict)
+
+
 if __name__ == '__main__':
     test_execute()
     test_filter_versions()
+    test_get_version_information()
