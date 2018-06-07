@@ -83,7 +83,7 @@ def test_execute(mock_call_insights):
     assert out['recommendation'] == "success"
 
     out = r.execute(arguments=payload, persist=True)
-    assert out['recommendation'] == "success"
+    assert out['recommendation'] == "database error"
 
 
 def test_filter_versions():
@@ -103,13 +103,15 @@ def test_filter_versions():
 @mock.patch('src.recommender.GraphDB.execute_gremlin_dsl', return_value=None)
 @mock.patch('src.recommender.GraphDB.get_response_data', return_value=None)
 def test_get_version_information(mock1, mock2):
+    """Test the function get_version_information."""
     out = GraphDB().get_version_information([], 'maven')
     assert len(out) == 0
 
 
 @mock.patch('src.recommender.invoke_license_analysis_service',
             return_value={'status': 'successful', 'license_filter': {}})
-def test_get_version_information(mock1):
+def test_apply_license_filter(mock1):
+    """Test the function apply_license_filter."""
     f = open('tests/data/epv_list.json', 'r')
     resp = json.load(f)
 
@@ -121,3 +123,4 @@ if __name__ == '__main__':
     test_execute()
     test_filter_versions()
     test_get_version_information()
+    test_apply_license_filter()
