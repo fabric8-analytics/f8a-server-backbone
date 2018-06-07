@@ -44,7 +44,7 @@ def test_extract_conflict_packages():
     license_payload = json.loads(f.read())
 
     packages = stack_aggregator._extract_conflict_packages(license_payload)
-    assert(len(packages) == 1)
+    assert len(packages) == 1
 
 
 def mock_dependency_response(*args, **kwargs):
@@ -75,7 +75,7 @@ def test_execute(mock_get, mock_post):
 
     s = stack_aggregator.StackAggregator()
     out = s.execute(payload, False)
-    assert(out['stack_aggregator'] == "success")
+    assert out['stack_aggregator'] == "success"
 
 
 def mock_licenses_resp_component_conflict(*args, **kwargs):
@@ -105,13 +105,13 @@ def test_extract_unknown_packages(mock_get, mock_post):
     license_payload = json.loads(f.read())
 
     packages = stack_aggregator._extract_unknown_licenses(license_payload)
-    assert(len(packages) == 2)
+    assert len(packages) == 2
 
     f = open("tests/data/license_component_conflict.json", "r")
     license_payload = json.loads(f.read())
 
     packages = stack_aggregator._extract_unknown_licenses(license_payload)
-    assert (len(packages) == 2)
+    assert len(packages) == 2
 
 
 @mock.patch('requests.get', side_effect=mock_licenses_resp_component_conflict)
@@ -122,7 +122,7 @@ def test_extract_license_outliers(mock_get, mock_post):
     license_payload = json.loads(f.read())
 
     packages = stack_aggregator._extract_license_outliers(license_payload)
-    assert(len(packages) == 1)
+    assert len(packages) == 1
 
 
 def mock_licenses_resp_unknown(*args, **kwargs):
@@ -149,7 +149,7 @@ def mock_licenses_resp_unknown(*args, **kwargs):
 def test_perform_license_analysis(mock_get, mock_post):
     """Test the function perform_license_analysis."""
     out, deps = stack_aggregator.perform_license_analysis([], [])
-    assert (len(deps) == 0)
+    assert len(deps) == 0
 
 
 @mock.patch('requests.get', side_effect=mock_dependency_response)
@@ -158,13 +158,13 @@ def test_get_dependency_data(mock_get, mock_post):
     """Test the function get_dependency_data."""
     resolved = [{"package": "io.vertx:vertx-core", "version": "3.4.2"}]
     out = stack_aggregator.get_dependency_data(resolved, "maven")
-    assert(len(out['result']) == 1)
+    assert len(out['result']) == 1
 
 
 def test_aggregate_stack_data():
     """Test the function aggregate_stack_data."""
     out = stack_aggregator.aggregate_stack_data({}, "pom.xml", "maven", [], "/home/JohnDoe", False)
-    assert (out['manifest_name'] == "pom.xml")
+    assert out['manifest_name'] == "pom.xml"
 
 
 if __name__ == '__main__':

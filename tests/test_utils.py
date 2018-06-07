@@ -106,7 +106,7 @@ def test_select_latest_version():
 def test_get_osio_user_count(mock_get, mock_post):
     """Test the function get_osio_user_count."""
     out = get_osio_user_count("maven", "io.vertx:vertx-core", "3.4.2")
-    assert(isinstance(out, int))
+    assert isinstance(out, int)
 
 
 @mock.patch('src.utils.get_osio_user_count', return_value=1)
@@ -115,7 +115,7 @@ def test_create_package_dict(mock_count):
     f = open('tests/data/companion_pkg_graph.json', 'r')
     resp = json.loads(f.read())
     out = create_package_dict(resp)
-    assert(len(out) > 1)
+    assert len(out) > 1
 
 
 if __name__ == '__main__':

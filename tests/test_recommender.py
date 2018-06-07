@@ -76,11 +76,11 @@ def test_execute(mock_call_insights):
 
     r = RecommendationTask()
     out = r.execute(arguments=payload, persist=False)
-    assert(out['recommendation'] == "pgm_error")
+    assert out['recommendation'] == "pgm_error"
 
     r = RecommendationTask()
     out = r.execute(arguments=payload, check_license=True, persist=False)
-    assert (out['recommendation'] == "pgm_error")
+    assert out['recommendation'] == "pgm_error"
 
 
 def test_filter_versions():
@@ -93,9 +93,10 @@ def test_filter_versions():
     g = GraphDB()
     filtered_comp_packages_graph, filtered_list = g.filter_versions(companion_packages_graph,
                                                                     input_stack)
-    assert (len(filtered_comp_packages_graph) > 0)
-    assert (len(filtered_list) > 0)
+    assert len(filtered_comp_packages_graph) > 0
+    assert len(filtered_list) > 0
 
 
 if __name__ == '__main__':
     test_execute()
+    test_filter_versions()
