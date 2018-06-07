@@ -3,10 +3,11 @@ from src.utils import (
     convert_version_to_proper_semantic as cvs,
     version_info_tuple as vt,
     select_latest_version as slv,
-    get_osio_user_count)
+    get_osio_user_count,
+    create_package_dict)
 import semantic_version as sv
+import json
 from unittest import TestCase, mock
-from src import stack_aggregator
 
 
 def mock_get_osio_user_count(*args, **kwargs):
@@ -106,6 +107,15 @@ def test_get_osio_user_count(mock_get, mock_post):
     """Test the function get_osio_user_count."""
     out = get_osio_user_count("maven", "io.vertx:vertx-core", "3.4.2")
     assert(isinstance(out, int))
+
+
+@mock.patch('src.utils.get_osio_user_count', return_value=1)
+def test_create_package_dict(mock_count):
+    """Test the function get_osio_user_count."""
+    f = open('tests/data/companion_pkg_graph.json', 'r')
+    resp = json.loads(f.read())
+    out = create_package_dict(resp)
+    assert(len(out) > 1)
 
 
 if __name__ == '__main__':
