@@ -1,0 +1,66 @@
+{
+    "conflict_packages": [
+        {
+            "package1": "license1",
+            "package2": "license1"
+        }
+    ],
+    "distinct_licenses": [
+        "gplv2",
+        "bsd-new",
+        "apache 2.0"
+    ],
+    "message": "No declared licenses found for 0 component(s).",
+    "outlier_packages": {"io.vertx:vertx-somepkg": "BSD"},
+    "packages": [
+        {
+            "license_analysis": {
+                "_message": "Representative license found",
+                "_representative_licenses": "epl 1.0",
+                "conflict_licenses": [],
+                "outlier_licenses": [],
+                "status": "Successful",
+                "synonyms": {
+                    "APACHE": "apache 2.0",
+                    "Eclipse Public License": "epl 1.0"
+                },
+                "unknown_licenses": []
+            },
+            "licenses": [
+                "APACHE",
+                "Eclipse Public License"
+            ],
+            "package": "p1",
+            "version": "1.1"
+        },
+        {
+            "license_analysis": {
+                "_message": "Some licenses are in conflict",
+                "_representative_licenses": null,
+                "conflict_licenses": [
+                    [
+                        "apache 2.0",
+                        "gplv2"
+                    ]
+                ],
+                "outlier_licenses": [],
+                "status": "Conflict",
+                "synonyms": {
+                    "APACHE": "apache 2.0",
+                    "BSD": "bsd-new",
+                    "GPL V2": "gplv2"
+                },
+                "unknown_licenses": []
+            },
+            "licenses": [
+                "BSD",
+                "GPL V2",
+                "APACHE"
+            ],
+            "package": "p2",
+            "version": "1.1"
+        }
+    ],
+    "stack_license": null,
+    "status": "ComponentLicenseConflict"
+}

@@ -1,0 +1,57 @@
+{
+    "conflict_packages": [],
+    "distinct_licenses": [
+        "gplv2",
+        "bsd-new"
+    ],
+    "message": "No declared licenses found for 0 component(s).",
+    "outlier_packages": {},
+    "packages": [
+        {
+            "license_analysis": {
+                "_message": "Some unknown licenses found",
+                "_representative_licenses": null,
+                "conflict_licenses": [],
+                "outlier_licenses": [],
+                "status": "Unknown",
+                "synonyms": {
+                    "APACHE": "apache 2.0",
+                    "Eclipse Public License": "epl 1.0",
+                    "REDHAT": "REDHAT"
+                },
+                "unknown_licenses": [
+                    "REDHAT"
+                ]
+            },
+            "licenses": [
+                "APACHE",
+                "Eclipse Public License",
+                "REDHAT"
+            ],
+            "package": "p1",
+            "version": "1.1"
+        },
+        {
+            "license_analysis": {
+                "_message": "Representative license found",
+                "_representative_licenses": "gplv2",
+                "conflict_licenses": [],
+                "outlier_licenses": [],
+                "status": "Successful",
+                "synonyms": {
+                    "BSD": "bsd-new",
+                    "GPL V2": "gplv2"
+                },
+                "unknown_licenses": []
+            },
+            "licenses": [
+                "BSD",
+                "GPL V2"
+            ],
+            "package": "p2",
+            "version": "1.1"
+        }
+    ],
+    "stack_license": null,
+    "status": "Unknown"
+}

@@ -3,6 +3,7 @@
 import requests
 import os
 import json
+from unittest import mock
 
 payload = {
     "result": [{
@@ -72,20 +73,22 @@ def test_stack_api_endpoint():
     """Check the /stack_aggregator REST API endpoint."""
     stack_resp = requests.post(url + "/stack_aggregator", json=payload)
     jsn = stack_resp.json()
-    assert(jsn['stack_aggregator'] == 'failure')
-    assert(jsn['external_request_id'] is None)
+    assert jsn['stack_aggregator'] == 'failure'
+    assert jsn['external_request_id'] is None
 
 
-def test_recommendation_api_endpoint(client):
+@mock.patch('src.recommender.RecommendationTask.execute', return_value={})
+def test_recommendation_api_endpoint(mock_object, client):
     """Check the /recommender REST API endpoint."""
-    # rec_resp = requests.post(url + "/recommender", json=payload)
     rec_resp = client.post(api_route_for("recommender"),
                            data=json.dumps(payload), content_type='application/json')
     jsn = get_json_from_response(rec_resp)
-    assert(jsn['recommendation'] == 'failure')
-    assert(jsn['external_request_id'] is None)
+    assert jsn['recommendation'] == 'failure'
+    assert jsn['external_request_id'] is None
 
 
 if __name__ == '__main__':
+    test_readiness_endpoint()
+    test_liveness_endpoint()
     test_stack_api_endpoint()
     test_recommendation_api_endpoint()

@@ -241,7 +241,7 @@ def perform_license_analysis(license_score_list, dependencies):
     # TODO: refactoring
     try:
         lic_response = get_session_retry().post(license_url, data=json.dumps(payload))
-        lic_response.raise_for_status()  # raise exception for bad http-status codes
+        # lic_response.raise_for_status()  # raise exception for bad http-status codes
         resp = lic_response.json()
     except requests.exceptions.RequestException:
         current_app.logger.exception("Unexpected error happened while invoking license analysis!")

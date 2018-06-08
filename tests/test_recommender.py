@@ -1,11 +1,12 @@
 """Tests for the recommender module."""
 from unittest import TestCase
 from unittest import mock
+import json
 import logging
 logger = logging.getLogger(__name__)
 
-from recommender import RecommendationTask
-from rest_api import app
+from src.recommender import RecommendationTask, GraphDB, apply_license_filter
+from src.rest_api import app
 
 
 def mocked_requests_get(*args, **kwargs):
@@ -44,3 +45,82 @@ class TestRecommendationTask(TestCase):
                 "ecosystem": "maven"
             }])
             self.assertTrue('pgm' in called_url_json['url'])
+
+
+def mocked_response_execute(*args, **kwargs):
+    """Mock the call to the execute."""
+    class MockResponse:
+        """Mock response object."""
+
+        def __init__(self, json_data, status_code):
+            """Create a mock json response."""
+            self.json_data = json_data
+            self.status_code = status_code
+
+        def json(self):
+            """Get the mock json response."""
+            return self.json_data
+
+    # return the URL to check whether we are calling the correct service.
+    f = open('tests/data/companion_pkg_graph.json', 'r')
+    resp = json.load(f)
+    return MockResponse(resp, 200)
+
+
+@mock.patch('src.recommender.RecommendationTask.call_insights_recommender',
+            return_value=[])
+def test_execute(mock_call_insights):
+    """Test the function execute."""
+    f = open("tests/data/stack_aggregator_execute_input.json", "r")
+    payload = json.loads(f.read())
+
+    r = RecommendationTask()
+    out = r.execute(arguments=payload, persist=False)
+    assert out['recommendation'] == "success"
+
+    r = RecommendationTask()
+    out = r.execute(arguments=payload, check_license=True, persist=False)
+    assert out['recommendation'] == "success"
+
+    out = r.execute(arguments=payload, persist=True)
+    assert out['recommendation'] == "database error"
+
+
+def test_filter_versions():
+    """Test the function filter_versions."""
+    input_stack = {"io.vertx:vertx-web": "3.4.2", "io.vertx:vertx-core": "3.4.2"}
+
+    f = open("tests/data/companion_pkg_graph.json", "r")
+    companion_packages_graph = json.loads(f.read())
+
+    g = GraphDB()
+    filtered_comp_packages_graph, filtered_list = g.filter_versions(companion_packages_graph,
+                                                                    input_stack)
+    assert len(filtered_comp_packages_graph) > 0
+    assert len(filtered_list) > 0
+
+
+@mock.patch('src.recommender.GraphDB.execute_gremlin_dsl', return_value=None)
+@mock.patch('src.recommender.GraphDB.get_response_data', return_value=None)
+def test_get_version_information(mock1, mock2):
+    """Test the function get_version_information."""
+    out = GraphDB().get_version_information([], 'maven')
+    assert len(out) == 0
+
+
+@mock.patch('src.recommender.invoke_license_analysis_service',
+            return_value={'status': 'successful', 'license_filter': {}})
+def test_apply_license_filter(mock1):
+    """Test the function apply_license_filter."""
+    f = open('tests/data/epv_list.json', 'r')
+    resp = json.load(f)
+
+    out = apply_license_filter(None, resp, resp)
+    assert isinstance(out, dict)
+
+
+if __name__ == '__main__':
+    test_execute()
+    test_filter_versions()
+    test_get_version_information()
+    test_apply_license_filter()

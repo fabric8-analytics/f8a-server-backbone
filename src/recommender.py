@@ -71,6 +71,7 @@ import os
 from collections import Counter, defaultdict
 import re
 import semantic_version as sv
+import logging
 
 from utils import (create_package_dict, get_session_retry, select_latest_version,
                    GREMLIN_SERVER_URL_REST, LICENSE_SCORING_URL_REST, Postgres,
@@ -80,8 +81,9 @@ from stack_aggregator import extract_user_stack_package_licenses
 from f8a_worker.models import WorkerResult
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert
-from flask import current_app
+# from flask import current_app
 
+logger = logging.getLogger(__file__)
 
 session = Postgres().session
 
@@ -99,19 +101,20 @@ class GraphDB:
     def execute_gremlin_dsl(payload):
         """Execute the gremlin query and return the response."""
         try:
-            response = get_session_retry().post(GREMLIN_SERVER_URL_REST, data=json.dumps(payload))
+            response = get_session_retry().post(GREMLIN_SERVER_URL_REST,
+                                                data=json.dumps(payload))
 
             if response.status_code == 200:
                 json_response = response.json()
 
                 return json_response
             else:
-                current_app.logger.error("HTTP error {}. Error retrieving Gremlin data.".format(
+                logger.error("HTTP error {}. Error retrieving Gremlin data.".format(
                     response.status_code))
                 return None
 
         except Exception:
-            current_app.logger.error(traceback.format_exc())
+            logger.error(traceback.format_exc())
             return None
 
     @staticmethod
@@ -159,7 +162,7 @@ class GraphDB:
         5. Github Release Date
         """
         # TODO: reduce cyclomatic complexity
-        current_app.logger.info("Filtering {} for external_request_id {}".format(
+        logger.info("Filtering {} for external_request_id {}".format(
             rec_type, external_request_id))
 
         pkg_dict = defaultdict(dict)
@@ -192,7 +195,7 @@ class GraphDB:
                             new_dict[name]['pkg'] = epv.get('pkg')
                             filtered_comp_list.append(name)
                     except ValueError:
-                        current_app.logger.exception(
+                        logger.exception(
                             "Unexpected ValueError while filtering latest version!")
                         pass
 
@@ -212,7 +215,7 @@ class GraphDB:
 
                                 filtered_comp_list.append(name)
                         except ValueError:
-                            current_app.logger.exception(
+                            logger.exception(
                                 "Unexpected ValueError while filtering dependency count!")
                             pass
 
@@ -232,14 +235,14 @@ class GraphDB:
                                 new_dict[name]['pkg'] = epv.get('pkg')
                                 filtered_comp_list.append(name)
                         except ValueError:
-                            current_app.logger.exception(
+                            logger.exception(
                                 "Unexpected ValueError while filtering github release date!")
                             pass
 
-        current_app.logger.info(
+        logger.info(
             "Data Dict new_dict for external_request_id {} is {}"
             .format(external_request_id, new_dict))
-        current_app.logger.info(
+        logger.info(
             "Data List filtered_comp_list for external_request_id {} is {}"
             .format(external_request_id, filtered_comp_list))
 
@@ -301,7 +304,7 @@ def invoke_license_analysis_service(user_stack_packages, alternate_packages, com
         lic_response.raise_for_status()  # raise exception for bad http-status codes
         json_response = lic_response.json()
     except requests.exceptions.RequestException:
-        current_app.logger.exception("Unexpected error happened while invoking license analysis!")
+        logger.exception("Unexpected error happened while invoking license analysis!")
         pass
 
     return json_response
@@ -364,7 +367,7 @@ def apply_license_filter(user_stack_components, epv_list_alt, epv_list_com):
         'filtered_comp_packages_graph': epv_list_com,
         'filtered_list_pkg_names_com': list_pkg_names_com
     }
-    current_app.logger.info("License Filter output: {}".format(json.dumps(output)))
+    logger.info("License Filter output: {}".format(json.dumps(output)))
 
     return output
 
@@ -396,13 +399,14 @@ class RecommendationTask:
                 INSIGHTS_URL_REST = "http://{host}:{port}".format(
                         host=INSIGHTS_SERVICE_HOST,
                         port=os.getenv("PGM_SERVICE_PORT"))
+
                 if payload[0]['ecosystem'] in RecommendationTask.chester_ecosystems:
                     insights_url = INSIGHTS_URL_REST + "/api/v1/companion_recommendation"
                 else:
                     insights_url = INSIGHTS_URL_REST + "/api/v1/schemas/kronos_scoring"
                 response = get_session_retry().post(insights_url, json=payload)
                 if response.status_code != 200:
-                    current_app.logger.error(
+                    logger.error(
                             "HTTP error {}. Error retrieving insights data.".format(
                                     response.status_code))
                     return None
@@ -410,13 +414,13 @@ class RecommendationTask:
                     json_response = response.json()
                     return json_response
             else:
-                current_app.logger.error(
+                logger.error(
                     'Payload information not passed in the call, Quitting! inights '
                     'recommender\'s call'
                 )
         except Exception as e:
-            current_app.logger.error("Failed retrieving insights data.")
-            current_app.logger.error("%s" % e)
+            logger.error("Failed retrieving insights data.")
+            logger.error("%s" % e)
             return None
 
     def execute(self, arguments=None, persist=True, check_license=False):
@@ -471,7 +475,7 @@ class RecommendationTask:
             msg = 'It took {t} seconds to get response from PGM ' \
                   'for external request {e}.'.format(t=elapsed_seconds,
                                                      e=external_request_id)
-            current_app.logger.info(msg)
+            logger.info(msg)
 
             # From PGM response process companion and alternate packages and
             # then get Data from Graph
@@ -505,7 +509,7 @@ class RecommendationTask:
 
                     filtered_companion_packages = \
                         set(companion_packages).difference(set(filtered_list))
-                    current_app.logger.info(
+                    logger.info(
                         "Companion Packages Filtered for external_request_id {} {}"
                         .format(external_request_id, filtered_companion_packages)
                     )
@@ -547,7 +551,7 @@ class RecommendationTask:
 
                     filtered_alternate_packages = \
                         set(alternate_packages).difference(set(filtered_list))
-                    current_app.logger.info(
+                    logger.info(
                         "Alternate Packages Filtered for external_request_id {} {}"
                         .format(external_request_id, filtered_alternate_packages)
                     )
@@ -575,13 +579,13 @@ class RecommendationTask:
                         msg = \
                             "Alternate Packages filtered (licenses) for external_request_id {} {}" \
                             .format(external_request_id, s)
-                        current_app.logger.info(msg)
+                        logger.info(msg)
 
                     if len(lic_filtered_list_com) > 0:
                         s = set(filtered_companion_packages).difference(set(lic_filtered_list_com))
                         msg = "Companion Packages filtered (licenses) for external_request_id {} " \
                               "{}".format(external_request_id, s)
-                        current_app.logger.info(msg)
+                        logger.info(msg)
 
                     # Get Topics Added to Filtered Packages
                     topics_comp_packages_graph = GraphDB(). \
