@@ -28,22 +28,25 @@ function start_backbone_service {
 start_backbone_service
 
 
-export PYTHONPATH=`pwd`/src
+PYTHONPATH=$(pwd)/src
+export PYTHONPATH
+
 echo "Create Virtualenv for Python deps ..."
 function prepare_venv() {
-    VIRTUALENV=`which virtualenv`
+    VIRTUALENV=$(which virtualenv)
     if [ $? -eq 1 ]
     then
         # python34 which is in CentOS does not have virtualenv binary
-        VIRTUALENV=`which virtualenv-3`
+        VIRTUALENV=$(which virtualenv-3)
     fi
 
     ${VIRTUALENV} -p python3 venv && source venv/bin/activate
     if [ $? -ne 0 ]
     then
-        printf "${RED}Python virtual environment can't be initialized${NORMAL}"
+        printf "%sPython virtual environment can't be initialized%s" "${RED}" "${NORMAL}"
         exit 1
     fi
+    printf "%sPython virtual environment initialized%s\n" "${YELLOW}" "${NORMAL}"
     pip install -U pip
     pip install -r requirements.txt
 
@@ -71,4 +74,5 @@ radon mi -s -i venv .
 echo "*****************************************"
 echo "*** Unit tests ***"
 echo "*****************************************"
-PYTHONDONTWRITEBYTECODE=1 CHESTER_SERVICE_HOST='npm-insights' PGM_SERVICE_HOST='pgm' PGM_SERVICE_PORT='6006' python3 `which pytest` --cov=src/ --cov-report term-missing -vv tests/
+PYTHONDONTWRITEBYTECODE=1 CHESTER_SERVICE_HOST='npm-insights' PGM_SERVICE_HOST='pgm' PGM_SERVICE_PORT='6006' python3 "$(which pytest)" --cov=src/ --cov-report term-missing -vv tests/
+printf "%stests passed%s\n\n" "${GREEN}" "${NORMAL}"
