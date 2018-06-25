@@ -245,3 +245,19 @@ def get_session_retry(retries=3, backoff_factor=0.2, status_forcelist=(404, 500,
     adapter = HTTPAdapter(max_retries=retry)
     session.mount('http://', adapter)
     return session
+
+
+def is_quickstart_majority(package_list=[]):
+    """Return true if 50% or more packages are from quickstarts.
+
+    param package_list: The list of packages in the payload.
+    """
+    count_quickstart_pck = 0
+    for package_name in package_list:
+        if package_name.startswith(("org.wildfly.swarm",
+                                    "org.springframework.boot",
+                                    "io.vertx")):
+            count_quickstart_pck += 1
+    # If 50% or more packages reflect quickstarts, pick kronos.
+    # Defaults to Kronos if package_list is empty
+    return count_quickstart_pck >= len(package_list) / 2

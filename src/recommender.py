@@ -76,7 +76,8 @@ import logging
 from utils import (create_package_dict, get_session_retry, select_latest_version,
                    GREMLIN_SERVER_URL_REST, LICENSE_SCORING_URL_REST, Postgres,
                    convert_version_to_proper_semantic,
-                   version_info_tuple)
+                   version_info_tuple,
+                   is_quickstart_majority)
 from stack_aggregator import extract_user_stack_package_licenses
 from f8a_worker.models import WorkerResult
 from sqlalchemy.exc import SQLAlchemyError
@@ -379,6 +380,7 @@ class RecommendationTask:
     description = 'Get Recommendation'
     kronos_ecosystems = ['maven']
     chester_ecosystems = ['npm']
+    hpf_ecosystems = ['maven']
 
     @staticmethod
     def call_insights_recommender(payload):
@@ -390,20 +392,29 @@ class RecommendationTask:
         try:
             # TODO remove hardcodedness for payloads with multiple ecosystems
             if payload and 'ecosystem' in payload[0]:
-
+                quickstarts = True
                 if payload[0]['ecosystem'] in RecommendationTask.chester_ecosystems:
                     INSIGHTS_SERVICE_HOST = os.getenv("CHESTER_SERVICE_HOST")
-                else:
-                    INSIGHTS_SERVICE_HOST = os.getenv("PGM_SERVICE_HOST") + "-" + \
-                                            payload[0]['ecosystem']
+                elif payload[0]['ecosystem'] == 'maven':
+                    quickstarts = is_quickstart_majority(
+                        payload[0]['package_list'])
+                    if quickstarts:
+                        INSIGHTS_SERVICE_HOST = os.getenv("PGM_SERVICE_HOST") + "-" + \
+                            payload[0]['ecosystem']
+                    else:
+                        INSIGHTS_SERVICE_HOST = os.getenv("HPF_SERVICE_HOST") + "-" + \
+                            payload[0]['ecosystem']
                 INSIGHTS_URL_REST = "http://{host}:{port}".format(
-                        host=INSIGHTS_SERVICE_HOST,
-                        port=os.getenv("PGM_SERVICE_PORT"))
+                    host=INSIGHTS_SERVICE_HOST,
+                    port=os.getenv("PGM_SERVICE_PORT"))
 
                 if payload[0]['ecosystem'] in RecommendationTask.chester_ecosystems:
                     insights_url = INSIGHTS_URL_REST + "/api/v1/companion_recommendation"
-                else:
+                elif payload[0]['ecosystem'] in RecommendationTask.kronos_ecosystems \
+                        and quickstarts:
                     insights_url = INSIGHTS_URL_REST + "/api/v1/schemas/kronos_scoring"
+                elif payload[0]['ecosystem'] in RecommendationTask.hpf_ecosystems:
+                    insights_url = INSIGHTS_URL_REST + "/api/v1/companion_recommendation"
                 response = get_session_retry().post(insights_url, json=payload)
                 if response.status_code != 200:
                     logger.error(
@@ -470,10 +481,12 @@ class RecommendationTask:
 
             # Call PGM and get the response
             start = datetime.datetime.utcnow()
-            insights_response = self.call_insights_recommender(input_task_for_insights_recommender)
-            elapsed_seconds = (datetime.datetime.utcnow() - start).total_seconds()
-            msg = 'It took {t} seconds to get response from PGM ' \
-                  'for external request {e}.'.format(t=elapsed_seconds,
+            insights_response = self.call_insights_recommender(
+                input_task_for_insights_recommender)
+            elapsed_seconds = (datetime.datetime.utcnow() -
+                               start).total_seconds()
+            msg = "It took {t} seconds to get insight's response" \
+                  "for external request {e}.".format(t=elapsed_seconds,
                                                      e=external_request_id)
             logger.info(msg)
 

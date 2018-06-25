@@ -42,9 +42,14 @@ class TestRecommendationTask(TestCase):
             self.assertTrue('npm-insights' in called_url_json['url'])
             # Now test whether the correct service is called for maven.
             called_url_json = RecommendationTask.call_insights_recommender([{
-                "ecosystem": "maven"
+                "ecosystem": "maven", "package_list": []
             }])
             self.assertTrue('pgm' in called_url_json['url'])
+
+            called_url_json = RecommendationTask.call_insights_recommender([{
+                "ecosystem": "maven", "package_list": ["org.slf4j:slf4j-api"]
+            }])
+            self.assertTrue('hpf-insights' in called_url_json['url'])
 
 
 def mocked_response_execute(*args, **kwargs):

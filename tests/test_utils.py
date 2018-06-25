@@ -4,7 +4,8 @@ from src.utils import (
     version_info_tuple as vt,
     select_latest_version as slv,
     get_osio_user_count,
-    create_package_dict)
+    create_package_dict,
+    is_quickstart_majority)
 import semantic_version as sv
 import json
 from unittest import TestCase, mock
@@ -118,8 +119,21 @@ def test_create_package_dict(mock_count):
     assert len(out) > 1
 
 
+def test_is_quickstart_majority():
+    """Test the function is_quickstart_majority."""
+    package_list = []
+    assert is_quickstart_majority(package_list) is True
+    package_list = ['io.vertx:vertx-core',
+                    'org.springframework.boot:spring-boot-starter-web',
+                    'org.slf4j:slf4j-api']
+    assert is_quickstart_majority(package_list) is True
+    package_list = ['org.slf4j:slf4j-api']
+    assert is_quickstart_majority(package_list) is False
+
+
 if __name__ == '__main__':
     test_semantic_versioning()
     test_version_info_tuple()
     test_select_latest_version()
     test_get_osio_user_count()
+    test_is_quickstart_majority()

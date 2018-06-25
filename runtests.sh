@@ -77,5 +77,5 @@ radon mi -s -i venv .
 echo "*****************************************"
 echo "*** Unit tests ***"
 echo "*****************************************"
-PYTHONDONTWRITEBYTECODE=1 CHESTER_SERVICE_HOST='npm-insights' PGM_SERVICE_HOST='pgm' PGM_SERVICE_PORT='6006' python3 "$(which pytest)" --cov=src/ --cov-report term-missing --cov-fail-under=$COVERAGE_THRESHOLD -vv tests/
+PYTHONDONTWRITEBYTECODE=1 CHESTER_SERVICE_HOST='npm-insights' PGM_SERVICE_HOST='pgm' HPF_SERVICE_HOST='hpf-insights' PGM_SERVICE_PORT='6006' python3 "$(which pytest)" --cov=src/ --cov-report term-missing --cov-fail-under=$COVERAGE_THRESHOLD -vv tests/
 printf "%stests passed%s\n\n" "${GREEN}" "${NORMAL}"
