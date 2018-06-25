@@ -408,12 +408,10 @@ class RecommendationTask:
                     host=INSIGHTS_SERVICE_HOST,
                     port=os.getenv("PGM_SERVICE_PORT"))
 
-                if payload[0]['ecosystem'] in RecommendationTask.chester_ecosystems:
-                    insights_url = INSIGHTS_URL_REST + "/api/v1/companion_recommendation"
-                elif payload[0]['ecosystem'] in RecommendationTask.kronos_ecosystems \
+                if payload[0]['ecosystem'] in RecommendationTask.kronos_ecosystems \
                         and quickstarts:
                     insights_url = INSIGHTS_URL_REST + "/api/v1/schemas/kronos_scoring"
-                elif payload[0]['ecosystem'] in RecommendationTask.hpf_ecosystems:
+                else:
                     insights_url = INSIGHTS_URL_REST + "/api/v1/companion_recommendation"
                 response = get_session_retry().post(insights_url, json=payload)
                 if response.status_code != 200:
