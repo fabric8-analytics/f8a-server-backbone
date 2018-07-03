@@ -122,13 +122,13 @@ def test_create_package_dict(mock_count):
 def test_is_quickstart_majority():
     """Test the function is_quickstart_majority."""
     package_list = []
-    assert is_quickstart_majority(package_list) is True
+    assert is_quickstart_majority(package_list)
     package_list = ['io.vertx:vertx-core',
                     'org.springframework.boot:spring-boot-starter-web',
                     'org.slf4j:slf4j-api']
-    assert is_quickstart_majority(package_list) is True
+    assert is_quickstart_majority(package_list)
     package_list = ['org.slf4j:slf4j-api']
-    assert is_quickstart_majority(package_list) is False
+    assert not is_quickstart_majority(package_list)
 
 
 if __name__ == '__main__':

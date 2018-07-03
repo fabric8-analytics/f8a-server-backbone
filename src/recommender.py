@@ -392,24 +392,24 @@ class RecommendationTask:
         try:
             # TODO remove hardcodedness for payloads with multiple ecosystems
             if payload and 'ecosystem' in payload[0]:
-                quickstarts = True
+                quickstarts = False
                 if payload[0]['ecosystem'] in RecommendationTask.chester_ecosystems:
                     INSIGHTS_SERVICE_HOST = os.getenv("CHESTER_SERVICE_HOST")
-                elif payload[0]['ecosystem'] == 'maven':
-                    quickstarts = is_quickstart_majority(
-                        payload[0]['package_list'])
+                else:
+                    INSIGHTS_SERVICE_HOST = os.getenv("HPF_SERVICE_HOST") + "-" + \
+                        payload[0]['ecosystem']
+                    if payload[0]['ecosystem'] == 'maven':
+                        quickstarts = is_quickstart_majority(
+                            payload[0]['package_list'])
                     if quickstarts:
                         INSIGHTS_SERVICE_HOST = os.getenv("PGM_SERVICE_HOST") + "-" + \
                             payload[0]['ecosystem']
-                    else:
-                        INSIGHTS_SERVICE_HOST = os.getenv("HPF_SERVICE_HOST") + "-" + \
-                            payload[0]['ecosystem']
+
                 INSIGHTS_URL_REST = "http://{host}:{port}".format(
                     host=INSIGHTS_SERVICE_HOST,
                     port=os.getenv("PGM_SERVICE_PORT"))
 
-                if payload[0]['ecosystem'] in RecommendationTask.kronos_ecosystems \
-                        and quickstarts:
+                if quickstarts:
                     insights_url = INSIGHTS_URL_REST + "/api/v1/schemas/kronos_scoring"
                 else:
                     insights_url = INSIGHTS_URL_REST + "/api/v1/companion_recommendation"

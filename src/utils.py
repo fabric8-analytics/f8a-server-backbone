@@ -22,6 +22,9 @@ LICENSE_SCORING_URL_REST = "http://{host}:{port}".format(
 
 zero_version = sv.Version("0.0.0")
 # Create Postgres Connection Session
+quickstart_tuple = ("org.wildfly.swarm",
+                    "org.springframework.boot",
+                    "io.vertx")
 
 
 class Postgres:
@@ -254,9 +257,7 @@ def is_quickstart_majority(package_list=[]):
     """
     count_quickstart_pck = 0
     for package_name in package_list:
-        if package_name.startswith(("org.wildfly.swarm",
-                                    "org.springframework.boot",
-                                    "io.vertx")):
+        if package_name.startswith(quickstart_tuple):
             count_quickstart_pck += 1
     # If 50% or more packages reflect quickstarts, pick kronos.
     # Defaults to Kronos if package_list is empty
