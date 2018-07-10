@@ -1,11 +1,13 @@
 ifeq ($(TARGET),rhel)
   DOCKERFILE := Dockerfile.rhel
-  REGISTRY := push.registry.devshift.net/osio-prod
+  REGISTRY := quay.io
+  REPOSITORY := openshiftio/rhel-fabric8-analytics-f8a-server-backbone
 else
   DOCKERFILE := Dockerfile
-  REGISTRY := push.registry.devshift.net
+  REGISTRY := quay.io
+  REPOSITORY := openshiftio/fabric8-analytics-f8a-server-backbone
 endif
-REPOSITORY?=fabric8-analytics/f8a-server-backbone
+
 DEFAULT_TAG=latest
 
 .PHONY: all docker-build fast-docker-build test get-image-name get-image-repository

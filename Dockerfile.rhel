@@ -1,6 +1,6 @@
 # base image source https://github.com/rhdt/EL-Dockerfiles/blob/master/base/python3/Dockerfile
 
-FROM prod.registry.devshift.net/osio-prod/base/python3:latest
+FROM quay.io/openshiftio/rhel-base-python3:latest
 
 ENV F8A_WORKER_VERSION=c019a1e
 LABEL name="f8analytics backbone services" \
