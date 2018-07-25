@@ -82,9 +82,15 @@ from stack_aggregator import extract_user_stack_package_licenses
 from f8a_worker.models import WorkerResult
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert
-# from flask import current_app
+from flask import current_app
 
-logger = logging.getLogger(__file__)
+"""This condition is used to set logger for testing,
+as tests don't have the current_app context."""
+if current_app:
+    _logger = current_app.logger
+else:
+    _logger = logging.getLogger(__file__)
+    _logger.setLevel(level=logging.DEBUG)
 
 session = Postgres().session
 
@@ -110,12 +116,12 @@ class GraphDB:
 
                 return json_response
             else:
-                logger.error("HTTP error {}. Error retrieving Gremlin data.".format(
+                _logger.error("HTTP error {}. Error retrieving Gremlin data.".format(
                     response.status_code))
                 return None
 
         except Exception:
-            logger.error(traceback.format_exc())
+            _logger.error(traceback.format_exc())
             return None
 
     @staticmethod
@@ -163,7 +169,7 @@ class GraphDB:
         5. Github Release Date
         """
         # TODO: reduce cyclomatic complexity
-        logger.info("Filtering {} for external_request_id {}".format(
+        _logger.info("Filtering {} for external_request_id {}".format(
             rec_type, external_request_id))
 
         pkg_dict = defaultdict(dict)
@@ -196,7 +202,7 @@ class GraphDB:
                             new_dict[name]['pkg'] = epv.get('pkg')
                             filtered_comp_list.append(name)
                     except ValueError:
-                        logger.exception(
+                        _logger.exception(
                             "Unexpected ValueError while filtering latest version!")
                         pass
 
@@ -216,7 +222,7 @@ class GraphDB:
 
                                 filtered_comp_list.append(name)
                         except ValueError:
-                            logger.exception(
+                            _logger.exception(
                                 "Unexpected ValueError while filtering dependency count!")
                             pass
 
@@ -236,14 +242,14 @@ class GraphDB:
                                 new_dict[name]['pkg'] = epv.get('pkg')
                                 filtered_comp_list.append(name)
                         except ValueError:
-                            logger.exception(
+                            _logger.exception(
                                 "Unexpected ValueError while filtering github release date!")
                             pass
 
-        logger.info(
+        _logger.info(
             "Data Dict new_dict for external_request_id {} is {}"
             .format(external_request_id, new_dict))
-        logger.info(
+        _logger.info(
             "Data List filtered_comp_list for external_request_id {} is {}"
             .format(external_request_id, filtered_comp_list))
 
@@ -305,7 +311,8 @@ def invoke_license_analysis_service(user_stack_packages, alternate_packages, com
         lic_response.raise_for_status()  # raise exception for bad http-status codes
         json_response = lic_response.json()
     except requests.exceptions.RequestException:
-        logger.exception("Unexpected error happened while invoking license analysis!")
+        _logger.exception(
+            "Unexpected error happened while invoking license analysis!")
         pass
 
     return json_response
@@ -368,7 +375,8 @@ def apply_license_filter(user_stack_components, epv_list_alt, epv_list_com):
         'filtered_comp_packages_graph': epv_list_com,
         'filtered_list_pkg_names_com': list_pkg_names_com
     }
-    logger.info("License Filter output: {}".format(json.dumps(output)))
+    _logger.info(
+        "License Filter output: {}".format(json.dumps(output)))
 
     return output
 
@@ -415,21 +423,21 @@ class RecommendationTask:
                     insights_url = INSIGHTS_URL_REST + "/api/v1/companion_recommendation"
                 response = get_session_retry().post(insights_url, json=payload)
                 if response.status_code != 200:
-                    logger.error(
-                            "HTTP error {}. Error retrieving insights data.".format(
-                                    response.status_code))
+                    _logger.error(
+                        "HTTP error {}. Error retrieving insights data.".format(
+                            response.status_code))
                     return None
                 else:
                     json_response = response.json()
                     return json_response
             else:
-                logger.error(
+                _logger.error(
                     'Payload information not passed in the call, Quitting! inights '
                     'recommender\'s call'
                 )
         except Exception as e:
-            logger.error("Failed retrieving insights data.")
-            logger.error("%s" % e)
+            _logger.error("Failed retrieving insights data.")
+            _logger.error("%s" % e)
             return None
 
     def execute(self, arguments=None, persist=True, check_license=False):
@@ -486,7 +494,7 @@ class RecommendationTask:
             msg = "It took {t} seconds to get insight's response" \
                   "for external request {e}.".format(t=elapsed_seconds,
                                                      e=external_request_id)
-            logger.info(msg)
+            _logger.info(msg)
 
             # From PGM response process companion and alternate packages and
             # then get Data from Graph
@@ -520,7 +528,7 @@ class RecommendationTask:
 
                     filtered_companion_packages = \
                         set(companion_packages).difference(set(filtered_list))
-                    logger.info(
+                    _logger.info(
                         "Companion Packages Filtered for external_request_id {} {}"
                         .format(external_request_id, filtered_companion_packages)
                     )
@@ -562,7 +570,7 @@ class RecommendationTask:
 
                     filtered_alternate_packages = \
                         set(alternate_packages).difference(set(filtered_list))
-                    logger.info(
+                    _logger.info(
                         "Alternate Packages Filtered for external_request_id {} {}"
                         .format(external_request_id, filtered_alternate_packages)
                     )
@@ -590,13 +598,13 @@ class RecommendationTask:
                         msg = \
                             "Alternate Packages filtered (licenses) for external_request_id {} {}" \
                             .format(external_request_id, s)
-                        logger.info(msg)
+                        _logger.info(msg)
 
                     if len(lic_filtered_list_com) > 0:
                         s = set(filtered_companion_packages).difference(set(lic_filtered_list_com))
                         msg = "Companion Packages filtered (licenses) for external_request_id {} " \
                               "{}".format(external_request_id, s)
-                        logger.info(msg)
+                        _logger.info(msg)
 
                     # Get Topics Added to Filtered Packages
                     topics_comp_packages_graph = GraphDB(). \
