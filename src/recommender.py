@@ -411,7 +411,6 @@ class RecommendationTask:
 
                 if quickstarts:
                     insights_url = INSIGHTS_URL_REST + "/api/v1/schemas/kronos_scoring"
-                    insights_url = "http://bayesian-kronos-maven-bayesian-preview.b6ff.rh-idev.openshiftapps.com/api/v1/schemas/kronos_scoring"
                 else:
                     insights_url = INSIGHTS_URL_REST + "/api/v1/companion_recommendation"
                 response = get_session_retry().post(insights_url, json=payload)
