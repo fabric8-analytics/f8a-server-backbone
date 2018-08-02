@@ -7,6 +7,7 @@ Output: TBD
 
 """
 from f8a_worker.models import WorkerResult
+from f8a_version_comparator.comparable_version import ComparableVersion
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert
 import json
@@ -390,6 +391,40 @@ def get_dependency_data(resolved, ecosystem):
     return {"result": result}
 
 
+def get_latest_licenses(dep_data):
+    """Get license data from graph."""
+    
+    result = []
+    return_data = {"result": result}
+    if dep_data["package"] is None or dep_data["version"] is None:
+        current_app.logger.warning("Either component name or component version is missing")
+        return return_data
+
+    qstring = \
+        "g.V().has('pecosystem', '{}').has('pname', '{}').has('version', '{}')" \
+        .format(dep_data["ecosystem"], dep_data["package"], dep_data["version"]) + \
+        ".as('version').in('has_version').as('package')" + \
+        ".select('version','package').by(valueMap());"
+    payload = {'gremlin': qstring}
+
+    try:
+        graph_req = get_session_retry().post(GREMLIN_SERVER_URL_REST, data=json.dumps(payload))
+
+        if graph_req.status_code == 200:
+            graph_resp = graph_req.json()
+            if 'result' not in graph_resp:
+                return return_data
+            if len(graph_resp['result']['data']) == 0:
+                return return_data
+            if graph_resp
+            result.append(graph_resp["result"])
+        else:
+            current_app.logger.error("Failed retrieving dependency data.")
+    except Exception:
+        current_app.logger.exception("Error retrieving dependency data!")
+
+    return {"result": result}
+
 class StackAggregator:
     """Aggregate stack data from components."""
 
@@ -425,11 +460,13 @@ class StackAggregator:
             'ended_at': ended_at,
             'version': 'v1'
         }
+        StackAggregator._check_for_recommendations(stack_data)
         stack_data = {
             'stack_data': stack_data,
             '_audit': audit,
             '_release': 'None:None:None'
         }
+
         if persist:
             # TODO: refactoring
             # Store the result in RDS
@@ -462,3 +499,53 @@ class StackAggregator:
             return {'stack_aggregator': 'success',
                     'external_request_id': external_request_id,
                     'result': stack_data}
+
+    @staticmethod      
+    def _check_for_recommendations(stack_data):
+        """Checks for recommendations."""
+        for epv_ in stack_data:
+            user_info = epv_.get("user_stack_info", None)
+            if user_info is not None:
+                dependencies = user_info.get("analyzed_dependencies", None)
+                package_list = list()
+                if dependencies:
+                    for dep_ in dependencies:
+                        dep_data = {
+                                        "package" : dep_.get("name", None),
+                                        "user_version" : dep_.get("version", None),
+                                        "latest_version" : dep_.get("latest_version", None),
+                                        "licenses": dep_.get("licenses", []),
+                                        "ecosystem": dep_.get("ecosystem", None)
+                                    }
+                        package_list.append(dep_data)
+                    StackAggregator._create_epv_load(package_list)
+
+
+    @staticmethod
+    """Creates payload for license scoring."""
+    def _create_epv_load(package_list):
+        lic_load = dict()
+        packages = list()
+        lic_load["packages"] = packages
+
+        for dep_ in package_list:
+            
+            package = dep_.get("package", None)
+            latest_version =  dep_.get("latest_version", None)
+            user_version = dep_.get("user_version")
+            licenses = dep_.get("licenses", [])
+            ecosystem = dep_.get("ecosystem", None)
+
+            dep_data = {
+                "package" : package,
+                "version" : user_version,
+                "licenses": licenses,
+                "ecosystem": ecosystem
+                }
+            if latest_version is not None:
+                if user_version is not latest_version:
+                    dep_data["version"] = latest_version
+                lic_data = get_latest_licenses(dep_data)
+            lic_load["packages"].append(dep_data)
+
+

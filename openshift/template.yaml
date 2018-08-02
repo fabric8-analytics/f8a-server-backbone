@@ -71,6 +71,11 @@ objects:
             value: "sync"
           - name: FLASK_LOGGING_LEVEL
             value: ${FLASK_LOGGING_LEVEL}
+          - name: NOTIFICATION_SERVICE_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: bayesian-config
+                key: notification-url
           image: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${IMAGE_TAG}"
           name: f8a-server-backbone
           ports:
