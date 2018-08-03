@@ -229,6 +229,7 @@ def _extract_license_outliers(license_service_output):
 
     return outliers
 
+
 def recommend_license_scoring(license_score_list):
     """Pass given license_score_list to stack_license analysis and process response."""
     license_url = LICENSE_SCORING_URL_REST + "/api/v1/stack_license"
@@ -243,13 +244,14 @@ def recommend_license_scoring(license_score_list):
         lic_response = get_session_retry().post(license_url, data=json.dumps(payload))
         # lic_response.raise_for_status()  # raise exception for bad http-status codes
         resp = lic_response.json()
-        if resp.get("status") is "successful":
+        if resp.get("status") == "Successful":
             return True
     except requests.exceptions.RequestException:
         current_app.logger.exception("Unexpected error happened while invoking license analysis!")
         flag_stack_license_exception = True
 
     return False
+
 
 def perform_license_analysis(license_score_list, dependencies):
     """Pass given license_score_list to stack_license analysis and process response."""
@@ -392,7 +394,6 @@ def get_dependency_data(resolved, ecosystem):
 
         try:
             graph_req = get_session_retry().post(GREMLIN_SERVER_URL_REST, data=json.dumps(payload))
-
             if graph_req.status_code == 200:
                 graph_resp = graph_req.json()
                 if 'result' not in graph_resp:
@@ -413,7 +414,7 @@ def get_dependency_data(resolved, ecosystem):
 
 def get_latest_licenses(package_list, ver_list):
     """Get license data from graph."""
-    
+
     result = []
     return_data = {"result": result}
     # if dep_data["package"] is None or dep_data["version"] is None:
@@ -422,12 +423,12 @@ def get_latest_licenses(package_list, ver_list):
     #     {
     str_query = "g.V().has('vertex_label','Version').has('pname',within(pkg_list)).has('version',within(ver_list)).valueMap('pname','version','licenses')"
     payload = {
-            'gremlin': str_query,
-            'bindings': {
-                'pkg_list': package_list,
-                'ver_list': ver_list
+            "gremlin": str_query,
+            "bindings": {
+                "pkg_list": package_list,
+                "ver_list": ver_list
             }
-        }
+    }
 
     try:
         graph_req = get_session_retry().post(GREMLIN_SERVER_URL_REST, data=json.dumps(payload))
@@ -440,11 +441,12 @@ def get_latest_licenses(package_list, ver_list):
             if graph_resp:
                 result = graph_resp["result"]["data"]
         else:
-            current_app.logger.error("Failed retrieving dependency data.")
+            current_app.logger.error("Failed retrieving license data.")
     except Exception:
-        current_app.logger.exception("Error retrieving dependency data!")
+        current_app.logger.exception("Error retrieving license data!")
 
     return {"result": result}
+
 
 class StackAggregator:
     """Aggregate stack data from components."""
@@ -521,19 +523,19 @@ class StackAggregator:
                     'external_request_id': external_request_id,
                     'result': stack_data}
 
-    @staticmethod      
+    @staticmethod
     def _check_for_recommendations(stack_data):
         """Checks for recommendations."""
         rec_result = {
-            "data" : {
+            "data": {
                 "attributes": {
-                "Custom": {
-                    "repo_url": "",
-                    "version_updates" :[]
+                    "Custom": {
+                        "repo_url": "",
+                        "version_updates": []
+                    },
+                    "id": "repo_url",
+                    "type": "analytics.notify.version"
                 },
-                "id": "repo_url",
-                "type": "analytics.notify.version"
-                },  
                 "id": str(uuid4()),
                 "type": "notifications"
 
@@ -547,18 +549,16 @@ class StackAggregator:
                 if dependencies:
                     for dep_ in dependencies:
                         dep_data = {
-                                        "package" : dep_.get("name", None),
-                                        "user_version" : dep_.get("version", None),
-                                        "latest_version" : dep_.get("latest_version", None),
+                                        "package": dep_.get("name", None),
+                                        "user_version": dep_.get("version", None),
+                                        "latest_version": dep_.get("latest_version", None),
                                         "licenses": dep_.get("licenses", []),
                                         "ecosystem": dep_.get("ecosystem", None)
                                     }
                         package_list.append(dep_data)
                     lic_result, lic_data = StackAggregator._get_license_score(package_list)
-        
-                    rec_result["data"]["attributes"]["version_updates"] = lic_data
-        print(rec_result) 
-
+                    rec_result["data"]["attributes"]["Custom"]["version_updates"] = lic_data
+        print(rec_result)
 
     @staticmethod
     def _get_license_score(package_list):
@@ -569,7 +569,7 @@ class StackAggregator:
         for dep_ in package_list:
             ecosystem = dep_.get("ecosystem", None)
             package = dep_.get("package", None)
-            latest_version =  dep_.get("latest_version", None)
+            latest_version = dep_.get("latest_version", None)
             user_version = dep_.get("user_version")
             licenses = dep_.get("licenses")
             if latest_version is not None:
@@ -577,26 +577,17 @@ class StackAggregator:
                     pkg_list.append(package)
                     ver_list.append(latest_version)
 
-        
         lic_result = get_latest_licenses(pkg_list, ver_list)
         for lic_ in lic_result["result"]:
             dep_data = {
 
-                "package" : lic_.get("pname")[0],
-                "version" : lic_.get("version")[0],
+                "package": lic_.get("pname")[0],
+                "version": lic_.get("version")[0],
                 "licenses": lic_.get("licenses")
-                }
+            }
             lic_data.append(dep_data)
-    
+
         lic_result = recommend_license_scoring(lic_data)
         if lic_result:
             return lic_result, lic_data
-        return lic_result, {}
-        
-
-
-
-        
-
-
-
+        return lic_result, []
