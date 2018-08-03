@@ -7,12 +7,12 @@ Output: TBD
 
 """
 from f8a_worker.models import WorkerResult
-from f8a_version_comparator.comparable_version import ComparableVersion
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert
 import json
 import datetime
 from flask import current_app
+from uuid import uuid4
 
 import requests
 
@@ -229,6 +229,27 @@ def _extract_license_outliers(license_service_output):
 
     return outliers
 
+def recommend_license_scoring(license_score_list):
+    """Pass given license_score_list to stack_license analysis and process response."""
+    license_url = LICENSE_SCORING_URL_REST + "/api/v1/stack_license"
+
+    payload = {
+        "packages": license_score_list
+    }
+    resp = {}
+    flag_stack_license_exception = False
+    # TODO: refactoring
+    try:
+        lic_response = get_session_retry().post(license_url, data=json.dumps(payload))
+        # lic_response.raise_for_status()  # raise exception for bad http-status codes
+        resp = lic_response.json()
+        if resp.get("status") is "successful":
+            return True
+    except requests.exceptions.RequestException:
+        current_app.logger.exception("Unexpected error happened while invoking license analysis!")
+        flag_stack_license_exception = True
+
+    return False
 
 def perform_license_analysis(license_score_list, dependencies):
     """Pass given license_score_list to stack_license analysis and process response."""
@@ -247,7 +268,6 @@ def perform_license_analysis(license_score_list, dependencies):
     except requests.exceptions.RequestException:
         current_app.logger.exception("Unexpected error happened while invoking license analysis!")
         flag_stack_license_exception = True
-
     stack_license = []
     stack_license_status = None
     unknown_licenses = []
@@ -391,33 +411,34 @@ def get_dependency_data(resolved, ecosystem):
     return {"result": result}
 
 
-def get_latest_licenses(dep_data):
+def get_latest_licenses(package_list, ver_list):
     """Get license data from graph."""
     
     result = []
     return_data = {"result": result}
-    if dep_data["package"] is None or dep_data["version"] is None:
-        current_app.logger.warning("Either component name or component version is missing")
-        return return_data
-
-    qstring = \
-        "g.V().has('pecosystem', '{}').has('pname', '{}').has('version', '{}')" \
-        .format(dep_data["ecosystem"], dep_data["package"], dep_data["version"]) + \
-        ".as('version').in('has_version').as('package')" + \
-        ".select('version','package').by(valueMap());"
-    payload = {'gremlin': qstring}
+    # if dep_data["package"] is None or dep_data["version"] is None:
+    #     current_app.logger.warning("Either component name or component version is missing")
+    #     return return_data
+    #     {
+    str_query = "g.V().has('vertex_label','Version').has('pname',within(pkg_list)).has('version',within(ver_list)).valueMap('pname','version','licenses')"
+    payload = {
+            'gremlin': str_query,
+            'bindings': {
+                'pkg_list': package_list,
+                'ver_list': ver_list
+            }
+        }
 
     try:
         graph_req = get_session_retry().post(GREMLIN_SERVER_URL_REST, data=json.dumps(payload))
-
         if graph_req.status_code == 200:
             graph_resp = graph_req.json()
             if 'result' not in graph_resp:
                 return return_data
             if len(graph_resp['result']['data']) == 0:
                 return return_data
-            if graph_resp
-            result.append(graph_resp["result"])
+            if graph_resp:
+                result = graph_resp["result"]["data"]
         else:
             current_app.logger.error("Failed retrieving dependency data.")
     except Exception:
@@ -503,6 +524,21 @@ class StackAggregator:
     @staticmethod      
     def _check_for_recommendations(stack_data):
         """Checks for recommendations."""
+        rec_result = {
+            "data" : {
+                "attributes": {
+                "Custom": {
+                    "repo_url": "",
+                    "version_updates" :[]
+                },
+                "id": "repo_url",
+                "type": "analytics.notify.version"
+                },  
+                "id": str(uuid4()),
+                "type": "notifications"
+
+            }
+        }
         for epv_ in stack_data:
             user_info = epv_.get("user_stack_info", None)
             if user_info is not None:
@@ -518,34 +554,49 @@ class StackAggregator:
                                         "ecosystem": dep_.get("ecosystem", None)
                                     }
                         package_list.append(dep_data)
-                    StackAggregator._create_epv_load(package_list)
+                    lic_result, lic_data = StackAggregator._get_license_score(package_list)
+        
+                    rec_result["data"]["attributes"]["version_updates"] = lic_data
+        print(rec_result) 
 
 
     @staticmethod
-    """Creates payload for license scoring."""
-    def _create_epv_load(package_list):
-        lic_load = dict()
-        packages = list()
-        lic_load["packages"] = packages
-
+    def _get_license_score(package_list):
+        """Creates payload for license scoring."""
+        lic_data = list()
+        pkg_list = list()
+        ver_list = list()
         for dep_ in package_list:
-            
+            ecosystem = dep_.get("ecosystem", None)
             package = dep_.get("package", None)
             latest_version =  dep_.get("latest_version", None)
             user_version = dep_.get("user_version")
-            licenses = dep_.get("licenses", [])
-            ecosystem = dep_.get("ecosystem", None)
-
-            dep_data = {
-                "package" : package,
-                "version" : user_version,
-                "licenses": licenses,
-                "ecosystem": ecosystem
-                }
+            licenses = dep_.get("licenses")
             if latest_version is not None:
                 if user_version is not latest_version:
-                    dep_data["version"] = latest_version
-                lic_data = get_latest_licenses(dep_data)
-            lic_load["packages"].append(dep_data)
+                    pkg_list.append(package)
+                    ver_list.append(latest_version)
+
+        
+        lic_result = get_latest_licenses(pkg_list, ver_list)
+        for lic_ in lic_result["result"]:
+            dep_data = {
+
+                "package" : lic_.get("pname")[0],
+                "version" : lic_.get("version")[0],
+                "licenses": lic_.get("licenses")
+                }
+            lic_data.append(dep_data)
+    
+        lic_result = recommend_license_scoring(lic_data)
+        if lic_result:
+            return lic_result, lic_data
+        return lic_result, {}
+        
+
+
+
+        
+
 
 
