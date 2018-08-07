@@ -74,7 +74,7 @@ def test_stack_api_endpoint():
 
 
 @mock.patch('src.recommender.RecommendationTask.execute', return_value={})
-def test_recommendation_api_endpoint(mock_object, client):
+def test_recommendation_api_endpoint(_mock_object, client):
     """Check the /recommender REST API endpoint."""
     rec_resp = client.post(api_route_for("recommender"),
                            data=json.dumps(payload), content_type='application/json')

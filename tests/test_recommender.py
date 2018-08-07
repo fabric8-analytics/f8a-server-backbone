@@ -9,7 +9,7 @@ from src.recommender import RecommendationTask, GraphDB, apply_license_filter
 from src.rest_api import app
 
 
-def mocked_requests_get(*args, **kwargs):
+def mocked_requests_get(*args, **_kwargs):
     """Mock the call to the insights service."""
     class MockResponse:
         """Mock response object."""
@@ -32,7 +32,7 @@ class TestRecommendationTask(TestCase):
 
     @mock.patch('requests.get', side_effect=mocked_requests_get)
     @mock.patch('requests.Session.post', side_effect=mocked_requests_get)
-    def test_call_insights_recommender_npm(self, mock_get, mock_post):
+    def test_call_insights_recommender_npm(self, _mock_get, _mock_post):
         """Test if the correct service is called for the correct ecosystem."""
         with app.app_context():
             # Test whether the correct service is called for NPM.
@@ -52,7 +52,7 @@ class TestRecommendationTask(TestCase):
             self.assertTrue('hpf-insights' in called_url_json['url'])
 
 
-def mocked_response_execute(*args, **kwargs):
+def mocked_response_execute(*args, **_kwargs):
     """Mock the call to the execute."""
     class MockResponse:
         """Mock response object."""
@@ -74,7 +74,7 @@ def mocked_response_execute(*args, **kwargs):
 
 @mock.patch('src.recommender.RecommendationTask.call_insights_recommender',
             return_value=[])
-def test_execute(mock_call_insights):
+def test_execute(_mock_call_insights):
     """Test the function execute."""
     f = open("tests/data/stack_aggregator_execute_input.json", "r")
     payload = json.loads(f.read())
@@ -107,7 +107,7 @@ def test_filter_versions():
 
 @mock.patch('src.recommender.GraphDB.execute_gremlin_dsl', return_value=None)
 @mock.patch('src.recommender.GraphDB.get_response_data', return_value=None)
-def test_get_version_information(mock1, mock2):
+def test_get_version_information(_mock1, _mock2):
     """Test the function get_version_information."""
     out = GraphDB().get_version_information([], 'maven')
     assert len(out) == 0
@@ -115,7 +115,7 @@ def test_get_version_information(mock1, mock2):
 
 @mock.patch('src.recommender.invoke_license_analysis_service',
             return_value={'status': 'successful', 'license_filter': {}})
-def test_apply_license_filter(mock1):
+def test_apply_license_filter(_mock1):
     """Test the function apply_license_filter."""
     f = open('tests/data/epv_list.json', 'r')
     resp = json.load(f)

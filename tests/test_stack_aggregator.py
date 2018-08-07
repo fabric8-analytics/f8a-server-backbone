@@ -41,7 +41,7 @@ def test_extract_conflict_packages():
     assert len(packages) == 1
 
 
-def mock_dependency_response(*args, **kwargs):
+def mock_dependency_response(*_args, **_kwargs):
     """Mock the call to the insights service."""
     class MockResponse:
         """Mock response object."""
@@ -62,7 +62,7 @@ def mock_dependency_response(*args, **kwargs):
 
 @mock.patch('requests.get', side_effect=mock_dependency_response)
 @mock.patch('requests.Session.post', side_effect=mock_dependency_response)
-def test_execute(mock_get, mock_post):
+def test_execute(_mock_get, _mock_post):
     """Test the function execute."""
     f = open("tests/data/stack_aggregator_execute_input.json", "r")
     payload = json.loads(f.read())
@@ -72,7 +72,7 @@ def test_execute(mock_get, mock_post):
     assert out['stack_aggregator'] == "success"
 
 
-def mock_licenses_resp_component_conflict(*args, **kwargs):
+def mock_licenses_resp_component_conflict(*_args, **_kwargs):
     """Mock the call to the insights service."""
     class MockResponse:
         """Mock response object."""
@@ -93,7 +93,7 @@ def mock_licenses_resp_component_conflict(*args, **kwargs):
 
 @mock.patch('requests.get', side_effect=mock_licenses_resp_component_conflict)
 @mock.patch('requests.Session.post', side_effect=mock_licenses_resp_component_conflict)
-def test_extract_unknown_packages(mock_get, mock_post):
+def test_extract_unknown_packages(_mock_get, _mock_post):
     """Test the function _extract_unknown_packages."""
     f = open("tests/data/license_unknown.json", "r")
     license_payload = json.loads(f.read())
@@ -110,7 +110,7 @@ def test_extract_unknown_packages(mock_get, mock_post):
 
 @mock.patch('requests.get', side_effect=mock_licenses_resp_component_conflict)
 @mock.patch('requests.Session.post', side_effect=mock_licenses_resp_component_conflict)
-def test_extract_license_outliers(mock_get, mock_post):
+def test_extract_license_outliers(_mock_get, _mock_post):
     """Test the function _extract_license_outliers."""
     f = open("tests/data/license_component_conflict.json", "r")
     license_payload = json.loads(f.read())
@@ -119,7 +119,7 @@ def test_extract_license_outliers(mock_get, mock_post):
     assert len(packages) == 1
 
 
-def mock_licenses_resp_unknown(*args, **kwargs):
+def mock_licenses_resp_unknown(*_args, **_kwargs):
     """Mock the call to the insights service."""
     class MockResponse:
         """Mock response object."""
@@ -140,7 +140,7 @@ def mock_licenses_resp_unknown(*args, **kwargs):
 
 @mock.patch('requests.get', side_effect=mock_licenses_resp_unknown)
 @mock.patch('requests.Session.post', side_effect=mock_licenses_resp_unknown)
-def test_perform_license_analysis(mock_get, mock_post):
+def test_perform_license_analysis(_mock_get, _mock_post):
     """Test the function perform_license_analysis."""
     out, deps = stack_aggregator.perform_license_analysis([], [])
     assert len(deps) == 0
@@ -148,7 +148,7 @@ def test_perform_license_analysis(mock_get, mock_post):
 
 @mock.patch('requests.get', side_effect=mock_dependency_response)
 @mock.patch('requests.Session.post', side_effect=mock_dependency_response)
-def test_get_dependency_data(mock_get, mock_post):
+def test_get_dependency_data(_mock_get, _mock_post):
     """Test the function get_dependency_data."""
     resolved = [{"package": "io.vertx:vertx-core", "version": "3.4.2"}]
     out = stack_aggregator.get_dependency_data(resolved, "maven")

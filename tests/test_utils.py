@@ -11,7 +11,7 @@ import json
 from unittest import mock
 
 
-def mock_get_osio_user_count(*args, **kwargs):
+def mock_get_osio_user_count(*_args, **_kwargs):
     """Mock the call to the insights service."""
     class MockResponse:
         """Mock response object."""
@@ -104,14 +104,14 @@ def test_select_latest_version():
 
 @mock.patch('requests.get', side_effect=mock_get_osio_user_count)
 @mock.patch('requests.Session.post', side_effect=mock_get_osio_user_count)
-def test_get_osio_user_count(mock_get, mock_post):
+def test_get_osio_user_count(_mock_get, _mock_post):
     """Test the function get_osio_user_count."""
     out = get_osio_user_count("maven", "io.vertx:vertx-core", "3.4.2")
     assert isinstance(out, int)
 
 
 @mock.patch('src.utils.get_osio_user_count', return_value=1)
-def test_create_package_dict(mock_count):
+def test_create_package_dict(_mock_count):
     """Test the function get_osio_user_count."""
     f = open('tests/data/companion_pkg_graph.json', 'r')
     resp = json.loads(f.read())
