@@ -49,11 +49,6 @@ def api_route_for(route):
     return '/api/v1/' + route
 
 
-def get_json_from_response(response):
-    """Decode JSON from response."""
-    return json.loads(response.data.decode('utf8'))
-
-
 def test_readiness_endpoint(client):
     """Test the /api/v1/readiness endpoint."""
     response = client.get(api_route_for("readiness"))
@@ -67,6 +62,7 @@ def test_liveness_endpoint(client):
     response = client.get(api_route_for("liveness"))
     assert response.status_code == 200
     json_data = get_json_from_response(response)
+    assert json_data == {}, "Empty JSON response expected"
 
 
 def test_stack_api_endpoint():
@@ -78,7 +74,7 @@ def test_stack_api_endpoint():
 
 
 @mock.patch('src.recommender.RecommendationTask.execute', return_value={})
-def test_recommendation_api_endpoint(mock_object, client):
+def test_recommendation_api_endpoint(_mock_object, client):
     """Check the /recommender REST API endpoint."""
     rec_resp = client.post(api_route_for("recommender"),
                            data=json.dumps(payload), content_type='application/json')
