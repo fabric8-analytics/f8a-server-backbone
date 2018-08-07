@@ -62,6 +62,7 @@ def test_liveness_endpoint(client):
     response = client.get(api_route_for("liveness"))
     assert response.status_code == 200
     json_data = get_json_from_response(response)
+    assert json_data == {}, "Empty JSON response expected"
 
 
 def test_stack_api_endpoint():
