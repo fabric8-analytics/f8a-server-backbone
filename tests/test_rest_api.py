@@ -49,11 +49,6 @@ def api_route_for(route):
     return '/api/v1/' + route
 
 
-def get_json_from_response(response):
-    """Decode JSON from response."""
-    return json.loads(response.data.decode('utf8'))
-
-
 def test_readiness_endpoint(client):
     """Test the /api/v1/readiness endpoint."""
     response = client.get(api_route_for("readiness"))
