@@ -26,11 +26,6 @@ def test_extract_component_details():
             "Can not found the key '{key}' in result data structure".format(key=expected_key)
 
 
-def test_aggregate_stack_data():
-    """Test the function aggregate_stack_data."""
-    pass
-
-
 def test_stack_aggregator_constructor():
     """Test the constructor for the StackAggregator class."""
     obj = stack_aggregator.StackAggregator()
@@ -168,7 +163,6 @@ def test_aggregate_stack_data():
 
 if __name__ == '__main__':
     test_extract_component_details()
-    test_aggregate_stack_data()
     test_stack_aggregator_constructor()
     test_extract_conflict_packages()
     test_extract_unknown_packages()
