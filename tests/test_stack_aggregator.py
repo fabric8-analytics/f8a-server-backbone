@@ -1,6 +1,5 @@
 """Tests for the stack_aggregator module."""
 
-from unittest import TestCase
 from unittest import mock
 
 from src import stack_aggregator

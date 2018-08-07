@@ -70,7 +70,6 @@ import requests
 import os
 from collections import Counter, defaultdict
 import re
-import semantic_version as sv
 import logging
 
 from utils import (create_package_dict, get_session_retry, select_latest_version,

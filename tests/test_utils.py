@@ -8,7 +8,7 @@ from src.utils import (
     is_quickstart_majority)
 import semantic_version as sv
 import json
-from unittest import TestCase, mock
+from unittest import mock
 
 
 def mock_get_osio_user_count(*args, **kwargs):
