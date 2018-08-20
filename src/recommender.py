@@ -459,13 +459,18 @@ class RecommendationTask:
                 'manifest_file_path': manifest_file_path
             }
             new_arr = [r['package'] for r in resolved]
+            # If new_err is empty list
+            if not new_arr:
+                recommendations.append(recommendation)
+                continue
+
             json_object = {
                 'ecosystem': details['ecosystem'],
                 'unknown_packages_ratio_threshold':
                     float(os.environ.get('UNKNOWN_PACKAGES_THRESHOLD', 0.3)),
                 'package_list': new_arr,
                 'comp_package_count_threshold': int(os.environ.get(
-                        'MAX_COMPANION_PACKAGES', 5))
+                    'MAX_COMPANION_PACKAGES', 5))
             }
             if details['ecosystem'] in self.kronos_ecosystems:
                 json_object.update({
