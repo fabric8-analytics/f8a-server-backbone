@@ -82,6 +82,28 @@ def test_execute(_mock_call_insights):
     r = RecommendationTask()
     out = r.execute(arguments=payload, persist=False)
     assert out['recommendation'] == "success"
+    r = RecommendationTask()
+    out = r.execute(arguments=payload, check_license=True, persist=False)
+    assert out['recommendation'] == "success"
+
+    out = r.execute(arguments=payload, persist=True)
+    assert out['recommendation'] == "database error"
+
+
+@mock.patch('src.recommender.RecommendationTask.call_insights_recommender',
+            return_value=[])
+def test_execute_empty_resolved(_mock_call_insights):
+    """Test the function execute."""
+    f = open("tests/data/stack_aggregator_empty_resolved.json", "r")
+    payload = json.loads(f.read())
+
+    r = RecommendationTask()
+    out = r.execute(arguments=payload, persist=False)
+
+    assert out['recommendation'] == "success"
+    assert not out["result"]["recommendations"][0]["companion"]
+    assert not out["result"]["recommendations"][0]["alternate"]
+    assert not out["result"]["recommendations"][0]["usage_outliers"]
 
     r = RecommendationTask()
     out = r.execute(arguments=payload, check_license=True, persist=False)
