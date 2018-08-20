@@ -94,8 +94,8 @@ def test_execute(_mock_call_insights):
             return_value=[])
 def test_execute_empty_resolved(_mock_call_insights):
     """Test the function execute."""
-    f = open("tests/data/stack_aggregator_empty_resolved.json", "r")
-    payload = json.loads(f.read())
+    with open("tests/data/stack_aggregator_empty_resolved.json", "r") as f:
+        payload = json.loads(f.read())
 
     r = RecommendationTask()
     out = r.execute(arguments=payload, persist=False)
