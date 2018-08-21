@@ -113,6 +113,29 @@ def test_execute_empty_resolved(_mock_call_insights):
     assert out['recommendation'] == "database error"
 
 
+@mock.patch('src.recommender.RecommendationTask.call_insights_recommender',
+            return_value=[])
+def test_execute_both_resolved_type(_mock_call_insights):
+    """Test the function execute."""
+    with open("tests/data/stack_aggregator_combined_input.json", "r") as f:
+        payload = json.loads(f.read())
+
+    r = RecommendationTask()
+    out = r.execute(arguments=payload, persist=False)
+    assert out['recommendation'] == "success"
+    assert len(out['result']['recommendations']) == 3
+    file_names_expecetd = ["/home/JohnDoe1", "/home/JohnDoe2", "/home/JohnDoe3"]
+    file_names_received = [reco["manifest_file_path"]
+                           for reco in out['result']['recommendations']]
+    assert file_names_received == file_names_expecetd
+    r = RecommendationTask()
+    out = r.execute(arguments=payload, check_license=True, persist=False)
+    assert out['recommendation'] == "success"
+
+    out = r.execute(arguments=payload, persist=True)
+    assert out['recommendation'] == "database error"
+
+
 def test_filter_versions():
     """Test the function filter_versions."""
     input_stack = {"io.vertx:vertx-web": "3.4.2", "io.vertx:vertx-core": "3.4.2"}
