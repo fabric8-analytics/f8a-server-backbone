@@ -67,8 +67,8 @@ def mocked_response_execute(*args, **_kwargs):
             return self.json_data
 
     # return the URL to check whether we are calling the correct service.
-    f = open('tests/data/companion_pkg_graph.json', 'r')
-    resp = json.load(f)
+    with open('tests/data/companion_pkg_graph.json', 'r') as f:
+        resp = json.load(f)
     return MockResponse(resp, 200)
 
 
@@ -76,8 +76,8 @@ def mocked_response_execute(*args, **_kwargs):
             return_value=[])
 def test_execute(_mock_call_insights):
     """Test the function execute."""
-    f = open("tests/data/stack_aggregator_execute_input.json", "r")
-    payload = json.loads(f.read())
+    with open("tests/data/stack_aggregator_execute_input.json", "r") as f:
+        payload = json.loads(f.read())
 
     r = RecommendationTask()
     out = r.execute(arguments=payload, persist=False)
@@ -140,8 +140,8 @@ def test_filter_versions():
     """Test the function filter_versions."""
     input_stack = {"io.vertx:vertx-web": "3.4.2", "io.vertx:vertx-core": "3.4.2"}
 
-    f = open("tests/data/companion_pkg_graph.json", "r")
-    companion_packages_graph = json.loads(f.read())
+    with open("tests/data/companion_pkg_graph.json", "r") as f:
+        companion_packages_graph = json.loads(f.read())
 
     g = GraphDB()
     filtered_comp_packages_graph, filtered_list = g.filter_versions(companion_packages_graph,
@@ -162,8 +162,8 @@ def test_get_version_information(_mock1, _mock2):
             return_value={'status': 'successful', 'license_filter': {}})
 def test_apply_license_filter(_mock1):
     """Test the function apply_license_filter."""
-    f = open('tests/data/epv_list.json', 'r')
-    resp = json.load(f)
+    with open('tests/data/epv_list.json', 'r') as f:
+        resp = json.load(f)
 
     out = apply_license_filter(None, resp, resp)
     assert isinstance(out, dict)
