@@ -34,8 +34,8 @@ def test_stack_aggregator_constructor():
 
 def test_extract_conflict_packages():
     """Test the function _extract_conflict_packages."""
-    f = open("tests/data/license_component_conflict.json", "r")
-    license_payload = json.loads(f.read())
+    with open("tests/data/license_component_conflict.json", "r") as f:
+        license_payload = json.loads(f.read())
 
     packages = stack_aggregator._extract_conflict_packages(license_payload)
     assert len(packages) == 1
@@ -55,8 +55,8 @@ def mock_dependency_response(*_args, **_kwargs):
             """Get the mock json response."""
             return self.json_data
 
-    f = open('tests/data/dependency_response.json')
-    resp = json.loads(f.read())
+    with open('tests/data/dependency_response.json') as f:
+        resp = json.loads(f.read())
     return MockResponse(resp, 200)
 
 
@@ -64,8 +64,8 @@ def mock_dependency_response(*_args, **_kwargs):
 @mock.patch('requests.Session.post', side_effect=mock_dependency_response)
 def test_execute(_mock_get, _mock_post):
     """Test the function execute."""
-    f = open("tests/data/stack_aggregator_execute_input.json", "r")
-    payload = json.loads(f.read())
+    with open("tests/data/stack_aggregator_execute_input.json", "r") as f:
+        payload = json.loads(f.read())
 
     s = stack_aggregator.StackAggregator()
     out = s.execute(payload, False)
@@ -86,8 +86,8 @@ def mock_licenses_resp_component_conflict(*_args, **_kwargs):
             """Get the mock json response."""
             return self.json_data
 
-    f = open('tests/data/license_component_conflict.json')
-    resp = json.loads(f.read())
+    with open('tests/data/license_component_conflict.json') as f:
+        resp = json.loads(f.read())
     return MockResponse(resp, 200)
 
 
@@ -95,14 +95,14 @@ def mock_licenses_resp_component_conflict(*_args, **_kwargs):
 @mock.patch('requests.Session.post', side_effect=mock_licenses_resp_component_conflict)
 def test_extract_unknown_packages(_mock_get, _mock_post):
     """Test the function _extract_unknown_packages."""
-    f = open("tests/data/license_unknown.json", "r")
-    license_payload = json.loads(f.read())
+    with open("tests/data/license_unknown.json", "r") as f:
+        license_payload = json.loads(f.read())
 
     packages = stack_aggregator._extract_unknown_licenses(license_payload)
     assert len(packages) == 2
 
-    f = open("tests/data/license_component_conflict.json", "r")
-    license_payload = json.loads(f.read())
+    with open("tests/data/license_component_conflict.json", "r") as f:
+        license_payload = json.loads(f.read())
 
     packages = stack_aggregator._extract_unknown_licenses(license_payload)
     assert len(packages) == 2
@@ -112,8 +112,8 @@ def test_extract_unknown_packages(_mock_get, _mock_post):
 @mock.patch('requests.Session.post', side_effect=mock_licenses_resp_component_conflict)
 def test_extract_license_outliers(_mock_get, _mock_post):
     """Test the function _extract_license_outliers."""
-    f = open("tests/data/license_component_conflict.json", "r")
-    license_payload = json.loads(f.read())
+    with open("tests/data/license_component_conflict.json", "r") as f:
+        license_payload = json.loads(f.read())
 
     packages = stack_aggregator._extract_license_outliers(license_payload)
     assert len(packages) == 1
@@ -133,8 +133,8 @@ def mock_licenses_resp_unknown(*_args, **_kwargs):
             """Get the mock json response."""
             return self.json_data
 
-    f = open('tests/data/license_unknown.json')
-    resp = json.loads(f.read())
+    with open('tests/data/license_unknown.json') as f:
+        resp = json.loads(f.read())
     return MockResponse(resp, 200)
 
 

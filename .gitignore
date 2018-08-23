@@ -11,3 +11,4 @@ error.log
 derby.log
 metastore_db/
 .coverage
+.pytest_cache/

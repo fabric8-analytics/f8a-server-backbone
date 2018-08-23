@@ -113,8 +113,8 @@ def test_get_osio_user_count(_mock_get, _mock_post):
 @mock.patch('src.utils.get_osio_user_count', return_value=1)
 def test_create_package_dict(_mock_count):
     """Test the function get_osio_user_count."""
-    f = open('tests/data/companion_pkg_graph.json', 'r')
-    resp = json.loads(f.read())
+    with open('tests/data/companion_pkg_graph.json', 'r') as f:
+        resp = json.loads(f.read())
     out = create_package_dict(resp)
     assert len(out) > 1
 
