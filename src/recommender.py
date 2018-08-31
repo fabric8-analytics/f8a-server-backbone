@@ -71,6 +71,7 @@ import os
 from collections import Counter, defaultdict
 import re
 import logging
+import psycopg2
 
 from utils import (create_package_dict, get_session_retry, select_latest_version,
                    GREMLIN_SERVER_URL_REST, LICENSE_SCORING_URL_REST, Postgres,
@@ -372,6 +373,24 @@ def apply_license_filter(user_stack_components, epv_list_alt, epv_list_com):
     return output
 
 
+def set_valid_cooccurrence_probability(package_list=[]):
+    """Returns a list of companion components with valid co-occurrence probability.
+
+    :param package_list:
+    :return: list of valid companion components
+    """
+    new_package_list = []
+    for package in package_list:
+        if not isinstance(package['cooccurrence_probability'], float) and \
+                not isinstance(package['cooccurrence_probability'], int):
+            package['cooccurrence_probability'] = 100.0
+            logger.error("Found an invalid cooccurrence probability for %s" % package['name'])
+
+        logger.error("Added component recommendation %s to the final list")
+        new_package_list.append(package)
+    return new_package_list
+
+
 class RecommendationTask:
     """Recommendation task."""
 
@@ -413,6 +432,7 @@ class RecommendationTask:
                 else:
                     insights_url = INSIGHTS_URL_REST + "/api/v1/companion_recommendation"
                 response = get_session_retry().post(insights_url, json=payload)
+
                 if response.status_code != 200:
                     logger.error(
                             "HTTP error {}. Error retrieving insights data.".format(
@@ -609,7 +629,9 @@ class RecommendationTask:
 
                     # Create Companion Block
                     comp_packages = create_package_dict(topics_comp_packages_graph)
-                    recommendation['companion'] = comp_packages
+                    final_comp_packages = \
+                        set_valid_cooccurrence_probability(comp_packages)
+                    recommendation['companion'] = final_comp_packages
 
                     # Get Topics Added to Filtered Packages
                     topics_comp_packages_graph = GraphDB(). \
@@ -657,7 +679,7 @@ class RecommendationTask:
                 return {'recommendation': 'success',
                         'external_request_id': external_request_id,
                         'result': task_result}
-            except SQLAlchemyError as e:
+            except (SQLAlchemyError, psycopg2.DataError) as e:
                 session.rollback()
                 return {
                     'recommendation': 'database error',
