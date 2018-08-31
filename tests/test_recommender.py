@@ -5,7 +5,8 @@ import json
 import logging
 logger = logging.getLogger(__name__)
 
-from src.recommender import RecommendationTask, GraphDB, apply_license_filter
+from src.recommender import RecommendationTask, GraphDB, apply_license_filter,\
+    set_valid_cooccurrence_probability
 from src.rest_api import app
 
 
@@ -167,6 +168,18 @@ def test_apply_license_filter(_mock1):
 
     out = apply_license_filter(None, resp, resp)
     assert isinstance(out, dict)
+
+
+def test_set_valid_cooccurrence_probability():
+    """Test the function set_valid_cooccurrence_probability"""
+    input = [{
+        "ecosystem": "maven",
+        "name": "io.fabric8.funktion.connector:connector-smpp",
+        "cooccurrence_probability": 'nan'
+    }]
+    components = set_valid_cooccurrence_probability(input)
+    for component in components:
+        assert(component['cooccurrence_probability'] == 100)
 
 
 if __name__ == '__main__':
