@@ -382,11 +382,9 @@ def set_valid_cooccurrence_probability(package_list=[]):
     """
     new_package_list = []
     for package in package_list:
-        if not isinstance(package['cooccurrence_probability'], Number):
-            package['cooccurrence_probability'] = 100.0
+        if str(package['cooccurrence_probability']) == 'nan':
             logger.error("Found an invalid cooccurrence probability for %s" % package['name'])
-
-        logger.error("Added component recommendation %s to the final list")
+            package['cooccurrence_probability'] = float(100.0)
         new_package_list.append(package)
     return new_package_list
 
@@ -631,6 +629,7 @@ class RecommendationTask:
                     comp_packages = create_package_dict(topics_comp_packages_graph)
                     final_comp_packages = \
                         set_valid_cooccurrence_probability(comp_packages)
+
                     recommendation['companion'] = final_comp_packages
 
                     # Get Topics Added to Filtered Packages
@@ -679,7 +678,8 @@ class RecommendationTask:
                 return {'recommendation': 'success',
                         'external_request_id': external_request_id,
                         'result': task_result}
-            except (SQLAlchemyError, psycopg2.DataError) as e:
+            except (SQLAlchemyError, Exception) as e:
+                logger.error("Error %r." % e)
                 session.rollback()
                 return {
                     'recommendation': 'database error',
