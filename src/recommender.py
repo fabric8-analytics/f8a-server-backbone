@@ -72,6 +72,7 @@ from collections import Counter, defaultdict
 import re
 import logging
 import psycopg2
+from numbers import Number
 
 from utils import (create_package_dict, get_session_retry, select_latest_version,
                    GREMLIN_SERVER_URL_REST, LICENSE_SCORING_URL_REST, Postgres,
@@ -381,8 +382,7 @@ def set_valid_cooccurrence_probability(package_list=[]):
     """
     new_package_list = []
     for package in package_list:
-        if not isinstance(package['cooccurrence_probability'], float) and \
-                not isinstance(package['cooccurrence_probability'], int):
+        if not isinstance(package['cooccurrence_probability'], Number):
             package['cooccurrence_probability'] = 100.0
             logger.error("Found an invalid cooccurrence probability for %s" % package['name'])
 
