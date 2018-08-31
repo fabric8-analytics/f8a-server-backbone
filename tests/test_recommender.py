@@ -171,7 +171,7 @@ def test_apply_license_filter(_mock1):
 
 
 def test_set_valid_cooccurrence_probability():
-    """Test the function set_valid_cooccurrence_probability"""
+    """Test the function set_valid_cooccurrence_probability."""
     input = [{
         "ecosystem": "maven",
         "name": "io.fabric8.funktion.connector:connector-smpp",
