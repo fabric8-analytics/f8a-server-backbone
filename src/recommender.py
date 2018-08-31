@@ -374,7 +374,7 @@ def apply_license_filter(user_stack_components, epv_list_alt, epv_list_com):
 
 
 def set_valid_cooccurrence_probability(package_list=[]):
-    """Returns a list of companion components with valid co-occurrence probability.
+    """Return a list of companion components with valid co-occurrence probability.
 
     :param package_list:
     :return: list of valid companion components
