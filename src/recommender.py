@@ -456,7 +456,6 @@ class RecommendationTask:
         results = arguments.get('result', None)
         external_request_id = arguments.get('external_request_id', None)
 
-        input_task_for_insights_recommender = []
         recommendations = []
         # TODO: refactoring
         input_stack = {}
@@ -497,12 +496,12 @@ class RecommendationTask:
                                                                           0.6)),
                     'user_persona': "1",  # TODO - remove janus hardcoded value
                 })
+            input_task_for_insights_recommender = []
             input_task_for_insights_recommender.append(json_object)
 
             # Call PGM and get the response
             start = datetime.datetime.utcnow()
-            insights_response = self.call_insights_recommender(
-                input_task_for_insights_recommender)
+            insights_response = self.call_insights_recommender(input_task_for_insights_recommender)
             elapsed_seconds = (datetime.datetime.utcnow() -
                                start).total_seconds()
             msg = "It took {t} seconds to get insight's response" \

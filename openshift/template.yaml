@@ -64,7 +64,7 @@ objects:
           - name: API_BACKBONE_SERVICE_PORT
             value: "5000"
           - name: API_BACKBONE_SERVICE_TIMEOUT
-            value: "60"
+            value: "120"
           - name: NUMBER_WORKER_PROCESS
             value: "4"
           - name: CLASS_TYPE
