@@ -71,8 +71,6 @@ import os
 from collections import Counter, defaultdict
 import re
 import logging
-import psycopg2
-from numbers import Number
 
 from utils import (create_package_dict, get_session_retry, select_latest_version,
                    GREMLIN_SERVER_URL_REST, LICENSE_SCORING_URL_REST, Postgres,
