@@ -247,7 +247,7 @@ def perform_license_analysis(license_score_list, dependencies):
         current_app.logger.exception("Unexpected error happened while invoking license analysis!")
         flag_stack_license_exception = True
 
-    reason = None
+    msg = None
     stack_license = []
     stack_license_status = None
     unknown_licenses = []
