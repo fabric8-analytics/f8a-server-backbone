@@ -247,6 +247,7 @@ def perform_license_analysis(license_score_list, dependencies):
         current_app.logger.exception("Unexpected error happened while invoking license analysis!")
         flag_stack_license_exception = True
 
+    reason = None
     stack_license = []
     stack_license_status = None
     unknown_licenses = []
@@ -260,6 +261,7 @@ def perform_license_analysis(license_score_list, dependencies):
                                 dep.get('version', '') == comp.get('version', ''):
                     dep['license_analysis'] = comp.get('license_analysis', {})
 
+        msg = resp.get('message', None)
         _stack_license = resp.get('stack_license', None)
         if _stack_license is not None:
             stack_license = [_stack_license]
@@ -269,6 +271,7 @@ def perform_license_analysis(license_score_list, dependencies):
         license_outliers = _extract_license_outliers(resp)
 
     output = {
+        "reason": msg,
         "status": stack_license_status,
         "f8a_stack_licenses": stack_license,
         "unknown_licenses": unknown_licenses,
