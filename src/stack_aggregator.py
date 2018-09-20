@@ -261,7 +261,7 @@ def perform_license_analysis(license_score_list, dependencies):
                                 dep.get('version', '') == comp.get('version', ''):
                     dep['license_analysis'] = comp.get('license_analysis', {})
 
-        msg = resp.get('message', None)
+        msg = resp.get('message')
         _stack_license = resp.get('stack_license', None)
         if _stack_license is not None:
             stack_license = [_stack_license]
