@@ -73,10 +73,10 @@ def extract_component_details(component):
     }
 
     cves = []
-    for cve in component.get("version", {}).get("cve_ids", []):
+    for cve in component.get("cves", []):
         component_cve = {
-            'CVE': cve.split(':')[0],
-            'CVSS': cve.split(':')[1]
+            'CVE': cve.get('cve_id')[0],
+            'CVSS': cve.get('cvss_v2', [''])[0]
         }
         cves.append(component_cve)
 
@@ -365,12 +365,21 @@ def get_dependency_data(resolved, ecosystem):
             current_app.logger.warning("Either component name or component version is missing")
             continue
 
-        qstring = \
-            "g.V().has('pecosystem', '{}').has('pname', '{}').has('version', '{}')" \
-            .format(ecosystem, elem["package"], elem["version"]) + \
-            ".as('version').in('has_version').as('package')" + \
-            ".select('version','package').by(valueMap());"
-        payload = {'gremlin': qstring}
+        script = """\
+g.V().has('ecosystem',ecosystem).has('name',name).as('pkg').out('has_version')\
+.has('version',version).as('ver')\
+.coalesce(out('has_cve').as('cve')\
+.select('pkg','ver','cve').by(valueMap()),select('pkg','ver').by(valueMap()));\
+"""
+
+        payload = {
+            'gremlin': script,
+            'bindings': {
+                'ecosystem': ecosystem,
+                'name': elem["package"],
+                'version': elem["version"]
+            }
+        }
 
         try:
             graph_req = get_session_retry().post(GREMLIN_SERVER_URL_REST, data=json.dumps(payload))
@@ -381,6 +390,17 @@ def get_dependency_data(resolved, ecosystem):
                     continue
                 if len(graph_resp['result']['data']) == 0:
                     continue
+
+                # get rid of duplicates
+                cve_list = []
+                pv_dict = {}
+                for data in graph_resp['result']['data']:
+                    if 'cve' in data:
+                        cve = data.pop('cve')
+                        cve_list.append(cve)
+                    pv_dict = data
+                pv_dict['cves'] = cve_list
+                graph_resp['result']['data'] = [pv_dict]
 
                 result.append(graph_resp["result"])
             else:

@@ -32,9 +32,6 @@
                 ],
                 "version": [
                     "3.4.2"
-                ],
-                "cve_ids": [
-                    "CVE-TEST:8.0"
                 ]
             },
             "package": {
@@ -140,6 +137,30 @@
                 1.502117662E9
               ]
             }
+          },
+          {
+            "cves": [
+                {
+                    "ecosystem": [
+                        "maven"
+                    ],
+                    "cve_id": [
+                        "CVE-TEST"
+                    ],
+                    "cvss_v2": [
+                        8.0
+                    ],
+                    "vertex_label": [
+                        "CVE"
+                    ],
+                    "description": [
+                        "When using the Index Replication feature, Apache Solr nodes can pull index files from a master/leader node using an HTTP API which accepts a file name. However, Solr before 5.5.4 and 6.x before 6.4.1 did not validate the file name, hence it was possible to craft a special request involving path traversal, leaving any file readable to the Solr server process exposed. Solr servers protected and restricted by firewall rules and/or authentication would not be at risk since only trusted clients and users would gain direct HTTP access\n"
+                    ],
+                    "modified_date": [
+                        "20181008"
+                    ]
+                }
+            ]
           }
         ],
         "meta": {}
