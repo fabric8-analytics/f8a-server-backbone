@@ -12,3 +12,5 @@ derby.log
 metastore_db/
 .coverage
 .pytest_cache/
+html/
+latex/
