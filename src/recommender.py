@@ -133,7 +133,7 @@ class GraphDB:
         input_packages = [package for package in input_list]
         str_query = "g.V().has('ecosystem',ecosystem).has('name',within(input_packages))" \
                     ".as('pkg').out('has_version')" \
-                    ".hasNot('cve_ids').as('ver').select('pkg','ver').by(valueMap()).dedup()"
+                    ".not(outE('has_cve')).as('ver').select('pkg','ver').by(valueMap()).dedup()"
         payload = {
             'gremlin': str_query,
             'bindings': {
