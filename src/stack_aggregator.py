@@ -300,8 +300,7 @@ def extract_user_stack_package_licenses(resolved, ecosystem):
     return list_package_licenses
 
 
-def aggregate_stack_data(stack, manifest_file, ecosystem, deps, manifest_file_path,
-                         persist):
+def aggregate_stack_data(stack, manifest_file, ecosystem, deps, manifest_file_path, persist):
     """Aggregate stack data."""
     dependencies = []
     licenses = []
@@ -357,52 +356,102 @@ def aggregate_stack_data(stack, manifest_file, ecosystem, deps, manifest_file_pa
     return data
 
 
+def create_uniform_result(resp, direct_dep, direct_dep_ver):
+    """Create uniform structure for direct and transitive dependency."""
+    if len(resp.get('result', {}).get('data', [])) == 2:
+        direct = resp['result']['data'].pop(0)
+        transitive = resp['result']['data'].pop(0)
+        if direct:
+            [resp['result']['data'].append(x) for x in direct['direct']]
+        if transitive:
+            trans_dict = {
+                'isTransitive': True,
+                'affected_direct_dep': direct_dep,
+                'affected_direct_dep_ver': direct_dep_ver
+            }
+            for x in transitive['transitive']:
+                x['transitive'] = trans_dict
+                resp['result']['data'].append(x)
+    return resp
+
+
 def get_dependency_data(resolved, ecosystem):
     """Get dependency data from graph."""
     result = []
+
     for elem in resolved:
         if elem["package"] is None or elem["version"] is None:
             current_app.logger.warning("Either component name or component version is missing")
             continue
 
-        script = """\
-g.V().has('ecosystem',ecosystem).has('name',name).as('pkg').out('has_version')\
-.has('version',version).as('ver')\
-.coalesce(out('has_cve').as('cve')\
-.select('pkg','ver','cve').by(valueMap()),select('pkg','ver').by(valueMap()));\
-"""
+        script = "direct=[];transitive=[];" \
+                 "g.V().has('ecosystem',ecosystem).has('name',name).as('package')." \
+                 "out('has_version').has('version',version).dedup().as('version')"\
+                 ".coalesce(out('has_cve').as('cve')"\
+                 ".select('package','version','cve').by(valueMap())," \
+                 "select('package','version').by(valueMap()))."\
+                 "fill(direct);"
+        bindings = {
+            'ecosystem': ecosystem,
+            'name': elem["package"],
+            'version': elem["version"]
+        }
 
+        # Fetch transitive data as well
+        x = 1
+        for trans_epv in elem.get('deps', []):
+            if trans_epv["package"] is None or trans_epv["version"] is None:
+                continue
+            nm = 'name' + str(x)
+            vr = 'version' + str(x)
+            script += "g.V().has('ecosystem',ecosystem).has('name',name" + str(x) + ")." \
+                      "as('package')." \
+                      "out('has_version').has('version',version" + str(x) + ").dedup()." \
+                      "as('version')." \
+                      "coalesce(out('has_cve').as('cve')." \
+                      "select('package','version','cve').by(valueMap())," \
+                      "select('package','version').by(valueMap()))." \
+                      "fill(transitive);"
+            bindings.update({
+                nm: trans_epv['package'],
+                vr: trans_epv['version'],
+                'ecosystem': ecosystem})
+            x += 1
+        script += "[direct:direct, transitive:transitive];"
         payload = {
             'gremlin': script,
-            'bindings': {
-                'ecosystem': ecosystem,
-                'name': elem["package"],
-                'version': elem["version"]
-            }
+            'bindings': bindings
         }
 
         try:
-            graph_req = get_session_retry().post(GREMLIN_SERVER_URL_REST, data=json.dumps(payload))
-
+            graph_dict = {}
+            graph_req = get_session_retry().post(GREMLIN_SERVER_URL_REST, json=payload)
             if graph_req.status_code == 200:
                 graph_resp = graph_req.json()
-                if 'result' not in graph_resp:
+                if len(graph_resp.get('result', {}).get('data', [])) != 2:
                     continue
-                if len(graph_resp['result']['data']) == 0:
-                    continue
+                else:
+                    graph_resp = create_uniform_result(graph_resp, elem["package"], elem["version"])
 
-                # get rid of duplicates
-                cve_list = []
-                pv_dict = {}
-                for data in graph_resp['result']['data']:
-                    if 'cve' in data:
-                        cve = data.pop('cve')
-                        cve_list.append(cve)
-                    pv_dict = data
-                pv_dict['cves'] = cve_list
-                graph_resp['result']['data'] = [pv_dict]
+                    # get rid of duplicate CVE structure
+                    for data in graph_resp['result']['data']:
+                        pv = data.get('version').get('pname')[0] + ":" + \
+                             data.get('version').get('version')[0]
+                        if pv not in graph_dict:
+                            graph_dict[pv] = {}
+                        graph_dict[pv].update(data)
+                        if 'cves' not in graph_dict[pv]:
+                            graph_dict[pv]['cves'] = list()
+                        if 'cve' in data:
+                            cve = graph_dict[pv].pop('cve')
+                            graph_dict[pv]['cves'].append(cve)
 
-                result.append(graph_resp["result"])
+                    # create a uniform structure for direct and transitive
+                    for x, y in graph_dict.items():
+                        z = list()
+                        z.append(y)
+                        data = {'data': z}
+                        result.append(data)
             else:
                 current_app.logger.error("Failed retrieving dependency data.")
                 continue
