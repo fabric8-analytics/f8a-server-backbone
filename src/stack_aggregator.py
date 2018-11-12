@@ -378,7 +378,6 @@ def create_uniform_result(resp, direct_dep, direct_dep_ver):
 def get_dependency_data(resolved, ecosystem):
     """Get dependency data from graph."""
     result = []
-
     for elem in resolved:
         if elem["package"] is None or elem["version"] is None:
             current_app.logger.warning("Either component name or component version is missing")
