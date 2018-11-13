@@ -162,7 +162,7 @@ parameters:
   displayName: Docker image
   required: true
   name: DOCKER_IMAGE
-  value: "fabric8-analytics/f8a-server-backbone"
+  value: "openshiftio/fabric8-analytics-f8a-server-backbone"
 
 - description: Image tag
   displayName: Image tag
