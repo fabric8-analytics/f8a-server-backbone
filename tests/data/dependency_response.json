@@ -1,146 +1,63 @@
 {
-    "requestId": "57f9275b-b041-4f9c-b0a0-ff9871b2a14a",
-    "status": {
-        "message": "",
-        "code": 200,
-        "attributes": {}
-    },
-    "result": {
-        "data": [
-          {
-            "version": {
-                "licenses": [
-                    "Apache 2.0",
-                    "EPL 1.0",
-                    "MIT License"
-                ],
-                "last_updated": [
-                    1.52112777617E9
-                ],
-                "declared_licenses": [
-                    "Eclipse Public License - v 1.0",
-                    "The Apache Software License, Version 2.0"
-                ],
-                "pecosystem": [
-                    "maven"
-                ],
-                "pname": [
-                    "io.vertx:vertx-core"
-                ],
-                "vertex_label": [
-                    "Version"
-                ],
-                "version": [
-                    "3.4.2"
-                ]
-            },
-            "package": {
-              "gh_issues_last_month_opened": [
-                -1
-              ],
-              "gh_prs_last_year_closed": [
-                -1
-              ],
-              "libio_usedby": [
-                "TechEmpower/FrameworkBenchmarks:2787",
-                "apiman/apiman:320",
-                "boonproject/boon:473",
-                "isaiah/jubilee:342",
-                "jbosstm/narayana:73",
-                "jhalterman/failsafe:1784",
-                "nodyn/nodyn:709",
-                "vert-x3/vertx-stack:72",
-                "wildfly-swarm/wildfly-swarm:177",
-                "wisdom-framework/wisdom:70"
-              ],
-              "ecosystem": [
-                "maven"
-              ],
-              "gh_subscribers_count": [
-                593
-              ],
-              "gh_contributors_count": [
-                30
-              ],
-              "vertex_label": [
-                "Package"
-              ],
-              "libio_dependents_repos": [
-                "6262"
-              ],
-              "last_updated_sentiment_score": [
-                "2017-09-01"
-              ],
-              "sentiment_magnitude": [
-                "0"
-              ],
-              "gh_issues_last_year_opened": [
-                -1
-              ],
-              "gh_issues_last_month_closed": [
-                -1
-              ],
-              "gh_open_issues_count": [
-                159
-              ],
-              "libio_dependents_projects": [
-                "150"
-              ],
-              "latest_version": [
-                "-1"
-              ],
-              "tokens": [
-                "core",
-                "io",
-                "vertx"
-              ],
-              "package_relative_used": [
-                "not used"
-              ],
-              "gh_stargazers": [
-                7839
-              ],
-              "gh_forks": [
-                1361
-              ],
-              "package_dependents_count": [
-                -1
-              ],
-              "gh_prs_last_month_opened": [
-                -1
-              ],
-              "gh_issues_last_year_closed": [
-                -1
-              ],
-              "sentiment_score": [
-                "0"
-              ],
-              "last_updated": [
-                1.52649381439E9
-              ],
-              "gh_prs_last_month_closed": [
-                -1
-              ],
-              "libio_total_releases": [
-                "48"
-              ],
-              "gh_prs_last_year_opened": [
-                -1
-              ],
-              "name": [
-                "io.vertx:vertx-core"
-              ],
-              "libio_latest_version": [
-                "3.5.0.Beta1"
-              ],
-              "libio_latest_release": [
-                1.502117662E9
-              ]
-            }
-          },
-          {
-            "cves": [
-                {
+	"status": {
+		"message": "",
+		"code": 200,
+		"attributes": {}
+	},
+	"requestId": "4d0d5435-6593-44b5-a542-537e19fb72fa",
+	"result": {
+		"data": [{
+			"direct": [{
+				"package": {
+					"gh_open_issues_count": [170],
+					"gh_stargazers": [8472],
+					"gh_contributors_count": [30],
+					"gh_issues_last_year_opened": [-1],
+					"gh_prs_last_month_opened": [-1],
+					"last_updated": [1538788457.72],
+					"name": ["io.vertx:vertx-core"],
+					"description": ["Vert.x core contains fairly low level functionality including support for HTTP, TCP, file system access, and various other features. You can use this directly in your own applications, and its used by many of the other components of Vert.x"],
+					"gh_prs_last_year_opened": [-1],
+					"libio_latest_release": [1530599731.0],
+					"package_relative_used": ["not used"],
+					"gh_subscribers_count": [607],
+					"ecosystem": ["maven"],
+					"last_updated_sentiment_score": ["2017-10-09"],
+					"gh_issues_last_month_opened": [-1],
+					"package_dependents_count": [-1],
+					"vertex_label": ["Package"],
+					"libio_dependents_projects": ["214"],
+					"gh_issues_last_year_closed": [-1],
+					"sentiment_score": ["0"],
+					"gh_prs_last_year_closed": [-1],
+					"libio_total_releases": ["55"],
+					"gh_forks": [1418],
+					"libio_dependents_repos": ["6888"],
+					"sentiment_magnitude": ["0"],
+					"libio_usedby": ["TechEmpower/FrameworkBenchmarks:2976", "apiman/apiman:366", "boonproject/boon:474", "hawkular/hawkular-apm:132", "isaiah/jubilee:342", "jbosstm/narayana:77", "jhalterman/failsafe:1981", "vert-x3/vertx-stack:78", "wildfly-swarm/wildfly-swarm:204", "wisdom-framework/wisdom:72"],
+					"latest_version": ["-1"],
+					"libio_latest_version": ["3.5.3.CR1"],
+					"gh_issues_last_month_closed": [-1],
+					"gh_prs_last_month_closed": [-1],
+					"tokens": ["core", "io", "vertx"]
+				},
+				"version": {
+					"cm_num_files": [446],
+					"shipped_as_downstream": [false],
+					"cm_loc": [82656],
+					"last_updated": [1517474421.65],
+					"declared_licenses": ["Eclipse Public License - v 1.0", "The Apache Software License, Version 2.0"],
+					"pname": ["io.vertx:vertx-core"],
+					"cm_avg_cyclomatic_complexity": [1.33],
+					"pecosystem": ["maven"],
+					"description": ["Sonatype helps open source projects to set up Maven repositories on https://oss.sonatype.org/"],
+					"osio_usage_count": [10],
+					"vertex_label": ["Version"],
+					"dependents_count": [11],
+					"version": ["3.4.2"],
+					"licenses": ["Apache 2.0", "EPL 1.0", "MIT License"]
+				},
+                "cves": [{
                     "ecosystem": [
                         "maven"
                     ],
@@ -159,10 +76,11 @@
                     "modified_date": [
                         "20181008"
                     ]
-                }
-            ]
-          }
-        ],
-        "meta": {}
-    }
+	            }]
+			}]
+		}, {
+			"transitive": []
+		}],
+		"meta": {}
+	}
 }
