@@ -101,7 +101,9 @@ def extract_component_details(component):
         "github": github_details,
         "code_metrics": code_metrics
     }
-
+    # Add transitive block for transitive deps
+    if component.get('transitive', {}):
+        component_summary['transitive'] = component.get('transitive')
     return component_summary
 
 
