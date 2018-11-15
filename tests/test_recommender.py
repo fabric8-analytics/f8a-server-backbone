@@ -5,8 +5,7 @@ import json
 import logging
 logger = logging.getLogger(__name__)
 
-from src.recommender import RecommendationTask, GraphDB, apply_license_filter,\
-    set_valid_cooccurrence_probability
+from src.recommender import RecommendationTask, GraphDB, License, set_valid_cooccurrence_probability
 from src.rest_api import app
 
 
@@ -159,14 +158,14 @@ def test_get_version_information(_mock1, _mock2):
     assert len(out) == 0
 
 
-@mock.patch('src.recommender.invoke_license_analysis_service',
+@mock.patch('src.recommender.License.invoke_license_analysis_service',
             return_value={'status': 'successful', 'license_filter': {}})
 def test_apply_license_filter(_mock1):
     """Test the function apply_license_filter."""
     with open('tests/data/epv_list.json', 'r') as f:
         resp = json.load(f)
 
-    out = apply_license_filter(None, resp, resp)
+    out = License.apply_license_filter(None, resp, resp)
     assert isinstance(out, dict)
 
 

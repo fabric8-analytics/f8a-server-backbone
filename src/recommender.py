@@ -81,7 +81,6 @@ from stack_aggregator import extract_user_stack_package_licenses
 from f8a_worker.models import WorkerResult
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert
-# from flask import current_app
 
 logger = logging.getLogger(__file__)
 
@@ -150,6 +149,62 @@ class GraphDB:
         return response
 
     @staticmethod
+    def get_topmost_alternate(insights_result, input_stack):
+        """Get only topmost alternate package to recommend based on similarity score."""
+        temp_dict = {}
+        for pkg_name, contents in insights_result.get('alternate_packages', {}).items():
+            pkg = {}
+            for ind in contents:
+                pkg[ind['package_name']] = ind['similarity_score']
+            temp_dict[pkg_name] = pkg
+
+        final_dict = {}
+        alternate_packages = []
+        for pkg_name, contents in temp_dict.items():
+            top_dict = dict(Counter(contents).most_common(1))
+            for alt_pkg, sim_score in top_dict.items():
+                final_dict[alt_pkg] = {
+                    'version': input_stack[pkg_name],
+                    'replaces': pkg_name,
+                    'similarity_score': sim_score
+                }
+                alternate_packages.append(alt_pkg)
+
+        return alternate_packages, final_dict
+
+    @staticmethod
+    def add_version_to_filtered_list(epv, key, val, semversion_tuple, input_stack_tuple,
+                                     pkg_dict, new_dict, filtered_comp_list):
+        """Add versions to filtered list."""
+        name = epv.get('pkg', {}).get('name', [''])[0]
+        version = epv.get('ver', {}).get('version', [''])[0]
+        try:
+            if semversion_tuple >= input_stack_tuple:
+                pkg_dict[name][key] = {"version": version, key: val}
+                new_dict[name][key] = epv.get('ver')
+                new_dict[name]['pkg'] = epv.get('pkg')
+                filtered_comp_list.append(name)
+
+        except ValueError:
+            logger.exception("Unexpected ValueError while filtering latest version!")
+        pass
+        return pkg_dict, new_dict, filtered_comp_list
+
+    @staticmethod
+    def prepare_final_filtered_list(new_dict):
+        """Prepare filtered list of versions."""
+        new_list = []
+        for package, contents in new_dict.items():
+            if 'latest_version' in contents:
+                new_list.append({"pkg": contents['pkg'], "ver": contents['latest_version']})
+            elif 'deps_count' in contents:
+                new_list.append({"pkg": contents['pkg'], "ver": contents['deps_count']})
+            elif 'gh_release_date' in contents:
+                new_list.append({"pkg": contents['pkg'], "ver": contents['gh_release_date']})
+
+        return new_list
+
+    @staticmethod
     def filter_versions(epv_list, input_stack, external_request_id=None, rec_type=None):
         """Filter the EPVs according to following rules.
 
@@ -161,101 +216,68 @@ class GraphDB:
         4. Dependents Count in Github Manifest Data
         5. Github Release Date
         """
-        # TODO: reduce cyclomatic complexity
-        logger.info("Filtering {} for external_request_id {}".format(
-            rec_type, external_request_id))
+        logger.info("Filtering {} for external_request_id {}".format(rec_type, external_request_id))
 
         pkg_dict = defaultdict(dict)
         new_dict = defaultdict(dict)
         filtered_comp_list = []
-        # TODO: refactoring
+
         for epv in epv_list:
             name = epv.get('pkg', {}).get('name', [''])[0]
             version = epv.get('ver', {}).get('version', [''])[0]
-            # needed for maven version like 1.5.2.RELEASE to be converted to
-            # 1.5.2-RELEASE for semantic version to work'
+            libio_latest_version = epv.get('pkg').get('libio_latest_version', [''])[0]
+            latest_version = epv.get('pkg').get('latest_version', [''])[0]
+
+            # Convert version to a proper semantic case
             semversion_tuple = version_info_tuple(
                 convert_version_to_proper_semantic(version, name))
-            input_stack_tuple = version_info_tuple(convert_version_to_proper_semantic(
-                input_stack.get(name, ''), name))
-            if name and version:
-                # Select Latest Version and add to filter_list if
-                # latest version is > current version
-                latest_version = select_latest_version(
-                    version,
-                    epv.get('pkg').get('libio_latest_version', [''])[0],
-                    epv.get('pkg').get('latest_version', [''])[0],
-                    name
-                )
-                if latest_version and latest_version == version:
-                    try:
-                        if semversion_tuple >= input_stack_tuple:
-                            pkg_dict[name]['latest_version'] = latest_version
-                            new_dict[name]['latest_version'] = epv.get('ver')
-                            new_dict[name]['pkg'] = epv.get('pkg')
-                            filtered_comp_list.append(name)
-                    except ValueError:
-                        logger.exception(
-                            "Unexpected ValueError while filtering latest version!")
-                        pass
+            input_stack_tuple = version_info_tuple(
+                convert_version_to_proper_semantic(input_stack.get(name, ''), name))
 
-                # Check for Dependency Count Attribute. Add Max deps count version
-                # if version > current version
+            if name and version:
+                # Select highest version based on input or graph as latest version
+                latest_version = select_latest_version(
+                    version, libio_latest_version, latest_version, name
+                )
+
+                if latest_version and latest_version == version:
+                    pkg_dict, new_dict, filtered_comp_list = GraphDB.add_version_to_filtered_list(
+                        epv=epv, key='latest_version', val=latest_version, pkg_dict=pkg_dict,
+                        new_dict=new_dict, filtered_comp_list=filtered_comp_list,
+                        semversion_tuple=semversion_tuple, input_stack_tuple=input_stack_tuple)
+
+                # Select Version based on highest dependents count (usage)
                 deps_count = epv.get('ver').get('dependents_count', [-1])[0]
                 if deps_count > 0:
                     if 'deps_count' not in pkg_dict[name] or \
-                                    deps_count > pkg_dict[name].get('deps_count', {}).get(
-                                'deps_count', 0):
-                        try:
-                            if semversion_tuple >= input_stack_tuple:
-                                pkg_dict[name]['deps_count'] = {"version": version,
-                                                                "deps_count": deps_count}
-                                new_dict[name]['deps_count'] = epv.get('ver')
-                                new_dict[name]['pkg'] = epv.get('pkg')
+                            deps_count > pkg_dict[name].get['deps_count'].get('deps_count', 0):
+                        pkg_dict, new_dict, filtered_comp_list = \
+                            GraphDB.add_version_to_filtered_list(
+                                epv=epv, key='deps_count', val=deps_count, pkg_dict=pkg_dict,
+                                new_dict=new_dict, filtered_comp_list=filtered_comp_list,
+                                semversion_tuple=semversion_tuple,
+                                input_stack_tuple=input_stack_tuple)
 
-                                filtered_comp_list.append(name)
-                        except ValueError:
-                            logger.exception(
-                                "Unexpected ValueError while filtering dependency count!")
-                            pass
-
-                # Check for github release date. Add version with most recent github release date
-                gh_release_date = epv.get('ver').get('gh_release_date', [0])[0]
+                # Select Version with the most recent github release date
+                gh_release_date = epv.get('ver').get('gh_release_date', [0.0])[0]
                 if gh_release_date > 0.0:
                     if 'gh_release_date' not in pkg_dict[name] or \
-                                    gh_release_date > \
-                                    pkg_dict[name].get('gh_release_date', {}).get('gh_release_date',
-                                                                                  0):
-                        try:
-                            if semversion_tuple >= input_stack_tuple:
-                                pkg_dict[name]['gh_release_date'] = {
-                                    "version": version,
-                                    "gh_release_date": gh_release_date}
-                                new_dict[name]['gh_release_date'] = epv.get('ver')
-                                new_dict[name]['pkg'] = epv.get('pkg')
-                                filtered_comp_list.append(name)
-                        except ValueError:
-                            logger.exception(
-                                "Unexpected ValueError while filtering github release date!")
-                            pass
+                        gh_release_date > pkg_dict[name]['gh_release_date'].\
+                            get('gh_release_date', 0.0):
+                        pkg_dict, new_dict, filtered_comp_list = \
+                            GraphDB.add_version_to_filtered_list(
+                                epv=epv, key='gh_release_date', val=gh_release_date,
+                                pkg_dict=pkg_dict, new_dict=new_dict,
+                                filtered_comp_list=filtered_comp_list,
+                                semversion_tuple=semversion_tuple,
+                                input_stack_tuple=input_stack_tuple)
 
-        logger.info(
-            "Data Dict new_dict for external_request_id {} is {}"
-            .format(external_request_id, new_dict))
-        logger.info(
-            "Data List filtered_comp_list for external_request_id {} is {}"
-            .format(external_request_id, filtered_comp_list))
+        logger.info("Data Dict new_dict for external_request_id {} is {}".format(
+            external_request_id, new_dict))
+        logger.info("Data List filtered_comp_list for external_request_id {} is {}".format(
+                external_request_id, filtered_comp_list))
 
-        # TODO: refactoring
-        new_list = []
-        for package, contents in new_dict.items():
-            if 'latest_version' in contents:
-                new_list.append({"pkg": contents['pkg'], "ver": contents['latest_version']})
-            elif 'deps_count' in contents:
-                new_list.append({"pkg": contents['pkg'], "ver": contents['deps_count']})
-            elif 'gh_release_date' in contents:
-                new_list.append({"pkg": contents['pkg'], "ver": contents['gh_release_date']})
-
+        new_list = GraphDB.prepare_final_filtered_list(new_dict)
         return new_list, filtered_comp_list
 
     @staticmethod
@@ -288,88 +310,118 @@ class GraphDB:
         return comp_list
 
 
-def invoke_license_analysis_service(user_stack_packages, alternate_packages, companion_packages):
-    """Pass given args to stack_license analysis."""
-    license_url = LICENSE_SCORING_URL_REST + "/api/v1/stack_license"
+class License:
+    """License Analytics Class."""
 
-    payload = {
-        "packages": user_stack_packages,
-        "alternate_packages": alternate_packages,
-        "companion_packages": companion_packages
-    }
+    @staticmethod
+    def invoke_license_analysis_service(user_stack_packages, alt_packages, comp_packages):
+        """Pass given args to stack_license analysis."""
+        license_url = LICENSE_SCORING_URL_REST + "/api/v1/stack_license"
 
-    json_response = {}
-    try:
-        lic_response = get_session_retry().post(license_url, data=json.dumps(payload))
-        lic_response.raise_for_status()  # raise exception for bad http-status codes
-        json_response = lic_response.json()
-    except requests.exceptions.RequestException:
-        logger.exception("Unexpected error happened while invoking license analysis!")
-        pass
-
-    return json_response
-
-
-def apply_license_filter(user_stack_components, epv_list_alt, epv_list_com):
-    """License Filter."""
-    # TODO: refactoring
-    license_score_list_alt = []
-    for epv in epv_list_alt:
-        license_scoring_input = {
-            'package': epv.get('pkg', {}).get('name', [''])[0],
-            'version': epv.get('ver', {}).get('version', [''])[0],
-            'licenses': epv.get('ver', {}).get('declared_licenses', [])
+        payload = {
+            "packages": user_stack_packages,
+            "alternate_packages": alt_packages,
+            "companion_packages": comp_packages
         }
-        license_score_list_alt.append(license_scoring_input)
 
-    # TODO: refactoring
-    license_score_list_com = []
-    for epv in epv_list_com:
-        license_scoring_input = {
-            'package': epv.get('pkg', {}).get('name', [''])[0],
-            'version': epv.get('ver', {}).get('version', [''])[0],
-            'licenses': epv.get('ver', {}).get('declared_licenses', [])
+        json_response = {}
+        try:
+            # Call License service to get license data
+            lic_response = get_session_retry().post(license_url, data=json.dumps(payload))
+            lic_response.raise_for_status()  # raise exception for bad http-status codes
+            json_response = lic_response.json()
+        except requests.exceptions.RequestException:
+            logger.exception("Unexpected error happened while invoking license analysis!")
+            pass
+
+        return json_response
+
+    @staticmethod
+    def apply_license_filter(user_stack_components, epv_list_alt, epv_list_com):
+        """Get License Analysis and filter out License Conflict EPVs."""
+        license_score_list_alt = license_score_list_com = []
+        conflict_packages_alt = conflict_packages_com = []
+        list_pkg_names_alt = list_pkg_names_com = []
+        for epv in epv_list_alt:
+            license_scoring_input = {
+                'package': epv.get('pkg', {}).get('name', [''])[0],
+                'version': epv.get('ver', {}).get('version', [''])[0],
+                'licenses': epv.get('ver', {}).get('declared_licenses', [])
+            }
+            license_score_list_alt.append(license_scoring_input)
+
+        for epv in epv_list_com:
+            license_scoring_input = {
+                'package': epv.get('pkg', {}).get('name', [''])[0],
+                'version': epv.get('ver', {}).get('version', [''])[0],
+                'licenses': epv.get('ver', {}).get('declared_licenses', [])
+            }
+            license_score_list_com.append(license_scoring_input)
+
+        # Call license scoring to find license filters
+        la_output = License.invoke_license_analysis_service(user_stack_components,
+                                                            license_score_list_alt,
+                                                            license_score_list_com)
+
+        if la_output.get('status') == 'Successful' and la_output.get('license_filter') is not None:
+            license_filter = la_output.get('license_filter', {})
+            conflict_packages_alt = license_filter.get('alternate_packages', {}) \
+                .get('conflict_packages', [])
+            conflict_packages_com = license_filter.get('companion_packages', {}) \
+                .get('conflict_packages', [])
+
+        for epv in epv_list_alt[:]:
+            name = epv.get('pkg', {}).get('name', [''])[0]
+            if name in conflict_packages_alt:
+                list_pkg_names_alt.append(name)
+                epv_list_alt.remove(epv)
+
+        for epv in epv_list_com[:]:
+            name = epv.get('pkg', {}).get('name', [''])[0]
+            if name in conflict_packages_com:
+                list_pkg_names_com.append(name)
+                epv_list_com.remove(epv)
+
+        output = {
+            'filtered_alt_packages_graph': epv_list_alt,
+            'filtered_list_pkg_names_alt': list_pkg_names_alt,
+            'filtered_comp_packages_graph': epv_list_com,
+            'filtered_list_pkg_names_com': list_pkg_names_com
         }
-        license_score_list_com.append(license_scoring_input)
+        logger.info("License Filter output: {}".format(json.dumps(output)))
 
-    # Call license scoring to find license filters
-    la_output = invoke_license_analysis_service(user_stack_components,
-                                                license_score_list_alt,
-                                                license_score_list_com)
+        return output
 
-    conflict_packages_alt = conflict_packages_com = []
-    if la_output.get('status') == 'Successful' and la_output.get('license_filter') is not None:
-        license_filter = la_output.get('license_filter', {})
-        conflict_packages_alt = license_filter.get('alternate_packages', {}) \
-            .get('conflict_packages', [])
-        conflict_packages_com = license_filter.get('companion_packages', {}) \
-            .get('conflict_packages', [])
+    @staticmethod
+    def perform_license_analysis(
+            resolved, ecosystem, filtered_alternate_packages,
+            filtered_alt_packages_graph, filtered_companion_packages,
+            filtered_comp_packages_graph, external_request_id):
+        """Apply License Filters and log the messages."""
+        list_user_stack_comp = extract_user_stack_package_licenses(resolved, ecosystem)
+        license_filter_output = License.apply_license_filter(
+            list_user_stack_comp,
+            filtered_alt_packages_graph,
+            filtered_comp_packages_graph)
 
-    # TODO: refactoring
-    list_pkg_names_alt = []
-    for epv in epv_list_alt[:]:
-        name = epv.get('pkg', {}).get('name', [''])[0]
-        if name in conflict_packages_alt:
-            list_pkg_names_alt.append(name)
-            epv_list_alt.remove(epv)
+        lic_filtered_alt_graph = license_filter_output['filtered_alt_packages_graph']
+        lic_filtered_comp_graph = license_filter_output['filtered_comp_packages_graph']
+        lic_filtered_list_alt = license_filter_output['filtered_list_pkg_names_alt']
+        lic_filtered_list_com = license_filter_output['filtered_list_pkg_names_com']
 
-    # TODO: refactoring
-    list_pkg_names_com = []
-    for epv in epv_list_com[:]:
-        name = epv.get('pkg', {}).get('name', [''])[0]
-        if name in conflict_packages_com:
-            list_pkg_names_com.append(name)
-            epv_list_com.remove(epv)
+        if len(lic_filtered_list_alt) > 0:
+            s = set(filtered_alternate_packages).difference(set(lic_filtered_list_alt))
+            msg = "Alternate Packages filtered (licenses) for external_request_id {} {}". \
+                format(external_request_id, s)
+            logger.info(msg)
 
-    output = {
-        'filtered_alt_packages_graph': epv_list_alt,
-        'filtered_list_pkg_names_alt': list_pkg_names_alt,
-        'filtered_comp_packages_graph': epv_list_com,
-        'filtered_list_pkg_names_com': list_pkg_names_com
-    }
-    logger.info("License Filter output: {}".format(json.dumps(output)))
+        if len(lic_filtered_list_com) > 0:
+            s = set(filtered_companion_packages).difference(set(lic_filtered_list_com))
+            msg = "Companion Packages filtered (licenses) for external_request_id {} " \
+                  "{}".format(external_request_id, s)
+            logger.info(msg)
 
-    return output
+        return lic_filtered_alt_graph, lic_filtered_comp_graph
 
 
 def set_valid_cooccurrence_probability(package_list=[]):
@@ -387,6 +439,27 @@ def set_valid_cooccurrence_probability(package_list=[]):
     return new_package_list
 
 
+def persist_data_in_db(external_request_id, task_result):
+    """Persist the data in Postgres."""
+    try:
+        insert_stmt = insert(WorkerResult).values(
+            worker='recommendation_v2', worker_id=None,
+            external_request_id=external_request_id, analysis_id=None, task_result=task_result,
+            error=False)
+        do_update_stmt = insert_stmt.on_conflict_do_update(
+            index_elements=['id'],
+            set_=dict(task_result=task_result))
+        session.execute(do_update_stmt)
+        session.commit()
+        return {'recommendation': 'success', 'external_request_id': external_request_id,
+                'result': task_result}
+    except (SQLAlchemyError, Exception) as e:
+        logger.error("Error %r." % e)
+        session.rollback()
+        return {'recommendation': 'database error', 'external_request_id': external_request_id,
+                'message': '%s' % e}
+
+
 class RecommendationTask:
     """Recommendation task."""
 
@@ -397,6 +470,36 @@ class RecommendationTask:
     hpf_ecosystems = ['maven']
 
     @staticmethod
+    def get_insights_url(payload):
+        """Get the insights url based on the ecosystem."""
+        if payload and 'ecosystem' in payload[0]:
+            quickstarts = False
+            if payload[0]['ecosystem'] in RecommendationTask.chester_ecosystems:
+                INSIGHTS_SERVICE_HOST = os.getenv("CHESTER_SERVICE_HOST")
+            else:
+                INSIGHTS_SERVICE_HOST = os.getenv("HPF_SERVICE_HOST") + "-" + payload[0][
+                    'ecosystem']
+                if payload[0]['ecosystem'] == 'maven':
+                    quickstarts = is_quickstart_majority(payload[0]['package_list'])
+                if quickstarts:
+                    INSIGHTS_SERVICE_HOST = os.getenv("PGM_SERVICE_HOST") + "-" + payload[0][
+                        'ecosystem']
+
+            INSIGHTS_URL_REST = "http://{host}:{port}".format(host=INSIGHTS_SERVICE_HOST,
+                                                              port=os.getenv("PGM_SERVICE_PORT"))
+
+            if quickstarts:
+                insights_url = INSIGHTS_URL_REST + "/api/v1/schemas/kronos_scoring"
+            else:
+                insights_url = INSIGHTS_URL_REST + "/api/v1/companion_recommendation"
+
+            return insights_url
+
+        else:
+            logger.error('Payload information not passed in the call, Quitting! inights '
+                         'recommender\'s call')
+
+    @staticmethod
     def call_insights_recommender(payload):
         """Call the PGM model.
 
@@ -405,43 +508,18 @@ class RecommendationTask:
         """
         try:
             # TODO remove hardcodedness for payloads with multiple ecosystems
-            if payload and 'ecosystem' in payload[0]:
-                quickstarts = False
-                if payload[0]['ecosystem'] in RecommendationTask.chester_ecosystems:
-                    INSIGHTS_SERVICE_HOST = os.getenv("CHESTER_SERVICE_HOST")
-                else:
-                    INSIGHTS_SERVICE_HOST = os.getenv("HPF_SERVICE_HOST") + "-" + \
-                        payload[0]['ecosystem']
-                    if payload[0]['ecosystem'] == 'maven':
-                        quickstarts = is_quickstart_majority(
-                            payload[0]['package_list'])
-                    if quickstarts:
-                        INSIGHTS_SERVICE_HOST = os.getenv("PGM_SERVICE_HOST") + "-" + \
-                            payload[0]['ecosystem']
 
-                INSIGHTS_URL_REST = "http://{host}:{port}".format(
-                    host=INSIGHTS_SERVICE_HOST,
-                    port=os.getenv("PGM_SERVICE_PORT"))
-
-                if quickstarts:
-                    insights_url = INSIGHTS_URL_REST + "/api/v1/schemas/kronos_scoring"
-                else:
-                    insights_url = INSIGHTS_URL_REST + "/api/v1/companion_recommendation"
+                insights_url = RecommendationTask.get_insights_url(payload)
                 response = get_session_retry().post(insights_url, json=payload)
 
                 if response.status_code != 200:
-                    logger.error(
-                            "HTTP error {}. Error retrieving insights data.".format(
-                                    response.status_code))
+                    logger.error("HTTP error {}. Error retrieving insights data.".format(
+                                 response.status_code))
                     return None
                 else:
                     json_response = response.json()
                     return json_response
-            else:
-                logger.error(
-                    'Payload information not passed in the call, Quitting! inights '
-                    'recommender\'s call'
-                )
+
         except Exception as e:
             logger.error("Failed retrieving insights data.")
             logger.error("%s" % e)
@@ -479,7 +557,7 @@ class RecommendationTask:
                 recommendations.append(recommendation)
                 continue
 
-            json_object = {
+            insights_payload = {
                 'ecosystem': details['ecosystem'],
                 'unknown_packages_ratio_threshold':
                     float(os.environ.get('UNKNOWN_PACKAGES_THRESHOLD', 0.3)),
@@ -488,14 +566,13 @@ class RecommendationTask:
                     'MAX_COMPANION_PACKAGES', 5))
             }
             if details['ecosystem'] in self.kronos_ecosystems:
-                json_object.update({
+                insights_payload.update({
                     'alt_package_count_threshold': int(os.environ.get('MAX_ALTERNATE_PACKAGES', 2)),
                     'outlier_probability_threshold': float(os.environ.get('OUTLIER_THRESHOLD',
                                                                           0.6)),
                     'user_persona': "1",  # TODO - remove janus hardcoded value
                 })
-            input_task_for_insights_recommender = []
-            input_task_for_insights_recommender.append(json_object)
+            input_task_for_insights_recommender = [insights_payload]
 
             # Call PGM and get the response
             start = datetime.datetime.utcnow()
@@ -545,33 +622,9 @@ class RecommendationTask:
                     )
 
                     # Get the topmost alternate package for each input package
-
-                    # Create intermediate dict to Only Get Top 1 companion
-                    # packages for the time being.
-                    temp_dict = {}
-                    for pkg_name, contents in insights_result.get('alternate_packages', {}).items():
-                        pkg = {}
-                        for ind in contents:
-                            pkg[ind['package_name']] = ind['similarity_score']
-                        temp_dict[pkg_name] = pkg
-
-                    final_dict = {}
-                    alternate_packages = []
-                    for pkg_name, contents in temp_dict.items():
-                        # For each input package
-                        # Get only the topmost alternate package from a set of
-                        # packages based on similarity score
-                        top_dict = dict(Counter(contents).most_common(1))
-                        for alt_pkg, sim_score in top_dict.items():
-                            final_dict[alt_pkg] = {
-                                'version': input_stack[pkg_name],
-                                'replaces': pkg_name,
-                                'similarity_score': sim_score
-                            }
-                            alternate_packages.append(alt_pkg)
-
-                    # if alternate_packages:
-                    # Get Alternate Packages from Graph
+                    alternate_packages, final_dict = GraphDB.get_topmost_alternate(
+                        insights_result=insights_result, input_stack=input_stack
+                    )
                     alt_packages_graph = GraphDB().get_version_information(
                         alternate_packages, ecosystem)
 
@@ -585,37 +638,21 @@ class RecommendationTask:
                         "Alternate Packages Filtered for external_request_id {} {}"
                         .format(external_request_id, filtered_alternate_packages)
                     )
-                    if check_license:
-                        # apply license based filters
-                        list_user_stack_comp = extract_user_stack_package_licenses(
-                            resolved, ecosystem)
-                        license_filter_output = apply_license_filter(list_user_stack_comp,
-                                                                     filtered_alt_packages_graph,
-                                                                     filtered_comp_packages_graph)
 
-                        lic_filtered_alt_graph = license_filter_output[
-                            'filtered_alt_packages_graph']
-                        lic_filtered_comp_graph = license_filter_output[
-                            'filtered_comp_packages_graph']
-                        lic_filtered_list_alt = license_filter_output['filtered_list_pkg_names_alt']
-                        lic_filtered_list_com = license_filter_output['filtered_list_pkg_names_com']
+                    if check_license:
+                        # Apply License Filters
+                        lic_filtered_alt_graph, lic_filtered_comp_graph = \
+                            License.perform_license_analysis(
+                                resolved=resolved, ecosystem=ecosystem,
+                                filtered_alt_packages_graph=filtered_alt_packages_graph,
+                                filtered_comp_packages_graph=filtered_comp_packages_graph,
+                                filtered_alternate_packages=filtered_alternate_packages,
+                                filtered_companion_packages=filtered_companion_packages,
+                                external_request_id=external_request_id
+                            )
                     else:
                         lic_filtered_alt_graph = filtered_alt_packages_graph
                         lic_filtered_comp_graph = filtered_comp_packages_graph
-                        lic_filtered_list_alt = lic_filtered_list_com = list()
-
-                    if len(lic_filtered_list_alt) > 0:
-                        s = set(filtered_alternate_packages).difference(set(lic_filtered_list_alt))
-                        msg = \
-                            "Alternate Packages filtered (licenses) for external_request_id {} {}" \
-                            .format(external_request_id, s)
-                        logger.info(msg)
-
-                    if len(lic_filtered_list_com) > 0:
-                        s = set(filtered_companion_packages).difference(set(lic_filtered_list_com))
-                        msg = "Companion Packages filtered (licenses) for external_request_id {} " \
-                              "{}".format(external_request_id, s)
-                        logger.info(msg)
 
                     # Get Topics Added to Filtered Packages
                     topics_comp_packages_graph = GraphDB(). \
@@ -656,33 +693,8 @@ class RecommendationTask:
         }
 
         if persist:
-            # Store the result in RDS
-            try:
-                insert_stmt = insert(WorkerResult).values(
-                    worker='recommendation_v2',
-                    worker_id=None,
-                    external_request_id=external_request_id,
-                    analysis_id=None,
-                    task_result=task_result,
-                    error=False
-                )
-                do_update_stmt = insert_stmt.on_conflict_do_update(
-                    index_elements=['id'],
-                    set_=dict(task_result=task_result)
-                )
-                session.execute(do_update_stmt)
-                session.commit()
-                return {'recommendation': 'success',
-                        'external_request_id': external_request_id,
-                        'result': task_result}
-            except (SQLAlchemyError, Exception) as e:
-                logger.error("Error %r." % e)
-                session.rollback()
-                return {
-                    'recommendation': 'database error',
-                    'external_request_id': external_request_id,
-                    'message': '%s' % e
-                }
+            return persist_data_in_db(external_request_id=external_request_id,
+                                      task_result=task_result)
         else:
             return {'recommendation': 'success',
                     'external_request_id': external_request_id,
