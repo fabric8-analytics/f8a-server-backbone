@@ -6,9 +6,6 @@ by stack-analyses endpoint
 Output: TBD
 
 """
-from f8a_worker.models import WorkerResult
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.dialects.postgresql import insert
 import json
 import datetime
 from flask import current_app
