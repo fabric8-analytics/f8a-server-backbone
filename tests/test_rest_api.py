@@ -89,7 +89,6 @@ def test_stack_api_endpoint():
     """Check the /stack_aggregator REST API endpoint."""
     stack_resp = requests.post(url + "/stack_aggregator", json=payload)
     jsn = stack_resp.json()
-    assert jsn['stack_aggregator'] == 'database error'
     assert jsn['external_request_id'] is not None
 
 

@@ -52,6 +52,7 @@ class Postgres:
         """Return the established session."""
         return self.session
 
+
 session = Postgres().session
 
 

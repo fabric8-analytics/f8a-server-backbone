@@ -24,7 +24,6 @@ with open('tests/data/valid_license_analysis.json', 'r') as f:
 
 def mocked_requests_get(*args, **_kwargs):
     """Mock the call to the insights service."""
-
     class MockResponse:
         """Mock response object."""
 
@@ -64,7 +63,6 @@ class TestRecommendationTask(TestCase):
 
 def mocked_response_graph(*args, **_kwargs):
     """Mock the call to the insights service."""
-
     class MockResponse:
         """Mock response object."""
 
@@ -82,7 +80,6 @@ def mocked_response_graph(*args, **_kwargs):
 
 def mocked_response_license(*args, **_kwargs):
     """Mock the call to the execute."""
-
     class MockResponse:
         """Mock response object."""
 
@@ -197,6 +194,7 @@ def test_get_version_information(_mock1):
 
 
 def test_get_topics():
+    """Test the function get topics."""
     alt_list = GraphDB.get_topics_for_alt(graph_resp['result']['data'],
                                           insights_resp[0]['alternate_packages'])
     comp_list = GraphDB.get_topics_for_comp(graph_resp['result']['data'],
@@ -210,6 +208,7 @@ def test_get_topics():
 
 
 def test_get_topmost_alternate():
+    """Test the function get topmost alternate recommendation."""
     input_stack = {"io.vertx:vertx-core": "3.4.1"}
     alternate_packages, final_dict = GraphDB.get_topmost_alternate(insights_resp[0], input_stack)
 
@@ -221,6 +220,7 @@ def test_get_topmost_alternate():
 
 @mock.patch('requests.Session.post', side_effect=mocked_response_license)
 def test_perform_license_analysis(_mock1):
+    """Test license analysis function."""
     with open("tests/data/license_analysis.json", "r") as f:
         payload = json.load(f)
     alt_graph, comp_graph = License.perform_license_analysis(
@@ -250,7 +250,7 @@ def test_apply_license_filter(_mock1):
 def test_set_valid_cooccurrence_probability():
     """Test the function set_valid_cooccurrence_probability."""
     input = [{"ecosystem": "maven", "name": "io.fabric8.funktion.connector:connector-smpp",
-        "cooccurrence_probability": 'nan'}]
+              "cooccurrence_probability": 'nan'}]
     components = set_valid_cooccurrence_probability(input)
     for component in components:
         assert (component['cooccurrence_probability'] == 100)
