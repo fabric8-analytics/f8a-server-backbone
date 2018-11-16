@@ -9,9 +9,13 @@ import os
 import json
 import datetime
 import semantic_version as sv
+import logging
 from flask import current_app
+from f8a_worker.models import WorkerResult
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.dialects.postgresql import insert
 
-
+logger = logging.getLogger(__file__)
 GREMLIN_SERVER_URL_REST = "http://{host}:{port}".format(
     host=os.environ.get("BAYESIAN_GREMLIN_HTTP_SERVICE_HOST", "localhost"),
     port=os.environ.get("BAYESIAN_GREMLIN_HTTP_SERVICE_PORT", "8182"))
@@ -47,6 +51,8 @@ class Postgres:
     def session(self):
         """Return the established session."""
         return self.session
+
+session = Postgres().session
 
 
 def get_osio_user_count(ecosystem, name, version):
@@ -262,3 +268,24 @@ def is_quickstart_majority(package_list=[]):
     # If 50% or more packages reflect quickstarts, pick kronos.
     # Defaults to Kronos if package_list is empty
     return count_quickstart_pck >= len(package_list) / 2
+
+
+def persist_data_in_db(external_request_id, task_result):
+    """Persist the data in Postgres."""
+    try:
+        insert_stmt = insert(WorkerResult).values(
+            worker='recommendation_v2', worker_id=None,
+            external_request_id=external_request_id, analysis_id=None, task_result=task_result,
+            error=False)
+        do_update_stmt = insert_stmt.on_conflict_do_update(
+            index_elements=['id'],
+            set_=dict(task_result=task_result))
+        session.execute(do_update_stmt)
+        session.commit()
+        return {'recommendation': 'success', 'external_request_id': external_request_id,
+                'result': task_result}
+    except (SQLAlchemyError, Exception) as e:
+        logger.error("Error %r." % e)
+        session.rollback()
+        return {'recommendation': 'database error', 'external_request_id': external_request_id,
+                'message': '%s' % e}

@@ -16,9 +16,7 @@ from flask import current_app
 import requests
 
 from utils import (get_session_retry, select_latest_version, LICENSE_SCORING_URL_REST,
-                   GREMLIN_SERVER_URL_REST, Postgres)
-
-session = Postgres().session
+                   GREMLIN_SERVER_URL_REST, persist_data_in_db)
 
 
 def extract_component_details(component):
@@ -504,33 +502,8 @@ class StackAggregator:
             '_release': 'None:None:None'
         }
         if persist:
-            # TODO: refactoring
-            # Store the result in RDS
-            try:
-                insert_stmt = insert(WorkerResult).values(
-                    worker='stack_aggregator_v2',
-                    worker_id=None,
-                    external_request_id=external_request_id,
-                    analysis_id=None,
-                    task_result=stack_data,
-                    error=False
-                )
-                do_update_stmt = insert_stmt.on_conflict_do_update(
-                    index_elements=['id'],
-                    set_=dict(task_result=stack_data)
-                )
-                session.execute(do_update_stmt)
-                session.commit()
-                return {'stack_aggregator': 'success',
-                        'external_request_id': external_request_id,
-                        'result': stack_data}
-            except SQLAlchemyError as e:
-                session.rollback()
-                return {
-                    'stack_aggregator': 'database error',
-                    'external_request_id': external_request_id,
-                    'message': '%s' % e
-                }
+            return persist_data_in_db(external_request_id=external_request_id,
+                                      task_result=stack_data)
         else:
             return {'stack_aggregator': 'success',
                     'external_request_id': external_request_id,

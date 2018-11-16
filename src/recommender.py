@@ -73,18 +73,15 @@ import re
 import logging
 
 from utils import (create_package_dict, get_session_retry, select_latest_version,
-                   GREMLIN_SERVER_URL_REST, LICENSE_SCORING_URL_REST, Postgres,
+                   GREMLIN_SERVER_URL_REST, LICENSE_SCORING_URL_REST,
                    convert_version_to_proper_semantic,
-                   version_info_tuple,
+                   version_info_tuple, persist_data_in_db,
                    is_quickstart_majority)
 from stack_aggregator import extract_user_stack_package_licenses
-from f8a_worker.models import WorkerResult
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.dialects.postgresql import insert
+
 
 logger = logging.getLogger(__file__)
 
-session = Postgres().session
 
 danger_word_list = [r"drop\(\)", r"V\(\)", r"count\(\)"]
 remove = '|'.join(danger_word_list)
@@ -281,9 +278,9 @@ class GraphDB:
         return new_list, filtered_comp_list
 
     @staticmethod
-    def get_topics_for_alt(comp_list, pgm_dict):
+    def get_topics_for_alt(alt_list, pgm_dict):
         """Get topics from pgm and associate with filtered versions from Graph."""
-        for epv in comp_list:
+        for epv in alt_list:
             name = epv.get('pkg', {}).get('name', [''])[0]
             if name:
                 for pgm_pkg_key, pgm_list in pgm_dict.items():
@@ -291,7 +288,7 @@ class GraphDB:
                         if name == pgm_epv.get('package_name', ''):
                             epv['pkg']['pgm_topics'] = pgm_epv.get('topic_list', [])
 
-        return comp_list
+        return alt_list
 
     @staticmethod
     def get_topics_for_comp(comp_list, pgm_list):
@@ -328,7 +325,8 @@ class License:
         try:
             # Call License service to get license data
             lic_response = get_session_retry().post(license_url, data=json.dumps(payload))
-            lic_response.raise_for_status()  # raise exception for bad http-status codes
+            if lic_response.status_code != 200:
+                lic_response.raise_for_status()  # raise exception for bad http-status codes
             json_response = lic_response.json()
         except requests.exceptions.RequestException:
             logger.exception("Unexpected error happened while invoking license analysis!")
@@ -439,27 +437,6 @@ def set_valid_cooccurrence_probability(package_list=[]):
     return new_package_list
 
 
-def persist_data_in_db(external_request_id, task_result):
-    """Persist the data in Postgres."""
-    try:
-        insert_stmt = insert(WorkerResult).values(
-            worker='recommendation_v2', worker_id=None,
-            external_request_id=external_request_id, analysis_id=None, task_result=task_result,
-            error=False)
-        do_update_stmt = insert_stmt.on_conflict_do_update(
-            index_elements=['id'],
-            set_=dict(task_result=task_result))
-        session.execute(do_update_stmt)
-        session.commit()
-        return {'recommendation': 'success', 'external_request_id': external_request_id,
-                'result': task_result}
-    except (SQLAlchemyError, Exception) as e:
-        logger.error("Error %r." % e)
-        session.rollback()
-        return {'recommendation': 'database error', 'external_request_id': external_request_id,
-                'message': '%s' % e}
-
-
 class RecommendationTask:
     """Recommendation task."""
 
@@ -527,14 +504,13 @@ class RecommendationTask:
 
     def execute(self, arguments=None, persist=True, check_license=False):
         """Execute task."""
-        # TODO: reduce cyclomatic complexity
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         results = arguments.get('result', None)
         external_request_id = arguments.get('external_request_id', None)
 
         recommendations = []
-        # TODO: refactoring
         input_stack = {}
+
         for result in results:
             temp_input_stack = {d["package"]: d["version"] for d in
                                 result.get("details", [])[0].get("_resolved")}
@@ -625,8 +601,11 @@ class RecommendationTask:
                     alternate_packages, final_dict = GraphDB.get_topmost_alternate(
                         insights_result=insights_result, input_stack=input_stack
                     )
-                    alt_packages_graph = GraphDB().get_version_information(
-                        alternate_packages, ecosystem)
+
+                    alt_packages_graph = []
+                    if alternate_packages:
+                        alt_packages_graph = GraphDB().get_version_information(
+                            alternate_packages, ecosystem)
 
                     # Apply Version Filters
                     filtered_alt_packages_graph, filtered_list = GraphDB().filter_versions(

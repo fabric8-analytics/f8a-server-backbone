@@ -6,6 +6,7 @@ import json
 from unittest import mock
 
 payload = {
+    "external_request_id": "req-id",
     "result": [{
         "summary": [],
         "details": [{
@@ -35,8 +36,27 @@ payload = {
     }]
 }
 port = os.getenv("API_BACKBONE_SERVICE_PORT", "5000")
-
 url = "http://localhost:{port}/api/v1".format(port=port)
+response = {
+    "recommendation": "success",
+    "external_request_id": "some_external_request_id",
+    "result": {
+        "recommendations": [
+            {"companion": [],
+             "alternate": [],
+             "usage_outliers": [],
+             "manifest_file_path": "/home/JohnDoe",
+             "input_stack_topics": {
+                 "io.vertx:vertx-core": ["http", "socket", "cluster", "reactive"],
+                 "io.vertx:vertx-web": ["event-bus", "jwt", "webapp", "routing"]},
+             "missing_packages_pgm": []
+             }],
+        "_audit": {
+            "started_at": "2018-11-16T13:24:26.058219",
+            "ended_at": "2018-11-16T13:24:26.059321",
+            "version": "v1"
+        },
+        "_release": "None:None:None"}}
 
 
 def get_json_from_response(response):
@@ -69,18 +89,18 @@ def test_stack_api_endpoint():
     """Check the /stack_aggregator REST API endpoint."""
     stack_resp = requests.post(url + "/stack_aggregator", json=payload)
     jsn = stack_resp.json()
-    assert jsn['stack_aggregator'] == 'failure'
-    assert jsn['external_request_id'] is None
+    assert jsn['stack_aggregator'] == 'database error'
+    assert jsn['external_request_id'] is not None
 
 
-@mock.patch('src.recommender.RecommendationTask.execute', return_value={})
+@mock.patch('src.recommender.RecommendationTask.execute', side_effect=response)
 def test_recommendation_api_endpoint(_mock_object, client):
     """Check the /recommender REST API endpoint."""
     rec_resp = client.post(api_route_for("recommender"),
                            data=json.dumps(payload), content_type='application/json')
     jsn = get_json_from_response(rec_resp)
-    assert jsn['recommendation'] == 'failure'
-    assert jsn['external_request_id'] is None
+    assert jsn['recommendation'] == 'pgm_error'
+    assert jsn['external_request_id'] is not None
 
 
 if __name__ == '__main__':

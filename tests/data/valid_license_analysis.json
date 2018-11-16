@@ -1,0 +1,68 @@
+{
+	"packages": [{
+		"version": "3.4.2",
+		"license_analysis": {
+			"_message": "Representative license found",
+			"outlier_licenses": [],
+			"_representative_licenses": "epl 1.0",
+			"status": "Successful",
+			"unknown_licenses": [],
+			"conflict_licenses": [],
+			"synonyms": {
+				"Eclipse Public License - v 1.0": "epl 1.0",
+				"The Apache Software License, Version 2.0": "apache 2.0"
+			}
+		},
+		"package": "io.vertx:vertx-web",
+		"licenses": ["Eclipse Public License - v 1.0", "The Apache Software License, Version 2.0"]
+	}, {
+		"version": "3.4.2",
+		"license_analysis": {
+			"_message": "Representative license found",
+			"outlier_licenses": [],
+			"_representative_licenses": "epl 1.0",
+			"status": "Successful",
+			"unknown_licenses": [],
+			"conflict_licenses": [],
+			"synonyms": {
+				"Eclipse Public License - v 1.0": "epl 1.0",
+				"The Apache Software License, Version 2.0": "apache 2.0"
+			}
+		},
+		"package": "io.vertx:vertx-core",
+		"licenses": ["Eclipse Public License - v 1.0", "The Apache Software License, Version 2.0"]
+	}, {
+		"version": "3.4.2",
+		"license_analysis": {
+			"_message": "Representative license found",
+			"outlier_licenses": [],
+			"_representative_licenses": "epl 1.0",
+			"status": "Successful",
+			"unknown_licenses": [],
+			"conflict_licenses": [],
+			"synonyms": {
+				"Eclipse Public License - v 1.0": "epl 1.0",
+				"The Apache Software License, Version 2.0": "apache 2.0"
+			}
+		},
+		"package": "io.vertx:vertx-web",
+		"licenses": ["Eclipse Public License - v 1.0", "The Apache Software License, Version 2.0"]
+	}],
+	"conflict_packages": [],
+	"stack_license": "epl 1.0",
+	"status": "Successful",
+	"outlier_packages": {},
+	"license_filter": {
+		"alternate_packages": {
+			"unknown_license_packages": [],
+			"conflict_packages": [],
+			"compatible_packages": []
+		},
+		"companion_packages": {
+			"unknown_license_packages": [],
+			"conflict_packages": [],
+			"compatible_packages": []
+		}
+	},
+	"distinct_licenses": ["The Apache Software License, Version 2.0", "Eclipse Public License - v 1.0"]
+}

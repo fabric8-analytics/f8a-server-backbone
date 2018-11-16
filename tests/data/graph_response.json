@@ -1,0 +1,174 @@
+{
+    "requestId": "05389cdb-a059-4a2f-bc0b-d2ff1c0878e1",
+    "status": {
+        "message": "",
+        "code": 200,
+        "attributes": {}
+    },
+    "result": {
+        "data": [
+            {
+                "pkg": {
+                    "gh_issues_last_month_opened": [
+                        -1
+                    ],
+                    "gh_prs_last_year_closed": [
+                        -1
+                    ],
+                    "libio_usedby": [
+                        "TechEmpower/FrameworkBenchmarks:2976",
+                        "apiman/apiman:366",
+                        "boonproject/boon:474",
+                        "hawkular/hawkular-apm:132",
+                        "isaiah/jubilee:342",
+                        "jbosstm/narayana:77",
+                        "jhalterman/failsafe:1981",
+                        "vert-x3/vertx-stack:78",
+                        "wildfly-swarm/wildfly-swarm:204",
+                        "wisdom-framework/wisdom:72"
+                    ],
+                    "ecosystem": [
+                        "maven"
+                    ],
+                    "gh_subscribers_count": [
+                        620
+                    ],
+                    "gh_contributors_count": [
+                        30
+                    ],
+                    "vertex_label": [
+                        "Package"
+                    ],
+                    "description": [
+                        "Vert.x core contains fairly low level functionality including support for HTTP, TCP, file system access, and various other features. You can use this directly in your own applications, and its used by many of the other components of Vert.x"
+                    ],
+                    "libio_dependents_repos": [
+                        "6978"
+                    ],
+                    "last_updated_sentiment_score": [
+                        "2017-10-09"
+                    ],
+                    "sentiment_magnitude": [
+                        "0"
+                    ],
+                    "gh_issues_last_year_opened": [
+                        -1
+                    ],
+                    "gh_issues_last_month_closed": [
+                        -1
+                    ],
+                    "gh_open_issues_count": [
+                        175
+                    ],
+                    "libio_dependents_projects": [
+                        "219"
+                    ],
+                    "latest_version": [
+                        "-1"
+                    ],
+                    "tokens": [
+                        "core",
+                        "io",
+                        "vertx"
+                    ],
+                    "package_relative_used": [
+                        "not used"
+                    ],
+                    "gh_stargazers": [
+                        8694
+                    ],
+                    "gh_forks": [
+                        1446
+                    ],
+                    "package_dependents_count": [
+                        -1
+                    ],
+                    "gh_prs_last_month_opened": [
+                        -1
+                    ],
+                    "gh_issues_last_year_closed": [
+                        -1
+                    ],
+                    "sentiment_score": [
+                        "0"
+                    ],
+                    "last_updated": [
+                        1542327027.72
+                    ],
+                    "gh_prs_last_month_closed": [
+                        -1
+                    ],
+                    "libio_total_releases": [
+                        "55"
+                    ],
+                    "gh_prs_last_year_opened": [
+                        -1
+                    ],
+                    "name": [
+                        "io.vertx:vertx-core"
+                    ],
+                    "libio_latest_version": [
+                        "3.5.3.CR1"
+                    ],
+                    "libio_latest_release": [
+                        1530599731
+                    ]
+                },
+                "ver": {
+                    "last_updated": [
+                        1536234283.01
+                    ],
+                    "shipped_as_downstream": [
+                        false
+                    ],
+                    "source_repo": [
+                        "maven"
+                    ],
+                    "pname": [
+                        "io.vertx:vertx-core"
+                    ],
+                    "vertex_label": [
+                        "Version"
+                    ],
+                    "description": [
+                        "Sonatype helps open source projects to set up Maven repositories on https://oss.sonatype.org/"
+                    ],
+                    "version": [
+                        "3.4.1"
+                    ],
+                    "dependents_count": [
+                        11
+                    ],
+                    "licenses": [
+                        "Apache 2.0",
+                        "EPL 1.0",
+                        "MIT License"
+                    ],
+                    "cm_avg_cyclomatic_complexity": [
+                        1.34
+                    ],
+                    "declared_licenses": [
+                        "Eclipse Public License - v 1.0",
+                        "The Apache Software License, Version 2.0"
+                    ],
+                    "pecosystem": [
+                        "maven"
+                    ],
+                    "relative_used": [
+                        ""
+                    ],
+                    "cm_loc": [
+                        80586
+                    ],
+                    "osio_usage_count": [
+                        11
+                    ],
+                    "cm_num_files": [
+                        441
+                    ]
+                }
+            }
+        ],
+        "meta": {}
+    }
+}
