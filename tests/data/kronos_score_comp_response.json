@@ -1,18 +1,5 @@
 [{
-    "alternate_packages": {
-        "io.vertx:vertx-core": [
-            {
-                "package_name": "io.netty:netty-codec-http",
-                "similarity_score": 1,
-                "topic_list": [
-                    "http",
-                    "network",
-                    "netty",
-                    "socket"
-                ]
-            }
-        ]
-    },
+    "alternate_packages": {},
     "companion_packages": [
         {
             "cooccurrence_count": 208,

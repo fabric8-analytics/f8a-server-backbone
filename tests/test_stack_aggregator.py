@@ -150,7 +150,11 @@ def test_perform_license_analysis(_mock_get, _mock_post):
 @mock.patch('requests.Session.post', side_effect=mock_dependency_response)
 def test_get_dependency_data(_mock_get, _mock_post):
     """Test the function get_dependency_data."""
-    resolved = [{"package": "io.vertx:vertx-core", "version": "3.4.2"}]
+    resolved = [{
+        "package": "io.vertx:vertx-core",
+        "version": "3.4.2",
+        "deps": [{"package": "io.vertx:vertx-web", "version": "3.4.2"}]
+    }]
     out = stack_aggregator.get_dependency_data(resolved, "maven")
     assert len(out['result']) == 1
 

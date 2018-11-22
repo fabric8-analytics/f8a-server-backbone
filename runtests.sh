@@ -1,7 +1,7 @@
 #!/bin/bash -ex
 
 # test coverage threshold
-COVERAGE_THRESHOLD=50
+COVERAGE_THRESHOLD=85
 
 export TERM=xterm
 TERM=${TERM:-xterm}
