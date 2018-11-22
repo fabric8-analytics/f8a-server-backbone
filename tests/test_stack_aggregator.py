@@ -150,7 +150,6 @@ def test_perform_license_analysis(_mock_get, _mock_post):
 @mock.patch('requests.Session.post', side_effect=mock_dependency_response)
 def test_get_dependency_data(_mock_get, _mock_post):
     """Test the function get_dependency_data."""
-
     resolved = [{
         "package": "io.vertx:vertx-core",
         "version": "3.4.2",

@@ -147,6 +147,7 @@ def test_is_quickstart_majority():
 
 @mock.patch('requests.Session.post', side_effect=mock_error_response)
 def test_execute_gremlin_dsl(_mock1):
+    """Test error response for gremlin."""
     payload = {'gremlin': ''}
     result = execute_gremlin_dsl(payload)
     assert result is None
