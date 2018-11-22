@@ -1,6 +1,6 @@
 [
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -100,7 +100,7 @@
                 1.502118175E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.50305482321E9
             ],
@@ -144,7 +144,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -244,7 +244,7 @@
                 1.502118175E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.51722261568E9
             ],
@@ -294,7 +294,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -394,7 +394,7 @@
                 1.502118175E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.51722287409E9
             ],
@@ -444,7 +444,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -544,7 +544,7 @@
                 1.502118175E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.51722904318E9
             ],
@@ -594,7 +594,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -694,7 +694,7 @@
                 1.502118175E9
             ]
         },
-        "ver": {
+        "version": {
             "licenses": [
                 "ASL 2.0",
                 "Free Art",
@@ -736,7 +736,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -836,7 +836,7 @@
                 1.502118175E9
             ]
         },
-        "ver": {
+        "version": {
             "licenses": [
                 "ASL 2.0",
                 "Free Art",
@@ -878,7 +878,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -978,7 +978,7 @@
                 1.502118175E9
             ]
         },
-        "ver": {
+        "version": {
             "licenses": [
                 "Apache 2.0",
                 "EPL 1.0"
@@ -1011,7 +1011,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -1111,7 +1111,7 @@
                 1.502118175E9
             ]
         },
-        "ver": {
+        "version": {
             "gh_release_date": [
                 1.502118175E9
             ],
@@ -1147,7 +1147,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -1247,7 +1247,7 @@
                 1.502118175E9
             ]
         },
-        "ver": {
+        "version": {
             "licenses": [
                 "Apache 2.0",
                 "EPL 1.0"
@@ -1270,7 +1270,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -1370,7 +1370,7 @@
                 1.502118175E9
             ]
         },
-        "ver": {
+        "version": {
             "licenses": [
                 "Apache 2.0",
                 "EPL 1.0"
@@ -1397,7 +1397,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -1500,7 +1500,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.51722900998E9
             ],
@@ -1551,7 +1551,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -1654,7 +1654,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.50106682193E9
             ],
@@ -1702,7 +1702,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -1805,7 +1805,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.51722160171E9
             ],
@@ -1855,7 +1855,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -1958,7 +1958,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.51722276055E9
             ],
@@ -2009,7 +2009,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -2112,7 +2112,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.51722161446E9
             ],
@@ -2162,7 +2162,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -2265,7 +2265,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.50721453119E9
             ],
@@ -2315,7 +2315,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -2418,7 +2418,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.51722159555E9
             ],
@@ -2468,7 +2468,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -2571,7 +2571,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.49488534854E9
             ],
@@ -2608,7 +2608,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -2711,7 +2711,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.49191174951E9
             ],
@@ -2748,7 +2748,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -2851,7 +2851,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.49488534239E9
             ],
@@ -2888,7 +2888,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -2991,7 +2991,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.49307522169E9
             ],
@@ -3028,7 +3028,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -3131,7 +3131,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.49307590379E9
             ],
@@ -3168,7 +3168,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -3271,7 +3271,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.49488534577E9
             ],
@@ -3308,7 +3308,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -3411,7 +3411,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.49488802532E9
             ],
@@ -3448,7 +3448,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -3551,7 +3551,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.49488535187E9
             ],
@@ -3588,7 +3588,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -3691,7 +3691,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.49488442772E9
             ],
@@ -3728,7 +3728,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -3831,7 +3831,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.49488535489E9
             ],
@@ -3868,7 +3868,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -3971,7 +3971,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.49488346887E9
             ],
@@ -4008,7 +4008,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -4111,7 +4111,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "licenses": [
                 "Apache 2.0",
                 "EPL 1.0"
@@ -4144,7 +4144,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -4247,7 +4247,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "licenses": [
                 "Apache 2.0",
                 "EPL 1.0",
@@ -4275,7 +4275,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -4378,7 +4378,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "licenses": [
                 "Apache 2.0",
                 "Autoconf simple exception",
@@ -4408,7 +4408,7 @@
         }
     },
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -4511,7 +4511,7 @@
                 1.502117662E9
             ]
         },
-        "ver": {
+        "version": {
             "licenses": [
                 "Apache 2.0",
                 "EPL 1.0",

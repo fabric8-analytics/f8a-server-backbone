@@ -3,6 +3,9 @@
 # test coverage threshold
 COVERAGE_THRESHOLD=85
 
+# gremlin batch query size
+export GREMLIN_QUERY_SIZE="1"
+
 export TERM=xterm
 TERM=${TERM:-xterm}
 

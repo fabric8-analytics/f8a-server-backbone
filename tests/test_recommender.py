@@ -21,6 +21,9 @@ with open("tests/data/kronos_score_comp_response.json", "r") as f:
 with open('tests/data/valid_license_analysis.json', 'r') as f:
     license_resp = json.load(f)
 
+with open("tests/data/dependency_response.json", "r") as f:
+    dep_resp = json.load(f)
+
 
 def mocked_requests_get(*args, **_kwargs):
     """Mock the call to the insights service."""
@@ -92,7 +95,10 @@ def mocked_response_license(*args, **_kwargs):
             """Get the mock json response."""
             return self.json_data
 
-    return MockResponse(license_resp, 200)
+    if '6162' in str(args[0]):
+        return MockResponse(license_resp, 200)
+    else:
+        return MockResponse(dep_resp, 200)
 
 
 @mock.patch('src.recommender.RecommendationTask.call_insights_recommender', return_value=[])

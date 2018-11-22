@@ -1,14 +1,28 @@
 """Tests for the 'utils' module."""
 from src.utils import (
     convert_version_to_proper_semantic as cvs,
-    version_info_tuple as vt,
-    select_latest_version as slv,
-    get_osio_user_count,
-    create_package_dict,
-    is_quickstart_majority)
+    version_info_tuple as vt, select_latest_version as slv,
+    get_osio_user_count, create_package_dict, is_quickstart_majority, execute_gremlin_dsl)
 import semantic_version as sv
 import json
 from unittest import mock
+
+
+def mock_error_response(*_args, **_kwargs):
+    """Mock the call to the insights service."""
+    class MockResponse:
+        """Mock response object."""
+
+        def __init__(self, json_data, status_code):
+            """Create a mock json response."""
+            self.json_data = json_data
+            self.status_code = status_code
+
+        def json(self):
+            """Get the mock json response."""
+            return self.json_data
+
+    return MockResponse({}, 500)
 
 
 def mock_get_osio_user_count(*_args, **_kwargs):
@@ -129,6 +143,13 @@ def test_is_quickstart_majority():
     assert is_quickstart_majority(package_list)
     package_list = ['org.slf4j:slf4j-api']
     assert not is_quickstart_majority(package_list)
+
+
+@mock.patch('requests.Session.post', side_effect=mock_error_response)
+def test_execute_gremlin_dsl(_mock1):
+    payload = {'gremlin': ''}
+    result = execute_gremlin_dsl(payload)
+    assert result is None
 
 
 if __name__ == '__main__':

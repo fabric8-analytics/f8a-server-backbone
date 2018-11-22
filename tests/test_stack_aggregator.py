@@ -1,7 +1,7 @@
 """Tests for the stack_aggregator module."""
 
 from unittest import mock
-
+import os
 from src import stack_aggregator
 import json
 
@@ -150,13 +150,15 @@ def test_perform_license_analysis(_mock_get, _mock_post):
 @mock.patch('requests.Session.post', side_effect=mock_dependency_response)
 def test_get_dependency_data(_mock_get, _mock_post):
     """Test the function get_dependency_data."""
+
     resolved = [{
         "package": "io.vertx:vertx-core",
         "version": "3.4.2",
         "deps": [{"package": "io.vertx:vertx-web", "version": "3.4.2"}]
     }]
-    out = stack_aggregator.get_dependency_data(resolved, "maven")
-    assert len(out['result']) == 1
+    epv_set = stack_aggregator.create_dependency_data_set(resolved, "maven")
+    out = stack_aggregator.get_dependency_data(epv_set)
+    assert len(out['result']) == 2
 
 
 def test_aggregate_stack_data():

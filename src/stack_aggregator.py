@@ -9,11 +9,10 @@ Output: TBD
 import json
 import datetime
 from flask import current_app
-
 import requests
-
+from collections import defaultdict
 from utils import (get_session_retry, select_latest_version, LICENSE_SCORING_URL_REST,
-                   GREMLIN_SERVER_URL_REST, persist_data_in_db)
+                   GREMLIN_SERVER_URL_REST, persist_data_in_db, GREMLIN_QUERY_SIZE)
 
 
 def extract_component_details(component):
@@ -280,7 +279,8 @@ def perform_license_analysis(license_score_list, dependencies):
 
 def extract_user_stack_package_licenses(resolved, ecosystem):
     """Extract user stack package licenses."""
-    user_stack = get_dependency_data(resolved, ecosystem)
+    epv_set = create_dependency_data_set(resolved, ecosystem)
+    user_stack = get_dependency_data(epv_set)
     list_package_licenses = []
     if user_stack is not None:
         for component in user_stack.get('result', []):
@@ -353,109 +353,125 @@ def aggregate_stack_data(stack, manifest_file, ecosystem, deps, manifest_file_pa
     return data
 
 
-def create_uniform_result(resp, direct_dep, direct_dep_ver):
-    """Create uniform structure for direct and transitive dependency."""
-    if len(resp.get('result', {}).get('data', [])) == 2:
-        direct = resp['result']['data'].pop(0)
-        transitive = resp['result']['data'].pop(0)
-        if direct:
-            [resp['result']['data'].append(x) for x in direct['direct']]
-        if transitive:
+def create_dependency_data_set(resolved, ecosystem):
+    """Create direct and transitive set to reduce calls to graph."""
+    unique_epv_dict = {
+        "direct": defaultdict(set),
+        "transitive": defaultdict(set)
+    }
+
+    for pv in resolved:
+        if pv.get('package') and pv.get('version'):
+            key = ecosystem + "::" + pv.get('package') + "::" + pv.get('version')
+            unique_epv_dict['direct'][key] = set()
+            for trans_pv in pv.get('deps', []):
+                trans_key = ecosystem + "::" + trans_pv.get('package') + "::" + \
+                            trans_pv.get('version')
+                unique_epv_dict['transitive'][trans_key].add(key)
+
+    return unique_epv_dict
+
+
+def remove_duplicate_cve_data(epv_list):
+    """Club all CVEs for an EPV."""
+    graph_dict = {}
+    result = []
+    for data in epv_list['result']['data']:
+        # print(data)
+        pv = data.get('version').get('pname')[0] + ":" + \
+             data.get('version').get('version')[0]
+        if pv not in graph_dict:
+            graph_dict[pv] = {}
+        graph_dict[pv].update(data)
+        if 'cves' not in graph_dict[pv]:
+            graph_dict[pv]['cves'] = list()
+        if 'cve' in data:
+            cve = graph_dict[pv].pop('cve')
+            graph_dict[pv]['cves'].append(cve)
+
+    # create a uniform structure for direct and transitive
+    for x, y in graph_dict.items():
+        z = list()
+        z.append(y)
+        data = {'data': z}
+        result.append(data)
+
+    return result
+
+
+def add_transitive_details(epv_list, epv_set):
+    """Add transitive dict which affects direct dependencies."""
+    direct = epv_set['direct']
+    transitive = epv_set['transitive']
+    result = []
+
+    cve_epv_list = remove_duplicate_cve_data(epv_list)
+    # Add transitive dict as necessary
+    for data in cve_epv_list:
+        epv = data['data'][0]
+        epv_str = epv['package']['ecosystem'][0] + "::" + \
+            epv['package']['name'][0] + "::" + \
+            epv['version']['version'][0]
+        if epv_str in direct:
+            result.append(data)
+        if epv_str in transitive:
+            affected_deps = transitive[epv_str]
             trans_dict = {
                 'isTransitive': True,
-                'affected_direct_dep': direct_dep,
-                'affected_direct_dep_ver': direct_dep_ver
+                'affected_direct_deps': []
             }
-            for x in transitive['transitive']:
-                x['transitive'] = trans_dict
-                resp['result']['data'].append(x)
-    return resp
+            for dep in affected_deps:
+                eco, name, version = dep.split("::")
+                if name and version:
+                    trans_dict['affected_direct_deps'].append(
+                        {
+                            "package": name,
+                            "version": version
+                        }
+                    )
+            epv['transitive'] = trans_dict
+            result.append(data)
+
+    return result
 
 
-def get_dependency_data(resolved, ecosystem):
+def get_dependency_data(epv_set):
     """Get dependency data from graph."""
-    result = []
-    for elem in resolved:
-        if elem["package"] is None or elem["version"] is None:
-            current_app.logger.warning("Either component name or component version is missing")
-            continue
-
-        script = "direct=[];transitive=[];" \
-                 "g.V().has('ecosystem',ecosystem).has('name',name).as('package')." \
-                 "out('has_version').has('version',version).dedup().as('version')"\
-                 ".coalesce(out('has_cve').as('cve')"\
-                 ".select('package','version','cve').by(valueMap())," \
-                 "select('package','version').by(valueMap()))."\
-                 "fill(direct);"
-        bindings = {
-            'ecosystem': ecosystem,
-            'name': elem["package"],
-            'version': elem["version"]
+    epv_list = {
+        "result": {
+            "data": []
         }
+    }
+    query = "epv=[];"
+    batch_query = "g.V().has('ecosystem', '{eco}').has('name', '{name}').as('package')." \
+                  "out('has_version').has('version', '{ver}').as('version')." \
+                  "coalesce(out('has_cve').as('cve')." \
+                  "select('package','version','cve').by(valueMap())," \
+                  "select('package','version').by(valueMap()))." \
+                  "fill(epv);"
+    i = 1
+    epvs = [x for x, y in epv_set['direct'].items()] + [x for x, y in epv_set['transitive'].items()]
+    for epv in epvs:
+        eco, name, ver = epv.split('::')
+        query += batch_query.format(eco=eco, name=name, ver=ver)
+        if i >= GREMLIN_QUERY_SIZE:
+            i = 1
+            # call_gremlin in batch
+            payload = {'gremlin': query}
+            resp = get_session_retry().post(GREMLIN_SERVER_URL_REST, json=payload)
+            result = resp.json()
+            epv_list['result']['data'] += result['result']['data']
+            query = "epv=[];"
+        i += 1
 
-        # Fetch transitive data as well
-        x = 1
-        for trans_epv in elem.get('deps', []):
-            if trans_epv["package"] is None or trans_epv["version"] is None:
-                continue
-            nm = 'name' + str(x)
-            vr = 'version' + str(x)
-            script += "g.V().has('ecosystem',ecosystem).has('name',name" + str(x) + ")." \
-                      "as('package')." \
-                      "out('has_version').has('version',version" + str(x) + ").dedup()." \
-                      "as('version')." \
-                      "coalesce(out('has_cve').as('cve')." \
-                      "select('package','version','cve').by(valueMap())," \
-                      "select('package','version').by(valueMap()))." \
-                      "fill(transitive);"
-            bindings.update({
-                nm: trans_epv['package'],
-                vr: trans_epv['version'],
-                'ecosystem': ecosystem})
-            x += 1
-        script += "[direct:direct, transitive:transitive];"
-        payload = {
-            'gremlin': script,
-            'bindings': bindings
-        }
+    if i > 1:
+        payload = {'gremlin': query}
+        resp = get_session_retry().post(GREMLIN_SERVER_URL_REST, json=payload)
+        result = resp.json()
+        epv_list['result']['data'] += result['result']['data']
 
-        try:
-            graph_dict = {}
-            graph_req = get_session_retry().post(GREMLIN_SERVER_URL_REST, json=payload)
-            if graph_req.status_code == 200:
-                graph_resp = graph_req.json()
-                if len(graph_resp.get('result', {}).get('data', [])) != 2:
-                    continue
-                else:
-                    graph_resp = create_uniform_result(graph_resp, elem["package"], elem["version"])
-
-                    # get rid of duplicate CVE structure
-                    for data in graph_resp['result']['data']:
-                        pv = data.get('version').get('pname')[0] + ":" + \
-                             data.get('version').get('version')[0]
-                        if pv not in graph_dict:
-                            graph_dict[pv] = {}
-                        graph_dict[pv].update(data)
-                        if 'cves' not in graph_dict[pv]:
-                            graph_dict[pv]['cves'] = list()
-                        if 'cve' in data:
-                            cve = graph_dict[pv].pop('cve')
-                            graph_dict[pv]['cves'].append(cve)
-
-                    # create a uniform structure for direct and transitive
-                    for x, y in graph_dict.items():
-                        z = list()
-                        z.append(y)
-                        data = {'data': z}
-                        result.append(data)
-            else:
-                current_app.logger.error("Failed retrieving dependency data.")
-                continue
-        except Exception:
-            current_app.logger.exception("Error retrieving dependency data!")
-            continue
-
-    return {"result": result}
+    result = add_transitive_details(epv_list, epv_set)
+    return {'result': result}
 
 
 class StackAggregator:
@@ -465,7 +481,6 @@ class StackAggregator:
     def execute(aggregated=None, persist=True):
         """Task code."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
-        finished = []
         stack_data = []
         external_request_id = aggregated.get('external_request_id')
         # TODO multiple license file support
@@ -476,8 +491,8 @@ class StackAggregator:
             ecosystem = result['details'][0]['ecosystem']
             manifest = result['details'][0]['manifest_file']
             manifest_file_path = result['details'][0]['manifest_file_path']
-
-            finished = get_dependency_data(resolved, ecosystem)
+            epv_set = create_dependency_data_set(resolved, ecosystem)
+            finished = get_dependency_data(epv_set)
             if finished is not None:
                 output = aggregate_stack_data(finished, manifest, ecosystem.lower(),
                                               resolved, manifest_file_path, persist)
