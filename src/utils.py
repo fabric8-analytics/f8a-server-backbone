@@ -6,7 +6,6 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import requests
 import os
-import json
 import datetime
 import semantic_version as sv
 import logging

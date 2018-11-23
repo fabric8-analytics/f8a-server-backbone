@@ -6,7 +6,6 @@ by stack-analyses endpoint
 Output: TBD
 
 """
-import json
 import datetime
 from flask import current_app
 import requests
