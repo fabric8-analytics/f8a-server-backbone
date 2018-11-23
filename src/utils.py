@@ -307,6 +307,7 @@ def execute_gremlin_dsl(url, payload):
 
 def get_response_data(json_response, data_default):
     """Retrieve data from the JSON response.
+
     Data default parameters takes what should data to be returned.
     """
     return json_response.get("result", {}).get("data", data_default)

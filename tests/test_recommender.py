@@ -195,7 +195,6 @@ def test_filter_versions():
 
 def test_prepare_final_filtered_list():
     """Test the function filter_versions."""
-
     with open("tests/data/companion_pkg_graph_deps.json", "r") as f:
         comp_pkg_graph = json.load(f)
         deps_pkg_graph = comp_pkg_graph['deps']
