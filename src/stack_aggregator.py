@@ -11,7 +11,7 @@ import datetime
 from flask import current_app
 import requests
 from collections import defaultdict
-from utils import (get_session_retry, select_latest_version, LICENSE_SCORING_URL_REST,
+from utils import (select_latest_version, LICENSE_SCORING_URL_REST, execute_gremlin_dsl,
                    GREMLIN_SERVER_URL_REST, persist_data_in_db, GREMLIN_QUERY_SIZE)
 
 
@@ -236,9 +236,10 @@ def perform_license_analysis(license_score_list, dependencies):
     flag_stack_license_exception = False
     # TODO: refactoring
     try:
-        lic_response = get_session_retry().post(license_url, data=json.dumps(payload))
+        resp = execute_gremlin_dsl(url=license_url, payload=payload)
         # lic_response.raise_for_status()  # raise exception for bad http-status codes
-        resp = lic_response.json()
+        if not resp:
+            raise requests.exceptions.RequestException
     except requests.exceptions.RequestException:
         current_app.logger.exception("Unexpected error happened while invoking license analysis!")
         flag_stack_license_exception = True
@@ -458,17 +459,17 @@ def get_dependency_data(epv_set):
             i = 1
             # call_gremlin in batch
             payload = {'gremlin': query}
-            resp = get_session_retry().post(GREMLIN_SERVER_URL_REST, json=payload)
-            result = resp.json()
-            epv_list['result']['data'] += result['result']['data']
+            result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
+            if result:
+                epv_list['result']['data'] += result['result']['data']
             query = "epv=[];"
         i += 1
 
     if i > 1:
         payload = {'gremlin': query}
-        resp = get_session_retry().post(GREMLIN_SERVER_URL_REST, json=payload)
-        result = resp.json()
-        epv_list['result']['data'] += result['result']['data']
+        result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
+        if result:
+            epv_list['result']['data'] += result['result']['data']
 
     result = add_transitive_details(epv_list, epv_set)
     return {'result': result}

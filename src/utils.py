@@ -68,14 +68,8 @@ def get_osio_user_count(ecosystem, name, version):
         'gremlin': str_gremlin
     }
 
-    try:
-        response = get_session_retry().post(GREMLIN_SERVER_URL_REST, data=json.dumps(payload))
-        json_response = response.json()
-        return json_response['result']['data'][0]
-    except Exception as e:
-        current_app.logger.error("Failed retrieving Gremlin data.")
-        current_app.logger.error("%r" % e)
-        return -1
+    json_response = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
+    return json_response.get('result').get('data', ['-1'])[0]
 
 
 def create_package_dict(graph_results, alt_dict=None):
@@ -294,18 +288,16 @@ def persist_data_in_db(external_request_id, task_result):
                 'message': '%s' % e}
 
 
-def execute_gremlin_dsl(payload):
+def execute_gremlin_dsl(url, payload):
     """Execute the gremlin query and return the response."""
     try:
-        response = get_session_retry().post(GREMLIN_SERVER_URL_REST, data=json.dumps(payload))
-
+        response = get_session_retry().post(url=url, json=payload)
         if response.status_code == 200:
-            json_response = response.json()
-
-            return json_response
+            return response.json()
         else:
             logger.error(
-                "HTTP error {}. Error retrieving Gremlin data.".format(response.status_code))
+                "HTTP error {code}. Error retrieving data from {url}.".format(
+                    code=response.status_code, url=url))
             return None
 
     except Exception:
@@ -315,7 +307,6 @@ def execute_gremlin_dsl(payload):
 
 def get_response_data(json_response, data_default):
     """Retrieve data from the JSON response.
-
     Data default parameters takes what should data to be returned.
     """
     return json_response.get("result", {}).get("data", data_default)

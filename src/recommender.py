@@ -111,7 +111,7 @@ class GraphDB:
         }
 
         # Query Gremlin with packages list to get their version information
-        gremlin_response = execute_gremlin_dsl(payload)
+        gremlin_response = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
         if gremlin_response is None:
             return []
         response = get_response_data(gremlin_response, [{0: 0}])

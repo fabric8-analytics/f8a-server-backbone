@@ -40,6 +40,7 @@ def mocked_requests_get(*args, **_kwargs):
             return self.json_data
 
     # return the URL to check whether we are calling the correct service.
+    print(args[0])
     return MockResponse({"url": args[0]}, 200)
 
 
@@ -179,7 +180,7 @@ def test_execute_both_resolved_type(_mock_call_insights):
 
 
 def test_filter_versions():
-    """Test the function filter_versions."""
+    """Test the function filter_versions for latest version."""
     input_stack = {"io.vertx:vertx-web": "3.4.2", "io.vertx:vertx-core": "3.4.2"}
 
     with open("tests/data/companion_pkg_graph.json", "r") as f:
@@ -189,6 +190,22 @@ def test_filter_versions():
     filtered_comp_packages_graph, filtered_list = g.filter_versions(companion_packages_graph,
                                                                     input_stack)
     assert len(filtered_comp_packages_graph) > 0
+    assert len(filtered_list) > 0
+
+
+def test_prepare_final_filtered_list():
+    """Test the function filter_versions."""
+
+    with open("tests/data/companion_pkg_graph_deps.json", "r") as f:
+        comp_pkg_graph = json.load(f)
+        deps_pkg_graph = comp_pkg_graph['deps']
+        release_pkg_graph = comp_pkg_graph['gh_release']
+
+    g = GraphDB()
+    filtered_list = g.prepare_final_filtered_list(deps_pkg_graph)
+    assert len(filtered_list) > 0
+
+    filtered_list = g.prepare_final_filtered_list(release_pkg_graph)
     assert len(filtered_list) > 0
 
 
@@ -271,3 +288,4 @@ if __name__ == '__main__':
     test_perform_license_analysis()
     test_get_topmost_alternate()
     test_get_topics()
+    test_prepare_final_filtered_list()
