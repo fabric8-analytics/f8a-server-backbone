@@ -445,6 +445,7 @@ class RecommendationTask:
     kronos_ecosystems = ['maven']
     chester_ecosystems = ['npm']
     hpf_ecosystems = ['maven']
+    pypi_ecosystems = ['pypi']
 
     @staticmethod
     def get_insights_url(payload):
@@ -453,6 +454,8 @@ class RecommendationTask:
             quickstarts = False
             if payload[0]['ecosystem'] in RecommendationTask.chester_ecosystems:
                 INSIGHTS_SERVICE_HOST = os.getenv("CHESTER_SERVICE_HOST")
+            elif payload[0]['ecosystem'] in RecommendationTask.pypi_ecosystems:
+                INSIGHTS_SERVICE_HOST = os.getenv("PYPI_SERVICE_HOST")
             else:
                 INSIGHTS_SERVICE_HOST = os.getenv("HPF_SERVICE_HOST") + "-" + payload[0][
                     'ecosystem']

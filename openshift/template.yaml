@@ -42,6 +42,8 @@ objects:
             value: bayesian-kronos
           - name: CHESTER_SERVICE_HOST
             value: f8a-npm-insights
+          - name: PYPI_SERVICE_HOST
+            value: f8a-pypi-insights
           - name: HPF_SERVICE_HOST
             value: f8a-hpf-insights
           - name: PGM_SERVICE_PORT
