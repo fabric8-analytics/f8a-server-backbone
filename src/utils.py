@@ -266,11 +266,11 @@ def is_quickstart_majority(package_list=[]):
     return count_quickstart_pck >= len(package_list) / 2
 
 
-def persist_data_in_db(external_request_id, task_result):
+def persist_data_in_db(external_request_id, task_result, worker):
     """Persist the data in Postgres."""
     try:
         insert_stmt = insert(WorkerResult).values(
-            worker='recommendation_v2', worker_id=None,
+            worker=worker, worker_id=None,
             external_request_id=external_request_id, analysis_id=None, task_result=task_result,
             error=False)
         do_update_stmt = insert_stmt.on_conflict_do_update(
