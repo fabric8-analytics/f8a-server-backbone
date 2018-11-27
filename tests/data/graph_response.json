@@ -8,7 +8,7 @@
     "result": {
         "data": [
             {
-                "pkg": {
+                "package": {
                     "gh_issues_last_month_opened": [
                         -1
                     ],
@@ -114,7 +114,7 @@
                         1530599731
                     ]
                 },
-                "ver": {
+                "version": {
                     "last_updated": [
                         1536234283.01
                     ],

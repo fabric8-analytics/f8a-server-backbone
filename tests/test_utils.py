@@ -1,14 +1,28 @@
 """Tests for the 'utils' module."""
 from src.utils import (
-    convert_version_to_proper_semantic as cvs,
-    version_info_tuple as vt,
-    select_latest_version as slv,
-    get_osio_user_count,
-    create_package_dict,
-    is_quickstart_majority)
+    convert_version_to_proper_semantic as cvs, GREMLIN_SERVER_URL_REST,
+    version_info_tuple as vt, select_latest_version as slv,
+    get_osio_user_count, create_package_dict, is_quickstart_majority, execute_gremlin_dsl)
 import semantic_version as sv
 import json
 from unittest import mock
+
+
+def mock_error_response(*_args, **_kwargs):
+    """Mock the call to the insights service."""
+    class MockResponse:
+        """Mock response object."""
+
+        def __init__(self, json_data, status_code):
+            """Create a mock json response."""
+            self.json_data = json_data
+            self.status_code = status_code
+
+        def json(self):
+            """Get the mock json response."""
+            return self.json_data
+
+    return MockResponse({}, 500)
 
 
 def mock_get_osio_user_count(*_args, **_kwargs):
@@ -131,9 +145,19 @@ def test_is_quickstart_majority():
     assert not is_quickstart_majority(package_list)
 
 
+@mock.patch('requests.Session.post', side_effect=mock_error_response)
+def test_execute_gremlin_dsl(_mock1):
+    """Test error response for gremlin."""
+    payload = {'gremlin': ''}
+    result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
+    assert result is None
+
+
 if __name__ == '__main__':
     test_semantic_versioning()
     test_version_info_tuple()
     test_select_latest_version()
     test_get_osio_user_count()
     test_is_quickstart_majority()
+    test_execute_gremlin_dsl()
+    test_create_package_dict

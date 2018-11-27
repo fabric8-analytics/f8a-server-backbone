@@ -1,6 +1,6 @@
 [
     {
-        "pkg": {
+        "package": {
             "gh_issues_last_month_opened": [
                 -1
             ],
@@ -100,7 +100,7 @@
                 1.502118175E9
             ]
         },
-        "ver": {
+        "version": {
             "last_updated": [
                 1.50305482321E9
             ],

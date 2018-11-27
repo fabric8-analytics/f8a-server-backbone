@@ -1,7 +1,6 @@
 """Tests for the stack_aggregator module."""
 
 from unittest import mock
-
 from src import stack_aggregator
 import json
 
@@ -155,8 +154,9 @@ def test_get_dependency_data(_mock_get, _mock_post):
         "version": "3.4.2",
         "deps": [{"package": "io.vertx:vertx-web", "version": "3.4.2"}]
     }]
-    out = stack_aggregator.get_dependency_data(resolved, "maven")
-    assert len(out['result']) == 1
+    epv_set = stack_aggregator.create_dependency_data_set(resolved, "maven")
+    out = stack_aggregator.get_dependency_data(epv_set)
+    assert len(out['result']) == 2
 
 
 def test_aggregate_stack_data():

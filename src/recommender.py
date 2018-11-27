@@ -65,7 +65,6 @@ Output:
 from __future__ import division
 import json
 import datetime
-import traceback
 import requests
 import os
 from collections import Counter, defaultdict
@@ -74,11 +73,10 @@ import logging
 
 from utils import (create_package_dict, get_session_retry, select_latest_version,
                    GREMLIN_SERVER_URL_REST, LICENSE_SCORING_URL_REST,
-                   convert_version_to_proper_semantic,
+                   convert_version_to_proper_semantic, get_response_data,
                    version_info_tuple, persist_data_in_db,
-                   is_quickstart_majority)
+                   is_quickstart_majority, execute_gremlin_dsl)
 from stack_aggregator import extract_user_stack_package_licenses
-
 
 logger = logging.getLogger(__file__)
 
@@ -94,42 +92,16 @@ class GraphDB:
     """Graph database interface."""
 
     @staticmethod
-    def execute_gremlin_dsl(payload):
-        """Execute the gremlin query and return the response."""
-        try:
-            response = get_session_retry().post(GREMLIN_SERVER_URL_REST,
-                                                data=json.dumps(payload))
-
-            if response.status_code == 200:
-                json_response = response.json()
-
-                return json_response
-            else:
-                logger.error("HTTP error {}. Error retrieving Gremlin data.".format(
-                    response.status_code))
-                return None
-
-        except Exception:
-            logger.error(traceback.format_exc())
-            return None
-
-    @staticmethod
-    def get_response_data(json_response, data_default):
-        """Retrieve data from the JSON response.
-
-        Data default parameters takes what should data to be returned.
-        """
-        return json_response.get("result", {}).get("data", data_default)
-
-    def get_version_information(self, input_list, ecosystem):
+    def get_version_information(input_list, ecosystem):
         """Fetch the version information for each of the packages.
 
         Also remove EPVs with CVEs and ones not present in Graph
         """
         input_packages = [package for package in input_list]
         str_query = "g.V().has('ecosystem',ecosystem).has('name',within(input_packages))" \
-                    ".as('pkg').out('has_version')" \
-                    ".not(outE('has_cve')).as('ver').select('pkg','ver').by(valueMap()).dedup()"
+                    ".as('package').out('has_version')" \
+                    ".not(outE('has_cve')).as('version').select('package','version')." \
+                    "by(valueMap()).dedup()"
         payload = {
             'gremlin': str_query,
             'bindings': {
@@ -139,10 +111,10 @@ class GraphDB:
         }
 
         # Query Gremlin with packages list to get their version information
-        gremlin_response = self.execute_gremlin_dsl(payload)
+        gremlin_response = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
         if gremlin_response is None:
             return []
-        response = self.get_response_data(gremlin_response, [{0: 0}])
+        response = get_response_data(gremlin_response, [{0: 0}])
         return response
 
     @staticmethod
@@ -173,13 +145,13 @@ class GraphDB:
     def add_version_to_filtered_list(epv, key, val, semversion_tuple, input_stack_tuple,
                                      pkg_dict, new_dict, filtered_comp_list):
         """Add versions to filtered list."""
-        name = epv.get('pkg', {}).get('name', [''])[0]
-        version = epv.get('ver', {}).get('version', [''])[0]
+        name = epv.get('package', {}).get('name', [''])[0]
+        version = epv.get('version', {}).get('version', [''])[0]
         try:
             if semversion_tuple >= input_stack_tuple:
                 pkg_dict[name][key] = {"version": version, key: val}
-                new_dict[name][key] = epv.get('ver')
-                new_dict[name]['pkg'] = epv.get('pkg')
+                new_dict[name][key] = epv.get('version')
+                new_dict[name]['package'] = epv.get('package')
                 filtered_comp_list.append(name)
 
         except ValueError:
@@ -193,11 +165,14 @@ class GraphDB:
         new_list = []
         for package, contents in new_dict.items():
             if 'latest_version' in contents:
-                new_list.append({"pkg": contents['pkg'], "ver": contents['latest_version']})
+                new_list.append({"package": contents['package'],
+                                 "version": contents['latest_version']})
             elif 'deps_count' in contents:
-                new_list.append({"pkg": contents['pkg'], "ver": contents['deps_count']})
+                new_list.append({"package": contents['package'],
+                                 "version": contents['deps_count']})
             elif 'gh_release_date' in contents:
-                new_list.append({"pkg": contents['pkg'], "ver": contents['gh_release_date']})
+                new_list.append({"package": contents['package'],
+                                 "version": contents['gh_release_date']})
 
         return new_list
 
@@ -220,10 +195,10 @@ class GraphDB:
         filtered_comp_list = []
 
         for epv in epv_list:
-            name = epv.get('pkg', {}).get('name', [''])[0]
-            version = epv.get('ver', {}).get('version', [''])[0]
-            libio_latest_version = epv.get('pkg').get('libio_latest_version', [''])[0]
-            latest_version = epv.get('pkg').get('latest_version', [''])[0]
+            name = epv.get('package', {}).get('name', [''])[0]
+            version = epv.get('version', {}).get('version', [''])[0]
+            libio_latest_version = epv.get('package').get('libio_latest_version', [''])[0]
+            latest_version = epv.get('package').get('latest_version', [''])[0]
 
             # Convert version to a proper semantic case
             semversion_tuple = version_info_tuple(
@@ -244,7 +219,7 @@ class GraphDB:
                         semversion_tuple=semversion_tuple, input_stack_tuple=input_stack_tuple)
 
                 # Select Version based on highest dependents count (usage)
-                deps_count = epv.get('ver').get('dependents_count', [-1])[0]
+                deps_count = epv.get('version').get('dependents_count', [-1])[0]
                 if deps_count > 0:
                     if 'deps_count' not in pkg_dict[name] or \
                             deps_count > pkg_dict[name].get['deps_count'].get('deps_count', 0):
@@ -256,7 +231,7 @@ class GraphDB:
                                 input_stack_tuple=input_stack_tuple)
 
                 # Select Version with the most recent github release date
-                gh_release_date = epv.get('ver').get('gh_release_date', [0.0])[0]
+                gh_release_date = epv.get('version').get('gh_release_date', [0.0])[0]
                 if gh_release_date > 0.0:
                     if 'gh_release_date' not in pkg_dict[name] or \
                         gh_release_date > pkg_dict[name]['gh_release_date'].\
@@ -281,12 +256,12 @@ class GraphDB:
     def get_topics_for_alt(alt_list, pgm_dict):
         """Get topics from pgm and associate with filtered versions from Graph."""
         for epv in alt_list:
-            name = epv.get('pkg', {}).get('name', [''])[0]
+            name = epv.get('package', {}).get('name', [''])[0]
             if name:
                 for pgm_pkg_key, pgm_list in pgm_dict.items():
                     for pgm_epv in pgm_list:
                         if name == pgm_epv.get('package_name', ''):
-                            epv['pkg']['pgm_topics'] = pgm_epv.get('topic_list', [])
+                            epv['package']['pgm_topics'] = pgm_epv.get('topic_list', [])
 
         return alt_list
 
@@ -294,14 +269,14 @@ class GraphDB:
     def get_topics_for_comp(comp_list, pgm_list):
         """Get topics from pgm and associate with filtered versions from Graph."""
         for epv in comp_list:
-            name = epv.get('pkg', {}).get('name', [''])[0]
+            name = epv.get('package', {}).get('name', [''])[0]
             if name:
                 for pgm_epv in pgm_list:
                     if name == pgm_epv.get('package_name', ''):
-                        epv['pkg']['pgm_topics'] = pgm_epv.get('topic_list', [])
-                        epv['pkg']['cooccurrence_probability'] = pgm_epv.get(
+                        epv['package']['pgm_topics'] = pgm_epv.get('topic_list', [])
+                        epv['package']['cooccurrence_probability'] = pgm_epv.get(
                             'cooccurrence_probability', 0)
-                        epv['pkg']['cooccurrence_count'] = pgm_epv.get(
+                        epv['package']['cooccurrence_count'] = pgm_epv.get(
                             'cooccurrence_count', 0)
 
         return comp_list
@@ -342,17 +317,17 @@ class License:
         list_pkg_names_alt = list_pkg_names_com = []
         for epv in epv_list_alt:
             license_scoring_input = {
-                'package': epv.get('pkg', {}).get('name', [''])[0],
-                'version': epv.get('ver', {}).get('version', [''])[0],
-                'licenses': epv.get('ver', {}).get('declared_licenses', [])
+                'package': epv.get('package', {}).get('name', [''])[0],
+                'version': epv.get('version', {}).get('version', [''])[0],
+                'licenses': epv.get('version', {}).get('declared_licenses', [])
             }
             license_score_list_alt.append(license_scoring_input)
 
         for epv in epv_list_com:
             license_scoring_input = {
-                'package': epv.get('pkg', {}).get('name', [''])[0],
-                'version': epv.get('ver', {}).get('version', [''])[0],
-                'licenses': epv.get('ver', {}).get('declared_licenses', [])
+                'package': epv.get('package', {}).get('name', [''])[0],
+                'version': epv.get('version', {}).get('version', [''])[0],
+                'licenses': epv.get('version', {}).get('declared_licenses', [])
             }
             license_score_list_com.append(license_scoring_input)
 
@@ -369,13 +344,13 @@ class License:
                 .get('conflict_packages', [])
 
         for epv in epv_list_alt[:]:
-            name = epv.get('pkg', {}).get('name', [''])[0]
+            name = epv.get('package', {}).get('name', [''])[0]
             if name in conflict_packages_alt:
                 list_pkg_names_alt.append(name)
                 epv_list_alt.remove(epv)
 
         for epv in epv_list_com[:]:
-            name = epv.get('pkg', {}).get('name', [''])[0]
+            name = epv.get('package', {}).get('name', [''])[0]
             if name in conflict_packages_com:
                 list_pkg_names_com.append(name)
                 epv_list_com.remove(epv)
