@@ -222,7 +222,7 @@ class GraphDB:
                 deps_count = epv.get('version').get('dependents_count', [-1])[0]
                 if deps_count > 0:
                     if 'deps_count' not in pkg_dict[name] or \
-                            deps_count > pkg_dict[name].get['deps_count'].get('deps_count', 0):
+                            deps_count > pkg_dict[name].get('deps_count').get('deps_count', 0):
                         pkg_dict, new_dict, filtered_comp_list = \
                             GraphDB.add_version_to_filtered_list(
                                 epv=epv, key='deps_count', val=deps_count, pkg_dict=pkg_dict,
