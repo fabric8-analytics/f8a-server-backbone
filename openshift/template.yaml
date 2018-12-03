@@ -44,6 +44,8 @@ objects:
             value: f8a-npm-insights
           - name: PYPI_SERVICE_HOST
             value: f8a-pypi-insights
+          - name: GOLANG_SERVICE_HOST
+            value: f8a-golang-insights
           - name: HPF_SERVICE_HOST
             value: f8a-hpf-insights
           - name: PGM_SERVICE_PORT
