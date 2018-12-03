@@ -446,6 +446,7 @@ class RecommendationTask:
     chester_ecosystems = ['npm']
     hpf_ecosystems = ['maven']
     pypi_ecosystems = ['pypi']
+    golang_ecosystem = ['golang']
 
     @staticmethod
     def get_insights_url(payload):
@@ -456,6 +457,8 @@ class RecommendationTask:
                 INSIGHTS_SERVICE_HOST = os.getenv("CHESTER_SERVICE_HOST")
             elif payload[0]['ecosystem'] in RecommendationTask.pypi_ecosystems:
                 INSIGHTS_SERVICE_HOST = os.getenv("PYPI_SERVICE_HOST")
+            elif payload[0]['ecosystem'] in RecommendationTask.golang_ecosystem:
+                INSIGHTS_SERVICE_HOST = os.environ.get("GOLANG_SERVICE_HOST")
             else:
                 INSIGHTS_SERVICE_HOST = os.getenv("HPF_SERVICE_HOST") + "-" + payload[0][
                     'ecosystem']

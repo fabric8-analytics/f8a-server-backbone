@@ -56,6 +56,11 @@ class TestRecommendationTask(TestCase):
                 "ecosystem": "pypi"
             }])
             self.assertTrue('pypi-insights' in called_url_json['url'])
+            # Test whether the correct service is called for golang.
+            called_url_json = RecommendationTask.call_insights_recommender([{
+                "ecosystem": "golang"
+            }])
+            self.assertTrue('golang-insights' in called_url_json['url'])
             # Now test whether the correct service is called for maven.
             called_url_json = RecommendationTask.call_insights_recommender(
                 [{"ecosystem": "maven", "package_list": []}])
