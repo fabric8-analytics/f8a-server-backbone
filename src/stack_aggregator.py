@@ -444,7 +444,7 @@ def get_dependency_data(epv_set):
     }
     query = "epv=[];"
     batch_query = "g.V().has('ecosystem', '{eco}').has('name', '{name}').as('package')." \
-                  "out('has_version').has('version', '{ver}').as('version')." \
+                  "out('has_version').has('version', '{ver}').dedup().as('version')." \
                   "coalesce(out('has_cve').as('cve')." \
                   "select('package','version','cve').by(valueMap())," \
                   "select('package','version').by(valueMap()))." \
