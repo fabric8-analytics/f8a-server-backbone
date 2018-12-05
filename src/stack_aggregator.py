@@ -9,6 +9,7 @@ Output: TBD
 import datetime
 from flask import current_app
 import requests
+import copy
 from collections import defaultdict
 from utils import (select_latest_version, LICENSE_SCORING_URL_REST, execute_gremlin_dsl,
                    GREMLIN_SERVER_URL_REST, persist_data_in_db, GREMLIN_QUERY_SIZE)
@@ -413,7 +414,7 @@ def add_transitive_details(epv_list, epv_set):
             epv['package']['name'][0] + "::" + \
             epv['version']['version'][0]
         if epv_str in direct:
-            result.append(data)
+            result.append(copy.deepcopy(data))
         if epv_str in transitive:
             affected_deps = transitive[epv_str]
             trans_dict = {
@@ -430,7 +431,7 @@ def add_transitive_details(epv_list, epv_set):
                         }
                     )
             epv['transitive'] = trans_dict
-            result.append(data)
+            result.append(copy.deepcopy(data))
 
     return result
 
