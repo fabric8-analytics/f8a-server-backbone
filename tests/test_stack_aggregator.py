@@ -161,7 +161,8 @@ def test_get_dependency_data(_mock_get, _mock_post):
 
 def test_aggregate_stack_data():
     """Test the function aggregate_stack_data."""
-    out = stack_aggregator.aggregate_stack_data({}, "pom.xml", "maven", [], "/home/JohnDoe", False)
+    out = stack_aggregator.aggregate_stack_data(
+        {}, "pom.xml", "maven", [], "/home/JohnDoe", False, 0)
     assert out['manifest_name'] == "pom.xml"
 
 

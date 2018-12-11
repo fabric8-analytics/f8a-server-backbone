@@ -97,7 +97,10 @@ def extract_component_details(component):
     }
     # Add transitive block for transitive deps
     if component.get('transitive', {}):
-        component_summary['transitive'] = component.get('transitive')
+        if not cves:
+            return None
+        else:
+            component_summary['transitive'] = component.get('transitive')
     return component_summary
 
 
@@ -298,7 +301,8 @@ def extract_user_stack_package_licenses(resolved, ecosystem):
     return list_package_licenses
 
 
-def aggregate_stack_data(stack, manifest_file, ecosystem, deps, manifest_file_path, persist):
+def aggregate_stack_data(stack, manifest_file, ecosystem, deps,
+                         manifest_file_path, persist, transitive_count):
     """Aggregate stack data."""
     dependencies = []
     licenses = []
@@ -307,15 +311,16 @@ def aggregate_stack_data(stack, manifest_file, ecosystem, deps, manifest_file_pa
         data = component.get("data", None)
         if data:
             component_data = extract_component_details(data[0])
-            # create license dict for license scoring
-            license_scoring_input = {
-                'package': component_data['name'],
-                'version': component_data['version'],
-                'licenses': component_data['licenses']
-            }
-            dependencies.append(component_data)
-            licenses.extend(component_data['licenses'])
-            license_score_list.append(license_scoring_input)
+            if component_data:
+                # create license dict for license scoring
+                license_scoring_input = {
+                    'package': component_data['name'],
+                    'version': component_data['version'],
+                    'licenses': component_data['licenses']
+                }
+                dependencies.append(component_data)
+                licenses.extend(component_data['licenses'])
+                license_score_list.append(license_scoring_input)
 
     stack_distinct_licenses = set(licenses)
 
@@ -341,6 +346,7 @@ def aggregate_stack_data(stack, manifest_file, ecosystem, deps, manifest_file_pa
                 "ecosystem": ecosystem,
                 "analyzed_dependencies_count": len(dependencies),
                 "analyzed_dependencies": dependencies,
+                "transitive_count": transitive_count,
                 "unknown_dependencies": unknown_dependencies,
                 "unknown_dependencies_count": len(unknown_dependencies),
                 "recommendation_ready": True,  # based on the percentage of dependencies analysed
@@ -493,10 +499,11 @@ class StackAggregator:
             manifest = result['details'][0]['manifest_file']
             manifest_file_path = result['details'][0]['manifest_file_path']
             epv_set = create_dependency_data_set(resolved, ecosystem)
+            transitive_count = len(epv_set.get('transitive', []))
             finished = get_dependency_data(epv_set)
             if finished is not None:
-                output = aggregate_stack_data(finished, manifest, ecosystem.lower(),
-                                              resolved, manifest_file_path, persist)
+                output = aggregate_stack_data(finished, manifest, ecosystem.lower(), resolved,
+                                              manifest_file_path, persist, transitive_count)
                 if output and output.get('user_stack_info'):
                     output['user_stack_info']['license_analysis'].update({
                         "current_stack_license": current_stack_license
