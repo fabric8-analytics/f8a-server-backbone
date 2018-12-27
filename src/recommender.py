@@ -491,10 +491,15 @@ class RecommendationTask:
 
         recommendations = []
         input_stack = {}
+        transitive_stack = set()
 
         for result in results:
             temp_input_stack = {d["package"]: d["version"] for d in
                                 result.get("details", [])[0].get("_resolved")}
+            for tdeps in result.get("details", [])[0].get("_resolved"):
+                temp_transitive_stack = [d for d in tdeps.get('deps', [])]
+                logger.debug("transitive_stack {}".format(temp_transitive_stack))
+                transitive_stack.update(temp_transitive_stack)
             input_stack.update(temp_input_stack)
 
         for result in results:
@@ -516,6 +521,7 @@ class RecommendationTask:
 
             insights_payload = {
                 'ecosystem': details['ecosystem'],
+                'transitive_stack': transitive_stack,
                 'unknown_packages_ratio_threshold':
                     float(os.environ.get('UNKNOWN_PACKAGES_THRESHOLD', 0.3)),
                 'package_list': new_arr,
