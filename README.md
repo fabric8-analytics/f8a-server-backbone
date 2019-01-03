@@ -99,7 +99,7 @@ Usage:
 ```
 
 The first script checks the indentation, line lengths, variable names, whitespace around operators etc. The second
-script checks all documentation strings - its presense and format. Please fix any warnings and errors reported by these
+script checks all documentation strings - its presence and format. Please fix any warnings and errors reported by these
 scripts.
 
 #### Code complexity measurement
@@ -141,7 +141,7 @@ Please note that only semantical problems are reported.
 
 #### Check for scripts written in BASH
 
-The script named `check-bashscripts.sh` can be used to check all BASH scripts (in fact: all files with the `.sh` extension) for various possible issues, incompatibilies, and caveats. This script can be run w/o any arguments:
+The script named `check-bashscripts.sh` can be used to check all BASH scripts (in fact: all files with the `.sh` extension) for various possible issues, incompatibilities, and caveats. This script can be run w/o any arguments:
 
 ```
 ./check-bashscripts.sh
