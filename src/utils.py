@@ -11,6 +11,8 @@ import semantic_version as sv
 import logging
 from flask import current_app
 from f8a_worker.models import WorkerResult
+from f8a_worker.setup_celery import init_celery
+from selinon import run_flow
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert
 import traceback
@@ -303,7 +305,6 @@ def execute_gremlin_dsl(url, payload):
         logger.error(traceback.format_exc())
         return None
 
-
 def get_response_data(json_response, data_default):
     """Retrieve data from the JSON response.
 
@@ -313,6 +314,7 @@ def get_response_data(json_response, data_default):
 
 def server_run_flow(flow_name, flow_args):
     """Run a flow.
+    
     :param flow_name: name of flow to be run as stated in YAML config file
     :param flow_args: arguments for the flow
     :return: dispatcher ID handling flow
@@ -332,6 +334,7 @@ def server_run_flow(flow_name, flow_args):
 def server_create_analysis(ecosystem, package, version,api_flow=True,
                            force=False, force_graph_sync=False):
     """Create bayesianApiFlow handling analyses for specified EPV.
+
     :param ecosystem: ecosystem for which the flow should be run
     :param package: package for which should be flow run
     :param version: package version
@@ -339,9 +342,6 @@ def server_create_analysis(ecosystem, package, version,api_flow=True,
     :param force_graph_sync: force synchronization to graph
     :return: dispatcher ID handling flow
     """
-    # Bookkeeping first
-    # component = MavenCoordinates.normalize_str(package) if ecosystem == 'maven' else package
-    # server_create_component_bookkeeping(ecosystem, component, version, user_profile)
 
     args = {
         'ecosystem': ecosystem,
