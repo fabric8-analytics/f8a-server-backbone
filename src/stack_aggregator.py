@@ -369,10 +369,10 @@ def create_dependency_data_set(resolved, ecosystem):
 
     for pv in resolved:
         if pv.get('package') and pv.get('version'):
-            key = ecosystem + "::" + pv.get('package') + "::" + pv.get('version')
+            key = ecosystem + "|" + pv.get('package') + "|" + pv.get('version')
             unique_epv_dict['direct'][key] = set()
             for trans_pv in pv.get('deps', []):
-                trans_key = ecosystem + "::" + trans_pv.get('package') + "::" + \
+                trans_key = ecosystem + "|" + trans_pv.get('package') + "|" + \
                             trans_pv.get('version')
                 unique_epv_dict['transitive'][trans_key].add(key)
 
@@ -416,8 +416,8 @@ def add_transitive_details(epv_list, epv_set):
     # Add transitive dict as necessary
     for data in cve_epv_list:
         epv = data['data'][0]
-        epv_str = epv['package']['ecosystem'][0] + "::" + \
-            epv['package']['name'][0] + "::" + \
+        epv_str = epv['package']['ecosystem'][0] + "|" + \
+            epv['package']['name'][0] + "|" + \
             epv['version']['version'][0]
         if epv_str in direct:
             result.append(copy.deepcopy(data))
@@ -428,7 +428,7 @@ def add_transitive_details(epv_list, epv_set):
                 'affected_direct_deps': []
             }
             for dep in affected_deps:
-                eco, name, version = dep.split("::")
+                eco, name, version = dep.split("|")
                 if name and version:
                     trans_dict['affected_direct_deps'].append(
                         {
@@ -462,7 +462,7 @@ def get_dependency_data(epv_set):
     i = 1
     epvs = [x for x, y in epv_set['direct'].items()] + [x for x, y in epv_set['transitive'].items()]
     for epv in epvs:
-        eco, name, ver = epv.split('::')
+        eco, name, ver = epv.split('|')
         dep_list[name] = ver
         query += batch_query.format(eco=eco, name=name, ver=ver)
         if i >= GREMLIN_QUERY_SIZE:
