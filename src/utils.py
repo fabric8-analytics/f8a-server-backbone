@@ -310,3 +310,48 @@ def get_response_data(json_response, data_default):
     Data default parameters takes what should data to be returned.
     """
     return json_response.get("result", {}).get("data", data_default)
+
+def server_run_flow(flow_name, flow_args):
+    """Run a flow.
+    :param flow_name: name of flow to be run as stated in YAML config file
+    :param flow_args: arguments for the flow
+    :return: dispatcher ID handling flow
+    """
+    current_app.logger.debug('Running flow {}'.format(flow_name))
+    start = datetime.datetime.now()
+
+    init_celery(result_backend=False)
+    dispacher_id = run_flow(flow_name, flow_args)
+
+    # compute the elapsed time
+    elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
+    current_app.logger.debug("It took {t} seconds to start {f} flow.".format(
+        t=elapsed_seconds, f=flow_name))
+    return dispacher_id
+
+def server_create_analysis(ecosystem, package, version,api_flow=True,
+                           force=False, force_graph_sync=False):
+    """Create bayesianApiFlow handling analyses for specified EPV.
+    :param ecosystem: ecosystem for which the flow should be run
+    :param package: package for which should be flow run
+    :param version: package version
+    :param force: force run flow even specified EPV exists
+    :param force_graph_sync: force synchronization to graph
+    :return: dispatcher ID handling flow
+    """
+    # Bookkeeping first
+    # component = MavenCoordinates.normalize_str(package) if ecosystem == 'maven' else package
+    # server_create_component_bookkeeping(ecosystem, component, version, user_profile)
+
+    args = {
+        'ecosystem': ecosystem,
+        'name': package,
+        'version': version,
+        'force': force,
+        'force_graph_sync': force_graph_sync
+    }
+
+    if api_flow:
+        return server_run_flow('bayesianApiFlow', args)
+    else:
+        return server_run_flow('bayesianFlow', args)

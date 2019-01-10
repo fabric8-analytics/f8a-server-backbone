@@ -11,7 +11,7 @@ from flask import current_app
 import requests
 import copy
 from collections import defaultdict
-from utils import (select_latest_version, LICENSE_SCORING_URL_REST, execute_gremlin_dsl,
+from utils import (select_latest_version, server_create_analysis, LICENSE_SCORING_URL_REST, execute_gremlin_dsl,
                    GREMLIN_SERVER_URL_REST, persist_data_in_db, GREMLIN_QUERY_SIZE)
 
 
@@ -446,9 +446,12 @@ def get_dependency_data(epv_set):
     """Get dependency data from graph."""
     epv_list = {
         "result": {
-            "data": []
+            "data": [],
+            "unknown_deps": []
         }
     }
+    dep_list = {}
+    unknown_deps_list = []
     query = "epv=[];"
     batch_query = "g.V().has('ecosystem', '{eco}').has('name', '{name}').as('package')." \
                   "out('has_version').has('version', '{ver}').dedup().as('version')." \
@@ -460,6 +463,7 @@ def get_dependency_data(epv_set):
     epvs = [x for x, y in epv_set['direct'].items()] + [x for x, y in epv_set['transitive'].items()]
     for epv in epvs:
         eco, name, ver = epv.split('::')
+        dep_list[name] = ver
         query += batch_query.format(eco=eco, name=name, ver=ver)
         if i >= GREMLIN_QUERY_SIZE:
             i = 1
@@ -477,8 +481,19 @@ def get_dependency_data(epv_set):
         if result:
             epv_list['result']['data'] += result['result']['data']
 
+    # # Identification of unknown dependencies
+    epv_data = epv_list['result']['data']
+    for k,v in dep_list.items():
+        known_flag = False
+        for knowndep in epv_data:
+            if k == knowndep['package']['name'][0]:
+                known_flag = True
+                break
+        if not known_flag:
+            unknown_deps_list.append({'name': k,'version':v})
+
     result = add_transitive_details(epv_list, epv_set)
-    return {'result': result}
+    return {'result': result,'unknown_deps':unknown_deps_list}
 
 
 class StackAggregator:
@@ -509,6 +524,11 @@ class StackAggregator:
                         "current_stack_license": current_stack_license
                     })
                 stack_data.append(output)
+            # # Ingestion of Unknown dependencies
+            unknown_dep_list = finished['unknown_deps']
+            for dep in unknown_dep_list:
+                server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
+                                    force=False, force_graph_sync=True)
 
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         audit = {
