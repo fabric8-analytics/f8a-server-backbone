@@ -342,7 +342,6 @@ def server_create_analysis(ecosystem, package, version,api_flow=True,
     :param force_graph_sync: force synchronization to graph
     :return: dispatcher ID handling flow
     """
-
     args = {
         'ecosystem': ecosystem,
         'name': package,
