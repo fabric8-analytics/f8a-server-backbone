@@ -11,8 +11,8 @@ from flask import current_app
 import requests
 import copy
 from collections import defaultdict
-from utils import (select_latest_version, server_create_analysis, LICENSE_SCORING_URL_REST, execute_gremlin_dsl,
-                   GREMLIN_SERVER_URL_REST, persist_data_in_db, GREMLIN_QUERY_SIZE)
+from utils import (select_latest_version, server_create_analysis, LICENSE_SCORING_URL_REST, 
+                   execute_gremlin_dsl, GREMLIN_SERVER_URL_REST, persist_data_in_db, GREMLIN_QUERY_SIZE)
 
 
 def extract_component_details(component):
@@ -483,17 +483,17 @@ def get_dependency_data(epv_set):
 
     # # Identification of unknown dependencies
     epv_data = epv_list['result']['data']
-    for k,v in dep_list.items():
+    for k, v in dep_list.items():
         known_flag = False
         for knowndep in epv_data:
             if k == knowndep['package']['name'][0]:
                 known_flag = True
                 break
         if not known_flag:
-            unknown_deps_list.append({'name': k,'version':v})
+            unknown_deps_list.append({'name': k, 'version':v})
 
     result = add_transitive_details(epv_list, epv_set)
-    return {'result': result,'unknown_deps':unknown_deps_list}
+    return {'result': result, 'unknown_deps': unknown_deps_list}
 
 
 class StackAggregator:
@@ -527,8 +527,8 @@ class StackAggregator:
             # # Ingestion of Unknown dependencies
             unknown_dep_list = finished['unknown_deps']
             for dep in unknown_dep_list:
-                server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
-                                    force=False, force_graph_sync=True)
+                server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False, 
+                                       force=False, force_graph_sync=True)
 
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         audit = {

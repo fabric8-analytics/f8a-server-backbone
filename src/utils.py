@@ -305,6 +305,7 @@ def execute_gremlin_dsl(url, payload):
         logger.error(traceback.format_exc())
         return None
 
+
 def get_response_data(json_response, data_default):
     """Retrieve data from the JSON response.
 
@@ -312,9 +313,10 @@ def get_response_data(json_response, data_default):
     """
     return json_response.get("result", {}).get("data", data_default)
 
+
 def server_run_flow(flow_name, flow_args):
     """Run a flow.
-    
+
     :param flow_name: name of flow to be run as stated in YAML config file
     :param flow_args: arguments for the flow
     :return: dispatcher ID handling flow
@@ -331,7 +333,8 @@ def server_run_flow(flow_name, flow_args):
         t=elapsed_seconds, f=flow_name))
     return dispacher_id
 
-def server_create_analysis(ecosystem, package, version,api_flow=True,
+
+def server_create_analysis(ecosystem, package, version, api_flow=True, 
                            force=False, force_graph_sync=False):
     """Create bayesianApiFlow handling analyses for specified EPV.
 
