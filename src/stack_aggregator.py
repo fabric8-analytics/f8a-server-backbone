@@ -12,7 +12,7 @@ import requests
 import copy
 from collections import defaultdict
 from utils import (select_latest_version, server_create_analysis, LICENSE_SCORING_URL_REST,
-                   execute_gremlin_dsl, GREMLIN_SERVER_URL_REST, persist_data_in_db, 
+                   execute_gremlin_dsl, GREMLIN_SERVER_URL_REST, persist_data_in_db,
                    GREMLIN_QUERY_SIZE)
 
 

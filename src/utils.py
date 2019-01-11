@@ -334,7 +334,7 @@ def server_run_flow(flow_name, flow_args):
     return dispacher_id
 
 
-def server_create_analysis(ecosystem, package, version, api_flow=True, 
+def server_create_analysis(ecosystem, package, version, api_flow=True,
                            force=False, force_graph_sync=False):
     """Create bayesianApiFlow handling analyses for specified EPV.
 
