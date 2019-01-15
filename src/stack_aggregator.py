@@ -457,7 +457,34 @@ def get_dependency_data(epv_set):
                   "select('package','version').by(valueMap()))." \
                   "fill(epv);"
     i = 1
-    epvs = [x for x, y in epv_set['direct'].items()] + [x for x, y in epv_set['transitive'].items()]
+    epvs = [x for x, y in epv_set['direct'].items()]
+    for epv in epvs:
+        eco, name, ver = epv.split('|')
+        query += batch_query.format(eco=eco, name=name, ver=ver)
+        if i >= GREMLIN_QUERY_SIZE:
+            i = 1
+            # call_gremlin in batch
+            payload = {'gremlin': query}
+            result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
+            if result:
+                epv_list['result']['data'] += result['result']['data']
+            query = "epv=[];"
+        i += 1
+
+    if i > 1:
+        payload = {'gremlin': query}
+        result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
+        if result:
+            epv_list['result']['data'] += result['result']['data']
+
+    query = "epv=[];"
+    batch_query = "g.V().has('ecosystem', '{eco}').has('name', '{name}').as('package')." \
+                  "out('has_version').has('version', '{ver}').dedup().as('version')." \
+                  "coalesce(out('has_cve').as('cve')." \
+                  "select('package','version','cve').by(valueMap()))." \
+                  "fill(epv);"
+    i = 1
+    epvs = [x for x, y in epv_set['transitive'].items()]
     for epv in epvs:
         eco, name, ver = epv.split('|')
         query += batch_query.format(eco=eco, name=name, ver=ver)
