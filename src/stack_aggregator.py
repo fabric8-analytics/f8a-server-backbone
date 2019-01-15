@@ -486,7 +486,7 @@ def get_dependency_data(epv_set):
     # # Identification of unknown dependencies
     epv_data = epv_list['result']['data']
     logger.error(dep_list)
-    logger.error(epv_data)
+    logger.error(epv_list)
     for k, v in dep_list.items():
         known_flag = False
         for knowndep in epv_data:
