@@ -354,6 +354,7 @@ def server_create_analysis(ecosystem, package, version, api_flow=True,
     }
 
     if api_flow:
-        return server_run_flow('bayesianApiFlow', args)
+        return 'bayesianApiFlow' #server_run_flow('bayesianApiFlow', args)
     else:
-        return server_run_flow('bayesianFlow', args)
+        return 'bayesianFlow' #server_run_flow('bayesianFlow', args)
+
