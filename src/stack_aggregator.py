@@ -14,8 +14,9 @@ from collections import defaultdict
 from utils import (select_latest_version, server_create_analysis, LICENSE_SCORING_URL_REST,
                    execute_gremlin_dsl, GREMLIN_SERVER_URL_REST, persist_data_in_db,
                    GREMLIN_QUERY_SIZE)
+import logging
 
-
+logger = logging.getLogger(__file__)
 def extract_component_details(component):
     """Extract details from given component."""
     github_details = {
@@ -493,8 +494,8 @@ def get_dependency_data(epv_set):
         if not known_flag:
             unknown_deps_list.append({'name': k, 'version': v})
 
-    current_app.logger.error('###################################################')
-    current_app.logger.error(unknown_deps_list)
+    logger.error('###################################################')
+    logger.error(unknown_deps_list)
     result = add_transitive_details(epv_list, epv_set)
     return {'result': result, 'unknown_deps': unknown_deps_list}
 
@@ -529,8 +530,8 @@ class StackAggregator:
                 stack_data.append(output)
             # # Ingestion of Unknown dependencies
             unknown_dep_list = finished['unknown_deps']
-            current_app.logger.error("*****************************************************")
-            current_app.logger.error(unknown_dep_list)
+            logger.error("*****************************************************")
+            logger.error(unknown_dep_list)
             for dep in unknown_dep_list:
                 server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
                                        force=False, force_graph_sync=True)
