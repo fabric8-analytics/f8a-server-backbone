@@ -485,6 +485,8 @@ def get_dependency_data(epv_set):
 
     # # Identification of unknown dependencies
     epv_data = epv_list['result']['data']
+    logger.error(dep_list)
+    logger.error(epv_data)
     for k, v in dep_list.items():
         known_flag = False
         for knowndep in epv_data:
@@ -494,7 +496,7 @@ def get_dependency_data(epv_set):
         if not known_flag:
             unknown_deps_list.append({'name': k, 'version': v})
 
-    logger.error('###################################################')
+    logger.error('##################get_dependency_data#################################')
     logger.error(unknown_deps_list)
     result = add_transitive_details(epv_list, epv_set)
     return {'result': result, 'unknown_deps': unknown_deps_list}
@@ -530,7 +532,7 @@ class StackAggregator:
                 stack_data.append(output)
             # # Ingestion of Unknown dependencies
             unknown_dep_list = finished['unknown_deps']
-            logger.error("*****************************************************")
+            logger.error("*********************execute********************************")
             logger.error(unknown_dep_list)
             for dep in unknown_dep_list:
                 server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
