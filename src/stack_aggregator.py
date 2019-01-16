@@ -490,7 +490,7 @@ def get_dependency_data(epv_set):
     for k, v in dep_list.items():
         known_flag = False
         for knowndep in epv_data:
-            if k == knowndep['package']['name'][0]:
+            if k == knowndep['package']['name'][0] and v == knowndep['version']['version'][0]:
                 known_flag = True
                 break
         if not known_flag:
