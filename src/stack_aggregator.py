@@ -17,6 +17,8 @@ from utils import (select_latest_version, server_create_analysis, LICENSE_SCORIN
 import logging
 
 logger = logging.getLogger(__file__)
+
+
 def extract_component_details(component):
     """Extract details from given component."""
     github_details = {
