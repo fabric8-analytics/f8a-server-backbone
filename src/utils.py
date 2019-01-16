@@ -12,6 +12,7 @@ import logging
 from flask import current_app
 from f8a_worker.models import WorkerResult
 from f8a_worker.setup_celery import init_celery
+from f8a_worker.setup_celery import init_selinon
 from selinon import run_flow
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert
