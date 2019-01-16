@@ -325,6 +325,7 @@ def server_run_flow(flow_name, flow_args):
     start = datetime.datetime.now()
 
     init_celery(result_backend=False)
+    init_selinon()
     dispacher_id = run_flow(flow_name, flow_args)
 
     # compute the elapsed time
@@ -357,6 +358,4 @@ def server_create_analysis(ecosystem, package, version, api_flow=True,
         return server_run_flow('bayesianApiFlow', args)
     else:
         return server_run_flow('bayesianFlow', args)
-
-
 
