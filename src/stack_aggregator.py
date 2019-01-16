@@ -499,6 +499,7 @@ def get_dependency_data(epv_set):
     logger.error('##################get_dependency_data#################################')
     logger.error(unknown_deps_list)
     result = add_transitive_details(epv_list, epv_set)
+    logger.error(result)
     return {'result': result, 'unknown_deps': unknown_deps_list}
 
 
