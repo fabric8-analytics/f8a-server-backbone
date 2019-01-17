@@ -416,9 +416,14 @@ def add_transitive_details(epv_list, epv_set):
     # Add transitive dict as necessary
     for data in cve_epv_list:
         epv = data['data'][0]
-        epv_str = epv['package']['ecosystem'][0] + "|" + \
-            epv['package']['name'][0] + "|" + \
-            epv['version']['version'][0]
+        if 'package' not in epv:
+            epv_str = epv['version']['pecosystem'][0] + "|" + \
+                epv['version']['pname'][0] + "|" + \
+                epv['version']['version'][0]
+        else:
+            epv_str = epv['package']['ecosystem'][0] + "|" + \
+                epv['package']['name'][0] + "|" + \
+                epv['version']['version'][0]
         if epv_str in direct:
             result.append(copy.deepcopy(data))
         if epv_str in transitive:
@@ -478,10 +483,10 @@ def get_dependency_data(epv_set):
             epv_list['result']['data'] += result['result']['data']
 
     query = "epv=[];"
-    batch_query = "g.V().has('ecosystem', '{eco}').has('name', '{name}').as('package')." \
-                  "out('has_version').has('version', '{ver}').dedup().as('version')." \
+    batch_query = "g.V().has('pecosystem', '{eco}').has('pname', '{name}')." \
+                  "has('version', '{ver}').dedup().as('version')." \
                   "coalesce(out('has_cve').as('cve')." \
-                  "select('package','version','cve').by(valueMap()))." \
+                  "select('version','cve').by(valueMap()))." \
                   "fill(epv);"
     i = 1
     epvs = [x for x, y in epv_set['transitive'].items()]
