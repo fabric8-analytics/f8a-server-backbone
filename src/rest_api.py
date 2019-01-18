@@ -27,7 +27,10 @@ def setup_logging(flask_app):
 app = Flask(__name__)
 setup_logging(app)
 CORS(app)
+
+
 init_selinon()
+
 
 @app.route('/api/v1/readiness')
 def readiness():
