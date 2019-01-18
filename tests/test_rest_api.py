@@ -85,11 +85,11 @@ def test_liveness_endpoint(client):
     assert json_data == {}, "Empty JSON response expected"
 
 
-def test_stack_api_endpoint():
-    """Check the /stack_aggregator REST API endpoint."""
-    stack_resp = requests.post(url + "/stack_aggregator", json=payload)
-    jsn = stack_resp.json()
-    assert jsn['external_request_id'] is not None
+# def test_stack_api_endpoint():
+#     """Check the /stack_aggregator REST API endpoint."""
+#     stack_resp = requests.post(url + "/stack_aggregator", json=payload)
+#     jsn = stack_resp.json()
+#     assert jsn['external_request_id'] is not None
 
 
 @mock.patch('src.recommender.RecommendationTask.execute', side_effect=response)
