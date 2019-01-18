@@ -62,7 +62,7 @@ function prepare_venv() {
 
 # now we are surely in the Python virtual environment
 
-pip install git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@561636c
+pip install git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@d403113
 pip install pytest
 pip install pytest-cov
 pip install radon
