@@ -457,8 +457,8 @@ def get_dependency_data(epv_set):
     query = "epv=[];"
     batch_query = "a = g.V().has('pecosystem', '{eco}').has('pname', '{name}')." \
                   "has('version', '{ver}').dedup(); a.clone().as('version')." \
-                  ".in('has_version').dedup().as('package').select('version')" \
-                  ".coalesce(out('has_cve').as('cve')." \
+                  "in('has_version').dedup().as('package').select('version')." \
+                  "coalesce(out('has_cve').as('cve')." \
                   "select('package','version','cve').by(valueMap())," \
                   "select('package','version').by(valueMap()))." \
                   "fill(epv);"
