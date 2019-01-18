@@ -67,6 +67,10 @@ pip install pytest
 pip install pytest-cov
 pip install radon
 
+export DEPLOYMENT_PREFIX="${USER}"
+export WORKER_ADMINISTRATION_REGION=api
+export SENTRY_DSN=''
+
 echo "*****************************************"
 echo "*** Cyclomatic complexity measurement ***"
 echo "*****************************************"
