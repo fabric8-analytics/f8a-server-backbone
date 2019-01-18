@@ -26,6 +26,7 @@ services:
       NUMBER_WORKER_PROCESS: "2"
       CLASS_TYPE: "gevent"
       FLASK_LOGGING_LEVEL: "DEBUG"
+      SENTRY_DSN: ""
 
     ports:
       - "5000:5000"
