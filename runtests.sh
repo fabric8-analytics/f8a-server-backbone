@@ -70,6 +70,10 @@ pip install radon
 export DEPLOYMENT_PREFIX="${USER}"
 export WORKER_ADMINISTRATION_REGION=api
 export SENTRY_DSN=''
+export POSTGRESQL_USER="user"
+export POSTGRESQL_PASSWORD="password"
+export POSTGRESQL_DATABASE="dbname"
+export PGBOUNCER_SERVICE_HOST="bayesian-pgbouncer"
 
 echo "*****************************************"
 echo "*** Cyclomatic complexity measurement ***"
