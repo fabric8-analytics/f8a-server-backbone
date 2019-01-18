@@ -3,7 +3,7 @@
 import os
 import flask
 import logging
-from f8a_worker.setup_celery import init_selinon
+# from f8a_worker.setup_celery import init_selinon
 from flask import Flask, request, current_app
 from flask_cors import CORS
 from recommender import RecommendationTask
@@ -29,7 +29,7 @@ setup_logging(app)
 CORS(app)
 
 
-init_selinon()
+# init_selinon()
 
 
 @app.route('/api/v1/readiness')
