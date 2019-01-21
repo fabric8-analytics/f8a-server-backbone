@@ -321,6 +321,7 @@ def server_run_flow(flow_name, flow_args):
     :param flow_args: arguments for the flow
     :return: dispatcher ID handling flow
     """
+    logger.error('inside server_run_flow method')
     current_app.logger.debug('Running flow {}'.format(flow_name))
     start = datetime.datetime.now()
 
@@ -329,7 +330,7 @@ def server_run_flow(flow_name, flow_args):
 
     # compute the elapsed time
     elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
-    current_app.logger.debug("It took {t} seconds to start {f} flow.".format(
+    logger.error("It took {t} seconds to start {f} flow.".format(
         t=elapsed_seconds, f=flow_name))
     return dispacher_id
 
@@ -352,7 +353,7 @@ def server_create_analysis(ecosystem, package, version, api_flow=True,
         'force': force,
         'force_graph_sync': force_graph_sync
     }
-
+    logger.error('inside server_create_analysis method')
     if api_flow:
         return server_run_flow('bayesianApiFlow', args)
     else:
