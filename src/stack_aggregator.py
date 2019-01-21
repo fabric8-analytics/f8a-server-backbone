@@ -531,6 +531,8 @@ class StackAggregator:
             # # Ingestion of Unknown dependencies
             unknown_dep_list = finished['unknown_deps']
             for dep in unknown_dep_list:
+                logger.error(dep['name'])
+                logger.error(dep['version'])
                 server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
                                        force=False, force_graph_sync=True)
 
