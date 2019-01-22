@@ -74,6 +74,16 @@ objects:
               secretKeyRef:
                 name: coreapi-postgres
                 key: username
+          - name: AWS_SQS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: aws
+                key: sqs-access-key-id
+          - name: AWS_SQS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: aws
+                key: sqs-secret-access-key
           - name: API_BACKBONE_SERVICE_PORT
             value: "5000"
           - name: API_BACKBONE_SERVICE_TIMEOUT

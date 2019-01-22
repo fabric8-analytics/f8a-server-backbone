@@ -322,7 +322,7 @@ def server_run_flow(flow_name, flow_args):
     :return: dispatcher ID handling flow
     """
     logger.error('inside server_run_flow method')
-    current_app.logger.debug('Running flow {}'.format(flow_name))
+    logger.error('Running flow {}'.format(flow_name))
     start = datetime.datetime.now()
 
     init_celery(result_backend=False)
