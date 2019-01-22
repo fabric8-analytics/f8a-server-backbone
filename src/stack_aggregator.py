@@ -18,7 +18,6 @@ import logging
 
 logger = logging.getLogger(__file__)
 
-
 def extract_component_details(component):
     """Extract details from given component."""
     github_details = {
