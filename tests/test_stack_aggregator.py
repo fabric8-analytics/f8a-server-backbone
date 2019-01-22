@@ -157,6 +157,7 @@ def test_get_dependency_data(_mock_get, _mock_post):
     epv_set = stack_aggregator.create_dependency_data_set(resolved, "maven")
     out = stack_aggregator.get_dependency_data(epv_set)
     assert len(out['result']) == 2
+    assert len(out['unknown_deps']) == 0
 
 
 def test_aggregate_stack_data():

@@ -30,6 +30,15 @@ objects:
             value: bayesian-gremlin-http
           - name: BAYESIAN_GREMLIN_HTTP_SERVICE_PORT
             value: "8182"
+          - name: DEPLOYMENT_PREFIX
+            valueFrom:
+              configMapKeyRef:
+                name: bayesian-config
+                key: deployment-prefix
+          - name: WORKER_ADMINISTRATION_REGION
+            value: "api"
+          - name: SENTRY_DSN
+            value: "${SENTRY_DSN}"
           - name: PGBOUNCER_SERVICE_HOST
             value: bayesian-pgbouncer
           - name: PGBOUNCER_SERVICE_PORT
@@ -65,6 +74,16 @@ objects:
               secretKeyRef:
                 name: coreapi-postgres
                 key: username
+          - name: AWS_SQS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: aws
+                key: sqs-access-key-id
+          - name: AWS_SQS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: aws
+                key: sqs-secret-access-key
           - name: API_BACKBONE_SERVICE_PORT
             value: "5000"
           - name: API_BACKBONE_SERVICE_TIMEOUT
@@ -191,3 +210,9 @@ parameters:
   required: false
   name: FLASK_LOGGING_LEVEL
   value: "INFO"
+
+- description: Sentry DSN
+  displayName: Sentry DSN
+  required: false
+  name: SENTRY_DSN
+  value: ""
