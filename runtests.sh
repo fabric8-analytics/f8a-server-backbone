@@ -62,10 +62,18 @@ function prepare_venv() {
 
 # now we are surely in the Python virtual environment
 
-pip install git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@561636c
+pip install git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@d403113
 pip install pytest
 pip install pytest-cov
 pip install radon
+
+export DEPLOYMENT_PREFIX="${USER}"
+export WORKER_ADMINISTRATION_REGION=api
+export SENTRY_DSN=''
+export POSTGRESQL_USER="user"
+export POSTGRESQL_PASSWORD="password"
+export POSTGRESQL_DATABASE="dbname"
+export PGBOUNCER_SERVICE_HOST="bayesian-pgbouncer"
 
 echo "*****************************************"
 echo "*** Cyclomatic complexity measurement ***"

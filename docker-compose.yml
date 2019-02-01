@@ -1,13 +1,23 @@
 version: "2"
 services:
+  broker:
+    image: registry.centos.org/centos/rabbitmq
+    container_name: coreapi-broker
+    ports:
+     - "5672:5672"
+     - "15672:15672"
+    environment:
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
   f8a-server-backbone:
     build:
       context: .
 #    image: spicemit/fabric8-analytics-server-backbone:rest_4
-    network_mode: bridge
 #    command: ["python3", "/graph/create_graph_schema.py"]
     entrypoint:
       - /bin/entrypoint.sh
+    depends_on:
+      - broker
     environment:
       BAYESIAN_GREMLIN_HTTP_SERVICE_HOST: "bayesian-gremlin-http"
       BAYESIAN_GREMLIN_HTTP_SERVICE_PORT: "8182"
@@ -26,6 +36,9 @@ services:
       NUMBER_WORKER_PROCESS: "2"
       CLASS_TYPE: "gevent"
       FLASK_LOGGING_LEVEL: "DEBUG"
+      SENTRY_DSN: ""
+      DEPLOYMENT_PREFIX: "test"
+      WORKER_ADMINISTRATION_REGION: "api"
 
     ports:
       - "5000:5000"

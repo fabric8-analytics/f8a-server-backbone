@@ -2,7 +2,7 @@
 
 FROM quay.io/openshiftio/rhel-base-python3:latest
 
-ENV F8A_WORKER_VERSION=c019a1e
+ENV F8A_WORKER_VERSION=d403113
 LABEL name="f8analytics backbone services" \
       description="Stack aggregation and recommendation service." \
       git-sha="46e443d" \

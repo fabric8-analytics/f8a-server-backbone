@@ -467,16 +467,16 @@ class RecommendationTask:
         try:
             # TODO remove hardcodedness for payloads with multiple ecosystems
 
-                insights_url = RecommendationTask.get_insights_url(payload)
-                response = get_session_retry().post(insights_url, json=payload)
+            insights_url = RecommendationTask.get_insights_url(payload)
+            response = get_session_retry().post(insights_url, json=payload)
 
-                if response.status_code != 200:
-                    logger.error("HTTP error {}. Error retrieving insights data.".format(
-                                 response.status_code))
-                    return None
-                else:
-                    json_response = response.json()
-                    return json_response
+            if response.status_code != 200:
+                logger.error("HTTP error {}. Error retrieving insights data.".format(
+                                response.status_code))
+                return None
+            else:
+                json_response = response.json()
+                return json_response
 
         except Exception as e:
             logger.error("Failed retrieving insights data.")
