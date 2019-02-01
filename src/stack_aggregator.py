@@ -515,12 +515,14 @@ def get_dependency_data(epv_set):
         if result:
             epv_list['result']['data'] += result['result']['data']
 
-    # # Identification of unknown dependencies
+    # Identification of unknown dependencies
     epv_data = epv_list['result']['data']
     for k, v in dep_list.items():
         known_flag = False
         for knowndep in epv_data:
-            if k == knowndep['package']['name'][0] and v == knowndep['version']['version'][0]:
+            version_node = knowndep['version']
+            if k == knowndep['package']['name'][0] and v == knowndep['version']['version'][0] \
+                    and (version_node.get('licenses') or version_node.get('declared_licenses')):
                 known_flag = True
                 break
         if not known_flag:

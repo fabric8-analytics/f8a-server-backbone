@@ -159,6 +159,20 @@ def test_get_dependency_data(_mock_get, _mock_post):
     assert len(out['result']) == 2
     assert len(out['unknown_deps']) == 0
 
+@mock.patch('requests.get', side_effect=mock_dependency_response)
+@mock.patch('requests.Session.post', side_effect=mock_dependency_response)
+def test_get_unknown_dependency_data(_mock_get, _mock_post):
+    """Test the function get_dependency_data."""
+    resolved = [{
+        "package": "io.vertx:vertx-core-dummy",
+        "version": "3.4.2",
+        "deps": [{"package": "io.vertx:vertx-web", "version": "3.4.2"}]
+    }]
+    epv_set = stack_aggregator.create_dependency_data_set(resolved, "maven")
+    out = stack_aggregator.get_dependency_data(epv_set)
+    assert len(out['result']) == 1
+    assert len(out['unknown_deps']) == 1
+
 
 def test_aggregate_stack_data():
     """Test the function aggregate_stack_data."""

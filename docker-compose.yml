@@ -13,7 +13,6 @@ services:
     build:
       context: .
 #    image: spicemit/fabric8-analytics-server-backbone:rest_4
-#    network_mode: bridge
 #    command: ["python3", "/graph/create_graph_schema.py"]
     entrypoint:
       - /bin/entrypoint.sh
