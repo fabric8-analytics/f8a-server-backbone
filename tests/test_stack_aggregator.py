@@ -159,6 +159,7 @@ def test_get_dependency_data(_mock_get, _mock_post):
     assert len(out['result']) == 2
     assert len(out['unknown_deps']) == 0
 
+
 @mock.patch('requests.get', side_effect=mock_dependency_response)
 @mock.patch('requests.Session.post', side_effect=mock_dependency_response)
 def test_get_unknown_dependency_data(_mock_get, _mock_post):
