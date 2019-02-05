@@ -65,7 +65,7 @@ function prepare_venv() {
 pip install git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@d403113
 pip install pytest
 pip install pytest-cov
-pip install radon
+pip install radon==3.0.1
 
 export DEPLOYMENT_PREFIX="${USER}"
 export WORKER_ADMINISTRATION_REGION=api
