@@ -660,7 +660,8 @@ class RecommendationTask:
 
         if persist:
             return persist_data_in_db(external_request_id=external_request_id,
-                                      task_result=task_result, worker='recommendation_v2')
+                                      task_result=task_result, worker='recommendation_v2',
+                                      started_at=started_at, ended_at=ended_at)
         else:
             return {'recommendation': 'success',
                     'external_request_id': external_request_id,
