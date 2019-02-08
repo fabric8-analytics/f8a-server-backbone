@@ -579,7 +579,8 @@ class StackAggregator:
         }
         if persist:
             return persist_data_in_db(external_request_id=external_request_id,
-                                      task_result=stack_data, worker='stack_aggregator_v2')
+                                      task_result=stack_data, worker='stack_aggregator_v2',
+                                      started_at=started_at, ended_at=ended_at)
         else:
             return {'stack_aggregator': 'success',
                     'external_request_id': external_request_id,
