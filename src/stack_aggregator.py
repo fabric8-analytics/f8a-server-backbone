@@ -539,7 +539,7 @@ class StackAggregator:
     def execute(aggregated=None, persist=True):
         """Task code."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
-        stack_data= []
+        stack_data = []
         unknown_dep_list = []
         external_request_id = aggregated.get('external_request_id')
         # TODO multiple license file support
@@ -562,7 +562,6 @@ class StackAggregator:
                     })
                 stack_data.append(output)
             unknown_dep_list.extend(finished['unknown_deps'])
-            
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         audit = {
             'started_at': started_at,
@@ -576,8 +575,8 @@ class StackAggregator:
         }
         if persist:
             persiststatus = persist_data_in_db(external_request_id=external_request_id,
-                                      task_result=stack_data, worker='stack_aggregator_v2',
-                                      started_at=started_at, ended_at=ended_at)
+                                               task_result=stack_data, worker='stack_aggregator_v2',
+                                               started_at=started_at, ended_at=ended_at)
             # Ingestion of Unknown dependencies
             for dep in unknown_dep_list:
                 server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
