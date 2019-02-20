@@ -539,7 +539,8 @@ class StackAggregator:
     def execute(aggregated=None, persist=True):
         """Task code."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
-        stack_data,unknown_dep_list = []
+        stack_data= []
+        unknown_dep_list = []
         external_request_id = aggregated.get('external_request_id')
         # TODO multiple license file support
         current_stack_license = aggregated.get('current_stack_license', {}).get('1', {})
