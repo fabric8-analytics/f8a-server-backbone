@@ -321,7 +321,7 @@ def server_run_flow(flow_name, flow_args):
     :param flow_args: arguments for the flow
     :return: dispatcher ID handling flow
     """
-    logger.debug('Running flow {}'.format(flow_name))
+    logger.error('Running flow {}'.format(flow_name))
     start = datetime.datetime.now()
 
     init_celery(result_backend=False)
@@ -329,7 +329,7 @@ def server_run_flow(flow_name, flow_args):
 
     # compute the elapsed time
     elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
-    logger.debug("It took {t} seconds to start {f} flow.".format(
+    logger.error("It took {t} seconds to start {f} flow.".format(
         t=elapsed_seconds, f=flow_name))
     return dispacher_id
 

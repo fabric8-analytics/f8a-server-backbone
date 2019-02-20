@@ -521,7 +521,7 @@ def get_dependency_data(epv_set):
         known_flag = False
         for knowndep in epv_data:
             version_node = knowndep['version']
-            if k == knowndep['package']['name'][0] and v == knowndep['version']['version'][0] \
+            if k == knowndep['version']['pname'][0] and v == knowndep['version']['version'][0] \
                     and (version_node.get('licenses') or version_node.get('declared_licenses')):
                 known_flag = True
                 break
@@ -539,7 +539,7 @@ class StackAggregator:
     def execute(aggregated=None, persist=True):
         """Task code."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
-        stack_data = []
+        stack_data,unknown_dep_list = []
         external_request_id = aggregated.get('external_request_id')
         # TODO multiple license file support
         current_stack_license = aggregated.get('current_stack_license', {}).get('1', {})
@@ -560,11 +560,7 @@ class StackAggregator:
                         "current_stack_license": current_stack_license
                     })
                 stack_data.append(output)
-            # # Ingestion of Unknown dependencies
-            unknown_dep_list = finished['unknown_deps']
-            for dep in unknown_dep_list:
-                server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
-                                       force=False, force_graph_sync=True)
+            unknown_dep_list.extend(finished['unknown_deps'])
 
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         audit = {
@@ -578,9 +574,18 @@ class StackAggregator:
             '_release': 'None:None:None'
         }
         if persist:
-            return persist_data_in_db(external_request_id=external_request_id,
+            persiststatus = persist_data_in_db(external_request_id=external_request_id,
                                       task_result=stack_data, worker='stack_aggregator_v2')
+            # Ingestion of Unknown dependencies
+            for dep in unknown_dep_list:
+                server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
+                                       force=False, force_graph_sync=True)
+            return persiststatus
         else:
+            # Ingestion of Unknown dependencies
+            for dep in unknown_dep_list:
+                server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
+                                       force=False, force_graph_sync=True)
             return {'stack_aggregator': 'success',
                     'external_request_id': external_request_id,
                     'result': stack_data}
