@@ -562,7 +562,7 @@ class StackAggregator:
                     })
                 stack_data.append(output)
             unknown_dep_list.extend(finished['unknown_deps'])
-
+            
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         audit = {
             'started_at': started_at,
