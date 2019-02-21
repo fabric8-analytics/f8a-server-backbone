@@ -579,13 +579,14 @@ class StackAggregator:
                                                started_at=started_at, ended_at=ended_at)
         else:
             persiststatus = {'stack_aggregator': 'success',
-                    'external_request_id': external_request_id,
-                    'result': stack_data}
+                             'external_request_id': external_request_id,
+                             'result': stack_data}
         # Ingestion of Unknown dependencies
         try:
             for dep in unknown_dep_list:
                 server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
-                                        force=False, force_graph_sync=True)
-        except:
+                                       force=False, force_graph_sync=True)
+        except Exception as e:
+            logger.error('Ingestion has been failed for '+dep['name'])
             pass
         return persiststatus
