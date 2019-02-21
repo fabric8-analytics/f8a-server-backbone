@@ -587,7 +587,7 @@ class StackAggregator:
                 server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
                                        force=False, force_graph_sync=True)
         except Exception as e:
-            logger.error('Ingestion has been failed for '+dep['name'])
+            logger.error('Ingestion has been failed for ' + dep['name'])
             logger.error(e)
             pass
         return persiststatus
