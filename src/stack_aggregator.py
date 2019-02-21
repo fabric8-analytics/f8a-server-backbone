@@ -577,16 +577,15 @@ class StackAggregator:
             persiststatus = persist_data_in_db(external_request_id=external_request_id,
                                                task_result=stack_data, worker='stack_aggregator_v2',
                                                started_at=started_at, ended_at=ended_at)
-            # Ingestion of Unknown dependencies
-            for dep in unknown_dep_list:
-                server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
-                                       force=False, force_graph_sync=True)
-            return persiststatus
         else:
-            # Ingestion of Unknown dependencies
-            for dep in unknown_dep_list:
-                server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
-                                       force=False, force_graph_sync=True)
-            return {'stack_aggregator': 'success',
+            persiststatus = {'stack_aggregator': 'success',
                     'external_request_id': external_request_id,
                     'result': stack_data}
+        # Ingestion of Unknown dependencies
+        try:
+            for dep in unknown_dep_list:
+                server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
+                                        force=False, force_graph_sync=True)
+        except:
+            pass
+        return persiststatus
