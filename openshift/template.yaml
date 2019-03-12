@@ -87,7 +87,7 @@ objects:
           - name: API_BACKBONE_SERVICE_PORT
             value: "5000"
           - name: API_BACKBONE_SERVICE_TIMEOUT
-            value: "120"
+            value: ${API_BACKBONE_SERVICE_TIMEOUT}
           - name: NUMBER_WORKER_PROCESS
             value: "4"
           - name: CLASS_TYPE
@@ -204,6 +204,12 @@ parameters:
   required: true
   name: API_BACKBONE_SERVICE_PORT
   value: "5000"
+
+- description: API Service Timeout
+  displayName: API Service Timeout
+  required: true
+  name: API_BACKBONE_SERVICE_TIMEOUT
+  value: "300"
 
 - description: "Flask logging level (see: https://docs.python.org/3/library/logging.html#levels)"
   displayName: Flask logging level
