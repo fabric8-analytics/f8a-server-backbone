@@ -583,6 +583,7 @@ class StackAggregator:
                              'result': stack_data}
         # Ingestion of Unknown dependencies
         try:
+            logger.error(unknown_dep_list)
             for dep in unknown_dep_list:
                 server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
                                        force=False, force_graph_sync=True)
