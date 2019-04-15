@@ -11,7 +11,7 @@ LABEL name="f8analytics backbone services" \
       app-license="GPL-3.0"
 
 RUN yum install -y epel-release &&\
-    yum install -y gcc git python34-pip python34-requests httpd httpd-devel python34-devel &&\
+    yum install -y gcc git python36-pip python36-requests httpd httpd-devel python36-devel &&\
     yum clean all
 
 COPY ./requirements.txt /

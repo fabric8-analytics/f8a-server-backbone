@@ -20,8 +20,8 @@ load_jenkins_vars() {
 prep() {
     yum -y update
     yum install -y epel-release
-    yum install -y docker git which gcc python34-devel python34-pip python34-requests httpd-devel
-    pip3 install -U pip
+    yum install -y docker git which gcc python36-devel python36-pip python36-requests openssl-devel httpd-devel
+    #pip3 install -U pip
     pip3 install virtualenv
     pip3 install pytest docker-compose
     systemctl start docker
