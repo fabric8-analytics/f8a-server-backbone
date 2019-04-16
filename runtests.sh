@@ -15,6 +15,12 @@ RED=$(tput bold && tput setaf 1)
 GREEN=$(tput bold && tput setaf 2)
 YELLOW=$(tput bold && tput setaf 3)
 
+check_python_version() {
+    python3 tools/check_python_version.py 3 6
+}
+
+check_python_version
+
 gc() {
   retval=$?
   docker-compose -f docker-compose.yml down -v || :
