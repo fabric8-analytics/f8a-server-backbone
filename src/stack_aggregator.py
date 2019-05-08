@@ -19,6 +19,30 @@ import logging
 logger = logging.getLogger(__file__)
 
 
+def get_recommended_version(ecosystem, name, version):
+    """Fetch the recommended version in case of CVEs."""
+    query = "g.V().has('ecosystem', '{eco}').has('name', '{pkg}')" \
+            ".out('has_version').not(out('has_cve')).values('version');"\
+        .format(eco=ecosystem, pkg=name)
+    payload = {'gremlin': query}
+    result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
+    if result:
+        versions = result['result']['data']
+        if len(versions) == 0:
+            return None
+    else:
+        return None
+    rec_version = version
+    for ver in versions:
+        rec_version = select_latest_version(
+            ver,
+            rec_version
+        )
+    if rec_version == version:
+        return None
+    return rec_version
+
+
 def extract_component_details(component):
     """Extract details from given component."""
     github_details = {
@@ -71,17 +95,21 @@ def extract_component_details(component):
     }
 
     cves = []
-    for cve in component.get("cves", []):
-        component_cve = {
-            'CVE': cve.get('cve_id')[0],
-            'CVSS': cve.get('cvss_v2', [''])[0]
-        }
-        cves.append(component_cve)
-
-    licenses = component.get("version", {}).get("declared_licenses", [])
+    recommended_latest_version = None
     name = component.get("version", {}).get("pname", [""])[0]
     version = component.get("version", {}).get("version", [""])[0]
     ecosystem = component.get("version", {}).get("pecosystem", [""])[0]
+    if len(component.get("cves", [])) > 0:
+        for cve in component.get("cves", []):
+            component_cve = {
+                'CVE': cve.get('cve_id')[0],
+                'CVSS': cve.get('cvss_v2', [''])[0]
+            }
+            cves.append(component_cve)
+        recommended_latest_version = get_recommended_version(ecosystem, name, version)
+
+    licenses = component.get("version", {}).get("declared_licenses", [])
+
     latest_version = select_latest_version(
         version,
         component.get("package", {}).get("libio_latest_version", [""])[0],
@@ -96,6 +124,7 @@ def extract_component_details(component):
         "security": cves,
         "osio_user_count": component.get("version", {}).get("osio_usage_count", 0),
         "latest_version": latest_version,
+        "recommended_latest_version": recommended_latest_version,
         "github": github_details,
         "code_metrics": code_metrics
     }
