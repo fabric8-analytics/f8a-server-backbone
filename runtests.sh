@@ -82,19 +82,6 @@ export POSTGRESQL_PASSWORD="password"
 export POSTGRESQL_DATABASE="dbname"
 export PGBOUNCER_SERVICE_HOST="bayesian-pgbouncer"
 
-# this script is copied by CI, we don't need it
-rm -f env-toolkit
-
-echo "*****************************************"
-echo "*** Cyclomatic complexity measurement ***"
-echo "*****************************************"
-radon cc -s -a -i venv .
-
-echo "*****************************************"
-echo "*** Maintainability Index measurement ***"
-echo "*****************************************"
-radon mi -s -i venv .
-
 echo "*****************************************"
 echo "*** Unit tests ***"
 echo "*****************************************"
