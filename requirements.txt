@@ -25,3 +25,6 @@ six==1.11.0               # via flask-cors
 sqlalchemy==1.2.6
 urllib3==1.22             # via requests
 werkzeug==0.14.1          # via flask
+raven[flask]==6.10.0
+contextlib2==0.5.5        # via raven
+blinker==1.4              # via raven

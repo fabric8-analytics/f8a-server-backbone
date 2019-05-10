@@ -8,6 +8,7 @@ from flask import Flask, request, current_app
 from flask_cors import CORS
 from recommender import RecommendationTask
 from stack_aggregator import StackAggregator
+from raven.contrib.flask import Sentry
 
 
 def setup_logging(flask_app):
@@ -27,7 +28,8 @@ def setup_logging(flask_app):
 app = Flask(__name__)
 setup_logging(app)
 CORS(app)
-
+SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
+sentry = Sentry(app, dsn=SENTRY_DSN, logging=True, level=logging.ERROR)
 
 init_selinon()
 
