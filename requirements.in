@@ -8,3 +8,4 @@ semantic_version
 psycopg2
 sqlalchemy
 codecov
+raven[flask]

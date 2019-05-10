@@ -38,7 +38,10 @@ objects:
           - name: WORKER_ADMINISTRATION_REGION
             value: "api"
           - name: SENTRY_DSN
-            value: "${SENTRY_DSN}"
+            valueFrom:
+              secretKeyRef:
+                name: worker
+                key: sentry_dsn
           - name: PGBOUNCER_SERVICE_HOST
             value: bayesian-pgbouncer
           - name: PGBOUNCER_SERVICE_PORT
@@ -217,8 +220,3 @@ parameters:
   name: FLASK_LOGGING_LEVEL
   value: "INFO"
 
-- description: Sentry DSN
-  displayName: Sentry DSN
-  required: false
-  name: SENTRY_DSN
-  value: ""
