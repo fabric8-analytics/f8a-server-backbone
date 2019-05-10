@@ -182,6 +182,39 @@ def test_aggregate_stack_data():
     assert out['manifest_name'] == "pom.xml"
 
 
+mock_gremlin_resp = {
+    "result": {
+        "data": [
+            "2.1.5",
+            "2.1.1",
+            "2.1.1"
+        ]
+    }
+}
+
+
+@mock.patch('src.stack_aggregator.execute_gremlin_dsl', return_value=mock_gremlin_resp)
+def test_get_recommended_version(_mock1):
+    """Test get_recommended_version."""
+    rec_ver = stack_aggregator.get_recommended_version('maven', 'pkg', '2.0.0')
+    assert rec_ver == '2.1.5'
+
+    rec_ver = stack_aggregator.get_recommended_version('maven', 'pkg', '2.2.2')
+    assert rec_ver is None
+
+    _mock1.return_value = None
+    rec_ver = stack_aggregator.get_recommended_version('maven', 'pkg', '2.2.2')
+    assert rec_ver is None
+
+    _mock1.return_value = {
+        "result": {
+            "data": []
+        }
+    }
+    rec_ver = stack_aggregator.get_recommended_version('maven', 'pkg', '2.2.2')
+    assert rec_ver is None
+
+
 if __name__ == '__main__':
     test_extract_component_details()
     test_stack_aggregator_constructor()
@@ -191,3 +224,4 @@ if __name__ == '__main__':
     test_get_dependency_data()
     test_aggregate_stack_data()
     test_execute()
+    test_get_recommended_version()
