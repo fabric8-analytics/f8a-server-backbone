@@ -2,7 +2,8 @@
 from src.utils import (
     convert_version_to_proper_semantic as cvs, GREMLIN_SERVER_URL_REST, format_date,
     version_info_tuple as vt, select_latest_version as slv,
-    get_osio_user_count, create_package_dict, is_quickstart_majority, execute_gremlin_dsl)
+    get_osio_user_count, create_package_dict, is_quickstart_majority, execute_gremlin_dsl,
+    server_create_analysis)
 import semantic_version as sv
 import json
 from unittest import mock
@@ -23,6 +24,28 @@ def mock_error_response(*_args, **_kwargs):
             return self.json_data
 
     return MockResponse({}, 500)
+
+
+def mock_ingestion_response(*_args, **_kwargs):
+    """Mock the call to the insights service."""
+    class MockResponse:
+        """Mock response object."""
+
+        def __init__(self, json_data, status_code):
+            """Create a mock json response."""
+            self.json_data = json_data
+            self.status_code = status_code
+
+        def json(self):
+            """Get the mock json response."""
+            return self.json_data
+    resp = {
+        "id": "111",
+        "submitted_at": "10-10-2019",
+        "status": "Submitted"
+    }
+
+    return MockResponse(resp, 200)
 
 
 def mock_get_osio_user_count(*_args, **_kwargs):
@@ -161,6 +184,13 @@ def test_execute_gremlin_dsl(_mock1):
     assert result is None
 
 
+@mock.patch('requests.post', side_effect=mock_ingestion_response)
+def test_server_create_analysis(_mock1):
+    """Test server_create_analysis function."""
+    res = server_create_analysis("maven", "io.vertx:vertx-web", "3.4.0")
+    assert res == "111"
+
+
 if __name__ == '__main__':
     test_semantic_versioning()
     test_version_info_tuple()
@@ -168,4 +198,5 @@ if __name__ == '__main__':
     test_get_osio_user_count()
     test_is_quickstart_majority()
     test_execute_gremlin_dsl()
-    test_create_package_dict
+    test_create_package_dict()
+    test_server_create_analysis()

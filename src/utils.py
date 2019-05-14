@@ -11,8 +11,6 @@ import semantic_version as sv
 import logging
 from flask import current_app
 from f8a_worker.models import WorkerResult
-from f8a_worker.setup_celery import init_celery
-from selinon import run_flow
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert
 import traceback
@@ -33,6 +31,7 @@ quickstart_tuple = ("org.wildfly.swarm",
                     "io.vertx")
 
 GREMLIN_QUERY_SIZE = int(os.environ.get("GREMLIN_QUERY_SIZE", 50))
+INGESTION_API_URL = os.environ.get("INGESTION_API_HOST", "http://localhost:5000")
 
 
 class Postgres:
@@ -331,15 +330,32 @@ def server_run_flow(flow_name, flow_args):
     """
     logger.debug('Running flow {}'.format(flow_name))
     start = datetime.datetime.now()
+    dispatcher_id = ''
+    try:
+        api_url = INGESTION_API_URL
+        # requests.headers['Authorization'] = AUTH_KEY
+        input_json = {
+            "worker-data": flow_args
+        }
+        endpoint = "{url}/api/v1/worker-flow/{name}".format(url=api_url,
+                                                            name=flow_name)
+        response = requests.post(endpoint, json=input_json)
+        # compute the elapsed time
+        elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
+        logger.debug("It took {t} seconds to start {f} flow.".format(
+            t=elapsed_seconds, f=flow_name))
+        if response.status_code == 200:
 
-    init_celery(result_backend=False)
-    dispacher_id = run_flow(flow_name, flow_args)
+            json_data = response.json()
+            logger.info(json_data)
+            dispatcher_id = json_data['id']
+        else:
+            logger.error("Got an error {e} while calling ingestion API".format(
+                e=response.status_code))
 
-    # compute the elapsed time
-    elapsed_seconds = (datetime.datetime.now() - start).total_seconds()
-    logger.debug("It took {t} seconds to start {f} flow.".format(
-        t=elapsed_seconds, f=flow_name))
-    return dispacher_id
+    except Exception:
+        logger.exception("Failed to invoke the worker flow.")
+    return dispatcher_id
 
 
 def server_create_analysis(ecosystem, package, version, api_flow=True,

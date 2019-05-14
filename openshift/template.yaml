@@ -37,6 +37,8 @@ objects:
                 key: deployment-prefix
           - name: WORKER_ADMINISTRATION_REGION
             value: "api"
+          - name: INGESTION_API_HOST
+            value: "http://f8a-ingestion-api:5000"
           - name: SENTRY_DSN
             valueFrom:
               secretKeyRef:
