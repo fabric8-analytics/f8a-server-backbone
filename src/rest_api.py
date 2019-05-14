@@ -3,7 +3,6 @@
 import os
 import flask
 import logging
-from f8a_worker.setup_celery import init_selinon
 from flask import Flask, request, current_app
 from flask_cors import CORS
 from recommender import RecommendationTask
@@ -30,8 +29,6 @@ setup_logging(app)
 CORS(app)
 SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
 sentry = Sentry(app, dsn=SENTRY_DSN, logging=True, level=logging.ERROR)
-
-init_selinon()
 
 
 @app.route('/api/v1/readiness')
