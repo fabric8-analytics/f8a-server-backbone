@@ -111,6 +111,7 @@ def create_package_dict(graph_results, alt_dict=None):
                     epv['package'].get('libio_latest_release', [1496302486.0])[0])),
                 'first_release_date': 'N/A',
                 'forks_count': epv['package'].get('gh_forks', [-1])[0],
+                'refreshed_on': epv['package'].get('gh_refreshed_on', ['N/A'])[0],
                 'stargazers_count': epv['package'].get('gh_stargazers', [-1])[0],
                 'watchers': epv['package'].get('gh_subscribers_count', [-1])[0],
                 'contributors': -1,
