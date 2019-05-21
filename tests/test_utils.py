@@ -1,6 +1,6 @@
 """Tests for the 'utils' module."""
 from src.utils import (
-    convert_version_to_proper_semantic as cvs, GREMLIN_SERVER_URL_REST,
+    convert_version_to_proper_semantic as cvs, GREMLIN_SERVER_URL_REST, format_date,
     version_info_tuple as vt, select_latest_version as slv,
     get_osio_user_count, create_package_dict, is_quickstart_majority, execute_gremlin_dsl)
 import semantic_version as sv
@@ -78,6 +78,14 @@ def test_semantic_versioning():
     assert cvs(version, package_name) == sv.Version("2.0.0+rc1")
     version = "[1.4)"
     assert cvs(version, package_name) == sv.Version("0.0.0")
+
+
+def test_format_date():
+    """Check the function format_date()."""
+    date1 = '2019-05-21 06:44:15'
+    date2 = 'N/A'
+    assert format_date(date1) == '21 May 2019'
+    assert format_date(date2) == 'N/A'
 
 
 def test_version_info_tuple():

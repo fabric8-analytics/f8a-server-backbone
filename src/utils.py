@@ -60,6 +60,13 @@ class Postgres:
 session = Postgres().session
 
 
+def format_date(date):
+    """Format date to a readable form."""
+    if date != 'N/A':
+        date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S').strftime('%d %b %Y')
+    return date
+
+
 def get_osio_user_count(ecosystem, name, version):
     """Send query to the graph database to get # of uses for the provided E+P+V."""
     str_gremlin = "g.V().has('pecosystem','{}').has('pname','{}').has('version','{}').".format(
@@ -111,7 +118,7 @@ def create_package_dict(graph_results, alt_dict=None):
                     epv['package'].get('libio_latest_release', [1496302486.0])[0])),
                 'first_release_date': 'N/A',
                 'forks_count': epv['package'].get('gh_forks', [-1])[0],
-                'refreshed_on': epv['package'].get('gh_refreshed_on', ['N/A'])[0],
+                'refreshed_on': format_date(epv['package'].get('gh_refreshed_on', ['N/A'])[0]),
                 'stargazers_count': epv['package'].get('gh_stargazers', [-1])[0],
                 'watchers': epv['package'].get('gh_subscribers_count', [-1])[0],
                 'contributors': -1,
