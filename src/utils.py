@@ -61,7 +61,7 @@ session = Postgres().session
 
 
 def format_date(date):
-    """Format date to a readable form."""
+    """Format date to readable string."""
     if date != 'N/A':
         date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S').strftime('%d %b %Y')
     return date
