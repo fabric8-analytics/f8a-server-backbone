@@ -13,7 +13,7 @@ import copy
 from collections import defaultdict
 from utils import (select_latest_version, server_create_analysis, LICENSE_SCORING_URL_REST,
                    execute_gremlin_dsl, GREMLIN_SERVER_URL_REST, persist_data_in_db,
-                   GREMLIN_QUERY_SIZE)
+                   GREMLIN_QUERY_SIZE, format_date)
 import logging
 
 logger = logging.getLogger(__file__)
@@ -45,6 +45,7 @@ def get_recommended_version(ecosystem, name, version):
 
 def extract_component_details(component):
     """Extract details from given component."""
+    date = format_date(component.get("package", {}).get("gh_refreshed_on", ["N/A"])[0])
     github_details = {
         "dependent_projects":
             component.get("package", {}).get("libio_dependents_projects", [-1])[0],
@@ -72,7 +73,7 @@ def extract_component_details(component):
             }},
         "stargazers_count": component.get("package", {}).get("gh_stargazers", [-1])[0],
         "forks_count": component.get("package", {}).get("gh_forks", [-1])[0],
-        "refreshed_on": component.get("package", {}).get("gh_refreshed_on", ["N/A"])[0],
+        "refreshed_on": date,
         "open_issues_count": component.get("package", {}).get("gh_open_issues_count", [-1])[0],
         "contributors": component.get("package", {}).get("gh_contributors_count", [-1])[0],
         "size": "N/A"
