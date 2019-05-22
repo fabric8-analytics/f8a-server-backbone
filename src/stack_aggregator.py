@@ -593,7 +593,6 @@ class StackAggregator:
                         "current_stack_license": current_stack_license
                     })
                 stack_data.append(output)
-            finished['unknown_deps']['ecosystem'] = ecosystem
             unknown_dep_list.extend(finished['unknown_deps'])
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         audit = {
@@ -617,11 +616,10 @@ class StackAggregator:
         # Ingestion of Unknown dependencies
         try:
             for dep in unknown_dep_list:
-                print(dep['ecosystem'])
-                print(get_latest_versions_for_ep(dep['ecosystem'], dep['name']))
+                print(get_latest_versions_for_ep(ecosystem, dep['name']))
                 if not get_latest_versions_for_ep(dep['ecosystem'], dep['name']):
                     print('not blank')
-                    server_create_analysis(dep['ecosystem'], dep['name'], dep['version'], api_flow=False,
+                    server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
                                        force=False, force_graph_sync=True)
         except Exception as e:
             logger.error('Ingestion has been failed for ' + dep['name'])

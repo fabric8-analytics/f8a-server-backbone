@@ -20,6 +20,7 @@ COPY ./requirements.txt /
 RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt && rm requirements.txt
 RUN pip3 install git+https://github.com/fabric8-analytics/fabric8-analytics-utils.git@${F8A_UTIL_VERSION}
+RUN pip3 install git+https://git@github.com/fabric8-analytics/fabric8-analytics-version-comparator.git#egg=f8a_version_comparator
 RUN pip3 install git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@${F8A_WORKER_VERSION}
 
 COPY ./src /src
