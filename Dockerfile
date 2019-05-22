@@ -1,6 +1,7 @@
 FROM registry.centos.org/centos/centos:7
 
 ENV F8A_WORKER_VERSION=d403113
+    F8A_UTIL_VERSION=d6c3ac8
 LABEL name="f8analytics backbone services" \
       description="Stack aggregation and recommendation service." \
       git-sha="46e443d" \
@@ -18,6 +19,7 @@ COPY ./requirements.txt /
 
 RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt && rm requirements.txt
+RUN pip3 install git+https://github.com/fabric8-analytics/fabric8-analytics-utils.git@${F8A_UTIL_VERSION}
 RUN pip3 install git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@${F8A_WORKER_VERSION}
 
 COPY ./src /src

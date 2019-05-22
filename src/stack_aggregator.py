@@ -14,6 +14,7 @@ from collections import defaultdict
 from utils import (select_latest_version, server_create_analysis, LICENSE_SCORING_URL_REST,
                    execute_gremlin_dsl, GREMLIN_SERVER_URL_REST, persist_data_in_db,
                    GREMLIN_QUERY_SIZE, format_date)
+from f8a_utils.versions import get_latest_versions_for_ep
 import logging
 
 logger = logging.getLogger(__file__)
@@ -592,6 +593,7 @@ class StackAggregator:
                         "current_stack_license": current_stack_license
                     })
                 stack_data.append(output)
+            finished['unknown_deps']['ecosystem'] = ecosystem
             unknown_dep_list.extend(finished['unknown_deps'])
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         audit = {
@@ -615,7 +617,11 @@ class StackAggregator:
         # Ingestion of Unknown dependencies
         try:
             for dep in unknown_dep_list:
-                server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
+                print(dep['ecosystem'])
+                print(get_latest_versions_for_ep(dep['ecosystem'], dep['name']))
+                if not get_latest_versions_for_ep(dep['ecosystem'], dep['name']):
+                    print('not blank')
+                    server_create_analysis(dep['ecosystem'], dep['name'], dep['version'], api_flow=False,
                                        force=False, force_graph_sync=True)
         except Exception as e:
             logger.error('Ingestion has been failed for ' + dep['name'])
