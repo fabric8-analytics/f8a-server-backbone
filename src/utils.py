@@ -16,6 +16,7 @@ from selinon import run_flow
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert
 import traceback
+from f8a_utils.versions import get_versions_for_ep
 
 logger = logging.getLogger(__file__)
 GREMLIN_SERVER_URL_REST = "http://{host}:{port}".format(
@@ -353,14 +354,18 @@ def server_create_analysis(ecosystem, package, version, api_flow=True,
     :param force_graph_sync: force synchronization to graph
     :return: dispatcher ID handling flow
     """
-    args = {
-        'ecosystem': ecosystem,
-        'name': package,
-        'version': version,
-        'force': force,
-        'force_graph_sync': force_graph_sync
-    }
-    if api_flow:
-        return server_run_flow('bayesianApiFlow', args)
+    # Dont try ingestion for private packages
+    if get_versions_for_ep(ecosystem, package):
+        args = {
+            'ecosystem': ecosystem,
+            'name': package,
+            'version': version,
+            'force': force,
+            'force_graph_sync': force_graph_sync
+        }
+        if api_flow:
+            return server_run_flow('bayesianApiFlow', args)
+        else:
+            return server_run_flow('bayesianFlow', args)
     else:
-        return server_run_flow('bayesianFlow', args)
+        return None
