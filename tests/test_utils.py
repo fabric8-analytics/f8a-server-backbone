@@ -2,7 +2,8 @@
 from src.utils import (
     convert_version_to_proper_semantic as cvs, GREMLIN_SERVER_URL_REST, format_date,
     version_info_tuple as vt, select_latest_version as slv,
-    get_osio_user_count, create_package_dict, is_quickstart_majority, execute_gremlin_dsl)
+    get_osio_user_count, create_package_dict, is_quickstart_majority, execute_gremlin_dsl,
+    server_create_analysis)
 import semantic_version as sv
 import json
 from unittest import mock
@@ -161,6 +162,12 @@ def test_execute_gremlin_dsl(_mock1):
     assert result is None
 
 
+def test_server_create_analysis():
+    """Test server_create_analysis."""
+    rec_resp = server_create_analysis("npm", "hjhjhjh", "1.1")
+    assert rec_resp is None
+
+
 if __name__ == '__main__':
     test_semantic_versioning()
     test_version_info_tuple()
@@ -169,3 +176,4 @@ if __name__ == '__main__':
     test_is_quickstart_majority()
     test_execute_gremlin_dsl()
     test_create_package_dict
+    test_server_create_analysis()
