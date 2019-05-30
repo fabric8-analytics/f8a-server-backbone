@@ -369,3 +369,20 @@ def server_create_analysis(ecosystem, package, version, api_flow=True,
             return server_run_flow('bayesianFlow', args)
     else:
         return None
+
+
+def select_from_db(external_request_id, worker):
+    """
+    Read the data from Postgres.
+    :param: external_request_id : stack_id
+    :param: worker: stack_aggregator / recommender
+    """
+    try:
+        return session.query(WorkerResult)\
+            .filter(WorkerResult.external_request_id == external_request_id, WorkerResult.worker == worker).first()
+
+    except (SQLAlchemyError, Exception) as e:
+        logger.error("Error %r." % e)
+        session.rollback()
+        return {'recommendation': 'database error', 'external_request_id': external_request_id,
+                'message': '%s' % e, 'status': 501}
