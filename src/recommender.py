@@ -156,7 +156,7 @@ class GraphDB:
 
         except ValueError:
             logger.exception("Unexpected ValueError while filtering latest version!")
-        pass
+            pass
         return pkg_dict, new_dict, filtered_comp_list
 
     @staticmethod
