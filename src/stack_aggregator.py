@@ -108,7 +108,9 @@ def extract_component_details(component):
                 'CVSS': cve.get('cvss_v2', [''])[0]
             }
             cves.append(component_cve)
-        recommended_latest_version = get_recommended_version(ecosystem, name, version)
+        recommended_latest_version = component.get("package", {}).get("latest_non_cve_version", "")
+        if not recommended_latest_version:
+            recommended_latest_version = get_recommended_version(ecosystem, name, version)
 
     licenses = component.get("version", {}).get("declared_licenses", [])
 
@@ -419,7 +421,6 @@ def remove_duplicate_cve_data(epv_list):
     graph_dict = {}
     result = []
     for data in epv_list['result']['data']:
-        # print(data)
         pv = data.get('version').get('pname')[0] + ":" + \
              data.get('version').get('version')[0]
         if pv not in graph_dict:

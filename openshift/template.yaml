@@ -98,7 +98,7 @@ objects:
           - name: FLASK_LOGGING_LEVEL
             value: ${FLASK_LOGGING_LEVEL}
           - name: METRICS_ENDPOINT_URL
-            value: "http://metrics-accumulator"
+            value: "metrics-accumulator"
           - name: METRICS_ENDPOINT_URL_PORT
             value: "5200"
 
