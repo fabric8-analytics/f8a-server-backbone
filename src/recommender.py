@@ -78,6 +78,7 @@ from utils import (create_package_dict, get_session_retry, select_latest_version
                    is_quickstart_majority, execute_gremlin_dsl)
 from stack_aggregator import extract_user_stack_package_licenses
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__file__)
 
 
@@ -97,17 +98,19 @@ class GraphDB:
 
         Also remove EPVs with CVEs and ones not present in Graph
         """
-        input_packages = [package for package in input_list]
-        str_query = "g.V().has('ecosystem',ecosystem).has('name',within(input_packages))" \
-                    ".as('package').out('has_version')" \
-                    ".not(outE('has_cve')).as('version').select('package','version')." \
-                    "by(valueMap()).dedup()"
+        str_query = "data=[]; "
+        for package in input_list:
+            str_query += "pkg = g.V().has('ecosystem', '{eco}').has('name', '{pkg}'); " \
+                         "lnv = []; pkg.clone().values('latest_non_cve_version', " \
+                         "'latest_version').fill(lnv); pkg.clone().as('package').V()." \
+                         "has('pecosystem', '{eco}').has('pname', '{pkg}')." \
+                         "has('version', within(lnv)).as('version')." \
+                         "select('package', 'version').by(valueMap()).fill(data);".format(
+                                                                                    eco=ecosystem,
+                                                                                    pkg=package)
+        str_query += "data"
         payload = {
-            'gremlin': str_query,
-            'bindings': {
-                'ecosystem': ecosystem,
-                'input_packages': input_packages
-            }
+            'gremlin': str_query
         }
 
         # Query Gremlin with packages list to get their version information
