@@ -69,7 +69,7 @@ function prepare_venv() {
 # now we are surely in the Python virtual environment
 
 pip3 install git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@d403113
-pip3 install git+https://github.com/fabric8-analytics/fabric8-analytics-utils.git@d6c3ac8
+pip3 install git+https://github.com/fabric8-analytics/fabric8-analytics-utils.git@de8046b
 pip3 install git+https://git@github.com/fabric8-analytics/fabric8-analytics-version-comparator.git#egg=f8a_version_comparator
 pip3 install pytest
 pip3 install pytest-cov
