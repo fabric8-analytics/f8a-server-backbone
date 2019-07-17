@@ -606,6 +606,8 @@ class StackAggregator:
             '_release': 'None:None:None'
         }
         if persist:
+            logger.info("Aggregation process completed for {}."
+                        " Writing to RDS.".format(external_request_id))
             persiststatus = persist_data_in_db(external_request_id=external_request_id,
                                                task_result=stack_data, worker='stack_aggregator_v2',
                                                started_at=started_at, ended_at=ended_at)
@@ -614,6 +616,7 @@ class StackAggregator:
                              'external_request_id': external_request_id,
                              'result': stack_data}
         # Ingestion of Unknown dependencies
+        logger.info("Unknown ingestion flow process initiated.")
         try:
             for dep in unknown_dep_list:
                 server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
