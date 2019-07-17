@@ -12,11 +12,6 @@ from raven.contrib.flask import Sentry
 from src.utils import push_data, total_time_elapsed, get_time_delta
 
 
-METRICS_COLLECTION_URL = "http://{base_url}:{port}/api/v1/prometheus".format(
-    base_url=os.environ.get("METRICS_ENDPOINT_URL"),
-    port=os.environ.get("METRICS_ENDPOINT_URL_PORT"))
-
-
 def setup_logging(flask_app):
     """Perform the setup of logging (file, log level) for this application."""
     if not flask_app.debug:
