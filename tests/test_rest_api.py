@@ -1,6 +1,4 @@
 """Tests for the REST API of the backbone service."""
-
-import requests
 import os
 import json
 from unittest import mock
@@ -37,6 +35,7 @@ payload = {
 }
 port = os.getenv("API_BACKBONE_SERVICE_PORT", "5000")
 url = "http://localhost:{port}/api/v1".format(port=port)
+
 response = {
     "recommendation": "success",
     "external_request_id": "some_external_request_id",
@@ -57,6 +56,17 @@ response = {
             "version": "v1"
         },
         "_release": "None:None:None"}}
+
+
+class Response2:
+    """Fake Response2."""
+
+    status_code = 200
+
+    @staticmethod
+    def json():
+        """Json Response."""
+        return response
 
 
 def get_json_from_response(response):
@@ -85,11 +95,14 @@ def test_liveness_endpoint(client):
     assert json_data == {}, "Empty JSON response expected"
 
 
-def test_stack_api_endpoint():
+@mock.patch('requests.Session.post', return_value=Response2)
+def test_stack_api_endpoint(_mock, client):
     """Check the /stack_aggregator REST API endpoint."""
-    stack_resp = requests.post(url + "/stack_aggregator", json=payload)
-    jsn = stack_resp.json()
-    assert jsn['external_request_id'] is not None
+    stack_resp = client.post(api_route_for("stack_aggregator"),
+                             data=json.dumps(payload),
+                             content_type='application/json')
+    jsn = get_json_from_response(stack_resp)
+    assert jsn['external_request_id'] == payload['external_request_id']
 
 
 @mock.patch('src.recommender.RecommendationTask.execute', side_effect=response)
@@ -100,6 +113,16 @@ def test_recommendation_api_endpoint(_mock_object, client):
     jsn = get_json_from_response(rec_resp)
     assert jsn['recommendation'] == 'pgm_error'
     assert jsn['external_request_id'] is not None
+
+
+@mock.patch('requests.Session.post', return_value=Response2)
+def test_recommendation_api_endpoint_exception(_mock_object, client):
+    """Check the /recommender REST API endpoint."""
+    rec_resp = client.post(api_route_for("recommender"),
+                           data=json.dumps(payload), content_type='application/json')
+    jsn = get_json_from_response(rec_resp)
+    assert jsn['recommendation'] == 'unexpected error'
+    assert jsn['external_request_id'] == payload['external_request_id']
 
 
 if __name__ == '__main__':
