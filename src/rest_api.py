@@ -98,7 +98,7 @@ def stack_aggregator():
     metrics_payload = {
         'pid': os.getpid(),
         'hostname': os.environ.get("HOSTNAME"),
-        'endpoint': 'api_v1.get_stack_analysis',
+        'endpoint': 'api_v1.get_stack_analyses',
         'request_method': request.method,
         'status_code': 200
     }
@@ -125,6 +125,7 @@ def stack_aggregator():
             metrics_payload['status_code'] = 400
 
         try:
+            # Pushing Individual Metrics Data to Accumulator
             metrics_payload['value'] = get_time_delta(audit_data=s['result']['_audit'])
             metrics_payload['endpoint'] = request.endpoint
             push_data(metrics_payload)
