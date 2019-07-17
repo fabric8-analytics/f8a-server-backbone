@@ -63,8 +63,12 @@ session = Postgres().session
 
 def format_date(date):
     """Format date to readable format."""
-    if date != 'N/A':
-        date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S').strftime('%d %b %Y')
+    try:
+        if date != 'N/A':
+            date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S').strftime('%d %b %Y')
+    except ValueError:
+        logger.error("Unexpected ValueError while trying to format date -> {}".format(date))
+        pass
     return date
 
 
@@ -356,6 +360,7 @@ def server_create_analysis(ecosystem, package, version, api_flow=True,
     """
     # Dont try ingestion for private packages
     if get_versions_for_ep(ecosystem, package):
+        logger.info("Unknown flow for {} {}".format(ecosystem, package))
         args = {
             'ecosystem': ecosystem,
             'name': package,
@@ -368,4 +373,5 @@ def server_create_analysis(ecosystem, package, version, api_flow=True,
         else:
             return server_run_flow('bayesianFlow', args)
     else:
+        logger.info("Private package detected {} {}".format(ecosystem, package))
         return None
