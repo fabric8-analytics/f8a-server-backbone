@@ -17,8 +17,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert
 import traceback
 from f8a_utils.versions import get_versions_for_ep
-from requests_futures.sessions import FuturesSession
-import time
 
 logger = logging.getLogger(__file__)
 GREMLIN_SERVER_URL_REST = "http://{host}:{port}".format(
@@ -34,14 +32,8 @@ zero_version = sv.Version("0.0.0")
 quickstart_tuple = ("org.wildfly.swarm",
                     "org.springframework.boot",
                     "io.vertx")
-fmt = "%Y-%m-%dT%H:%M:%S.%f"
-worker_count = int(os.getenv('FUTURES_SESSION_WORKER_COUNT', '100'))
-_session = FuturesSession(max_workers=worker_count)
-GREMLIN_QUERY_SIZE = int(os.environ.get("GREMLIN_QUERY_SIZE", 50))
 
-METRICS_COLLECTION_URL = "http://{base_url}:{port}/api/v1/prometheus".format(
-    base_url=os.environ.get("METRICS_ENDPOINT_URL"),
-    port=os.environ.get("METRICS_ENDPOINT_URL_PORT"))
+GREMLIN_QUERY_SIZE = int(os.environ.get("GREMLIN_QUERY_SIZE", 50))
 
 
 class Postgres:
@@ -377,83 +369,3 @@ def server_create_analysis(ecosystem, package, version, api_flow=True,
             return server_run_flow('bayesianFlow', args)
     else:
         return None
-
-
-def select_from_db(external_request_id, worker):
-    """
-    Read the data from Postgres.
-
-    :param: external_request_id : stack_id
-    :param: worker: stack_aggregator / recommender
-    """
-    try:
-        return session.query(WorkerResult)\
-            .filter(
-                WorkerResult.external_request_id == external_request_id,
-                WorkerResult.worker == worker).first()
-    except (SQLAlchemyError, Exception) as e:
-        logger.error("Error %r." % e)
-        session.rollback()
-        return {'recommendation': 'database error', 'external_request_id': external_request_id,
-                'message': '%s' % e, 'status': 501}
-
-
-def get_time_delta(audit_data):
-    """
-    Return Time Delta for Stack Aggregator and Recommender Engine.
-
-    :param audit_data: Audit Data
-    :return: Time Delta in Seconds
-    """
-    if audit_data.get('ended_at') and audit_data.get('started_at'):
-        timedelta = (
-                datetime.datetime.strptime(audit_data['ended_at'], fmt) -
-                datetime.datetime.strptime(audit_data['started_at'], fmt)).total_seconds()
-        return timedelta
-    return None
-
-
-def push_data(metrics_payload, url=METRICS_COLLECTION_URL):
-    """
-    Pushes individual Payload data (SA or RE Data) to specified url.
-
-    :param audit_data: Audit Data
-    :return: Request Object
-    """
-    _session.post(url=url, json=metrics_payload)
-    return None
-
-
-def total_time_elapsed(sa_audit_data, external_request_id):
-    """
-     Return Combined time delta, called in Stack Aggregator Only.
-
-    :param: sa_audit_data: Stack Aggregator Audit Data
-    :param: external_request_id: Stack Id
-    :return: Time Delta in Seconds
-    """
-    sa_started_at = sa_audit_data.get('started_at')
-    sa_ended_at = sa_audit_data.get('ended_at')
-    if sa_started_at is None or sa_ended_at is None:
-        return None
-
-    re_db_data = retry(select_from_db,
-                       external_request_id=external_request_id,
-                       worker='recommendation_v2')
-
-    sa_started_at = datetime.datetime.strptime(sa_started_at, fmt)
-    sa_ended_at = datetime.datetime.strptime(sa_ended_at, fmt)
-    re_started_at = getattr(re_db_data, 'started_at', sa_started_at)
-    re_ended_at = getattr(re_db_data, 'ended_at', sa_ended_at)
-    analysis_started_at = min(sa_started_at, re_started_at)
-    analysis_ended_at = max(sa_ended_at, re_ended_at)
-    return (analysis_ended_at - analysis_started_at).total_seconds()
-
-
-def retry(func, *args, retry_count=3, **kwargs):
-    """Retry Repeatedly."""
-    for _ in range(retry_count):
-        result = func(*args, **kwargs)
-        if result:
-            return result
-        time.sleep(1)
