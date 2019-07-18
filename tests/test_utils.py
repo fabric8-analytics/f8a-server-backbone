@@ -3,10 +3,17 @@ from src.utils import (
     convert_version_to_proper_semantic as cvs, GREMLIN_SERVER_URL_REST, format_date,
     version_info_tuple as vt, select_latest_version as slv,
     get_osio_user_count, create_package_dict, is_quickstart_majority, execute_gremlin_dsl,
-    server_create_analysis)
+    server_create_analysis, select_from_db, total_time_elapsed)
 import semantic_version as sv
 import json
 from unittest import mock
+from tests.test_rest_api import response
+import os
+from src.utils import push_data, get_time_delta
+
+METRICS_COLLECTION_URL = "http://{base_url}:{port}/api/v1/prometheus".format(
+    base_url='metrics-accumulator-deepak1725-fabric8-analytics.devtools-dev.ext.devshift.net',
+    port=80)
 
 
 def mock_error_response(*_args, **_kwargs):
@@ -168,6 +175,57 @@ def test_server_create_analysis():
     assert rec_resp is None
 
 
+def test_select_from_db():
+    """Test Select from DB."""
+    sf_db = select_from_db(external_request_id="req-id", worker="recommendation_v2")
+    assert 'recommendation' in sf_db.keys()
+    assert 'message' in sf_db.keys()
+    assert sf_db.get('status') == 501
+    assert sf_db.get('external_request_id') == 'req-id'
+
+
+@mock.patch('src.utils.select_from_db', return_value=None)
+def test_total_time_elapsed(_mock1):
+    """Check Total Time Elapsed Method."""
+    timedelta = total_time_elapsed(
+        sa_audit_data=response["result"]["_audit"],
+        external_request_id=response["external_request_id"],
+    )
+    assert timedelta == 0.001102
+
+
+@mock.patch('src.utils.select_from_db', return_value=None)
+def test_total_time_elapsed_no_param(_mock1):
+    """Test Select from DB."""
+    sf_db = total_time_elapsed(sa_audit_data={}, external_request_id="req-id")
+    assert sf_db is None
+
+
+def test_push_data():
+    """Check the Push Data Method."""
+    metrics_payload = {
+        'pid': os.getpid(),
+        'hostname': os.environ.get("HOSTNAME"),
+        'endpoint': "pi_v1.test__slashless",
+        'request_method': "GET",
+        'status_code': 200,
+        'value': 0.001,
+    }
+    response_obj = push_data(metrics_payload, url=METRICS_COLLECTION_URL)
+    assert response_obj is None
+
+
+def test_get_time_delta():
+    """Check the Push Data Method."""
+    timedelta = get_time_delta(audit_data=response['result']['_audit'])
+    assert timedelta == 0.001102
+
+
+def test_get_time_delta_with_no_param():
+    """Check the Push Data Method."""
+    assert get_time_delta({}) is None
+
+
 if __name__ == '__main__':
     test_semantic_versioning()
     test_version_info_tuple()
@@ -175,5 +233,5 @@ if __name__ == '__main__':
     test_get_osio_user_count()
     test_is_quickstart_majority()
     test_execute_gremlin_dsl()
-    test_create_package_dict
+    test_create_package_dict()
     test_server_create_analysis()
