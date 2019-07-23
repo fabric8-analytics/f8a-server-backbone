@@ -22,6 +22,9 @@
             "ecosystem": [
                 "maven"
             ],
+            "gh_refreshed_on": [
+                "None"
+            ],
             "gh_subscribers_count": [
                 -1
             ],

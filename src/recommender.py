@@ -662,6 +662,8 @@ class RecommendationTask:
         }
 
         if persist:
+            logger.info("Recommendation process completed for {}."
+                        " Writing to RDS.".format(external_request_id))
             return persist_data_in_db(external_request_id=external_request_id,
                                       task_result=task_result, worker='recommendation_v2',
                                       started_at=started_at, ended_at=ended_at)
