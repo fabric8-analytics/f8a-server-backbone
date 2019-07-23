@@ -74,7 +74,7 @@ def recommender():
                 'external_request_id': input_json.get('external_request_id'),
                 'message': '%s' % e
             }
-            metrics_payload['status_code'] = 500
+            metrics_payload['status_code'] = 400
 
     try:
         metrics_payload['value'] = get_time_delta(audit_data=r['result']['_audit'])
