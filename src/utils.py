@@ -453,7 +453,8 @@ def total_time_elapsed(sa_audit_data, external_request_id):
     re_ended_at = getattr(re_db_data, 'ended_at', sa_ended_at)
     analysis_started_at = min(sa_started_at, re_started_at)
     analysis_ended_at = max(sa_ended_at, re_ended_at)
-    return (analysis_ended_at - analysis_started_at).total_seconds()
+    # Adding Time Constant, Time includes Resolving and Installation of Dependencies
+    return (analysis_ended_at - analysis_started_at).total_seconds() + 45
 
 
 def retry(func, *args, retry_count=3, **kwargs):
