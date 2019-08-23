@@ -430,7 +430,10 @@ def remove_duplicate_cve_data(epv_list):
             graph_dict[pv]['cves'] = list()
         if 'cve' in data:
             cve = graph_dict[pv].pop('cve')
-            graph_dict[pv]['cves'].append(cve)
+            # Fixes Issue
+            # https://github.com/fabric8-analytics/fabric8-analytics-vscode-extension/issues/328
+            if cve not in graph_dict[pv]['cves']:
+                graph_dict[pv]['cves'].append(cve)
 
     # create a uniform structure for direct and transitive
     for x, y in graph_dict.items():

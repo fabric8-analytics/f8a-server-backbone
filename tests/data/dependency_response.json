@@ -161,7 +161,7 @@
 						"MIT License"
 					]
 				},
-				"cves": [
+				"cve": 
 					{
 						"ecosystem": [
 							"maven"
@@ -182,7 +182,6 @@
 							"20181008"
 						]
 					}
-				]
 			},
 			{
 				"package": {
@@ -338,13 +337,13 @@
 						"MIT License"
 					]
 				},
-				"cves": [
+				"cve": 
 					{
 						"ecosystem": [
 							"maven"
 						],
 						"cve_id": [
-							"CVE-TEST"
+							"CVE-TEST-2"
 						],
 						"cvss_v2": [
 							8.0
@@ -359,7 +358,6 @@
 							"20181008"
 						]
 					}
-				]
 			}],
 		"meta": {}
 	}
