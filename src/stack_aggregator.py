@@ -587,6 +587,9 @@ class StackAggregator:
             manifest = result['details'][0]['manifest_file']
             manifest_file_path = result['details'][0]['manifest_file_path']
             epv_set = create_dependency_data_set(resolved, ecosystem)
+            """ Direct deps can have 0 transitives. This condition is added
+            so that in ext, we get to know if deps are 0 or if the transitive flag
+            is false """
             if show_transitive == "true":
                 transitive_count = len(epv_set.get('transitive', []))
             else:
