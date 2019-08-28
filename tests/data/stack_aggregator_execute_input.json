@@ -1,5 +1,6 @@
 {
 	"external_request_id": "some_external_request_id",
+	"show_transitive": "false",
 	"result": [{
 		"summary": [],
 		"details": [{
