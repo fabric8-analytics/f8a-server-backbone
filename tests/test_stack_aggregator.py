@@ -69,6 +69,7 @@ def test_execute(_mock_get, _mock_post):
     s = stack_aggregator.StackAggregator()
     out = s.execute(payload, False)
     assert out['stack_aggregator'] == "success"
+    assert out['result']['stack_data'][0]['user_stack_info']['transitive_count'] == -1
 
 
 def mock_licenses_resp_component_conflict(*_args, **_kwargs):

@@ -576,6 +576,7 @@ class StackAggregator:
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         stack_data = []
         unknown_dep_list = []
+        show_transitive = aggregated.get('show_transitive')
         external_request_id = aggregated.get('external_request_id')
         # TODO multiple license file support
         current_stack_license = aggregated.get('current_stack_license', {}).get('1', {})
@@ -586,7 +587,13 @@ class StackAggregator:
             manifest = result['details'][0]['manifest_file']
             manifest_file_path = result['details'][0]['manifest_file_path']
             epv_set = create_dependency_data_set(resolved, ecosystem)
-            transitive_count = len(epv_set.get('transitive', []))
+            """ Direct deps can have 0 transitives. This condition is added
+            so that in ext, we get to know if deps are 0 or if the transitive flag
+            is false """
+            if show_transitive == "true":
+                transitive_count = len(epv_set.get('transitive', []))
+            else:
+                transitive_count = -1
             finished = get_dependency_data(epv_set)
             if finished is not None:
                 output = aggregate_stack_data(finished, manifest, ecosystem.lower(), resolved,
