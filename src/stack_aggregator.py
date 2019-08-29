@@ -227,7 +227,7 @@ def _extract_unknown_licenses(license_service_output):
                 comp_conflict_licenses = license_analysis.get('conflict_licenses', [])
                 list_conflicting_pairs = []
                 for pair in comp_conflict_licenses:
-                    assert (len(pair) == 2)
+                    assert len(pair) == 2
                     list_conflicting_pairs.append({
                         'license1': pair[0],
                         'license2': pair[1]
