@@ -285,7 +285,7 @@ def test_set_valid_cooccurrence_probability():
               "cooccurrence_probability": 'nan'}]
     components = set_valid_cooccurrence_probability(input)
     for component in components:
-        assert (component['cooccurrence_probability'] == 100)
+        assert component['cooccurrence_probability'] == 100
 
 
 if __name__ == '__main__':
