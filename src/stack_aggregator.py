@@ -525,7 +525,6 @@ def get_tr_dependency_data(epv_set):
 
 def find_unknown_deps(epv_data, epv_list, dep_list, unknown_deps_list, is_transitive=False):
     """Find the list of unknown dependencies."""
-
     for k, v in dep_list.items():
         known_flag = False
         for knowndep in epv_data:
