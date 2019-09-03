@@ -490,7 +490,14 @@ def get_dependency_data(epv_set):
             "unknown_deps": []
         }
     }
+
+    tr_epv_list = {
+        "result": {
+            "data": []
+        }
+    }
     dep_list = {}
+    tr_list = {}
     unknown_deps_list = []
     query = "epv=[];"
     batch_query = "a = g.V().has('pecosystem', '{eco}').has('pname', '{name}')." \
@@ -524,15 +531,16 @@ def get_dependency_data(epv_set):
 
     query = "epv=[];"
     batch_query = "g.V().has('pecosystem', '{eco}').has('pname', '{name}')." \
-                  "has('version', '{ver}').dedup().as('version')." \
-                  "out('has_cve').as('cve')." \
-                  "select('version','cve').by(valueMap())." \
-                  "fill(epv);"
+                  "has('version', '{ver}').dedup().as('version').select('version')." \
+                  "coalesce(out('has_cve').as('cve')." \
+                  "select('version','cve').by(valueMap())" \
+                  ", select('version', 'version').by(valueMap()))" \
+                  ".fill(epv);"
     i = 1
     epvs = [x for x, y in epv_set['transitive'].items()]
     for epv in epvs:
         eco, name, ver = epv.split('|#|')
-        dep_list[name] = ver
+        tr_list[name] = ver
         query += batch_query.format(eco=eco, name=name, ver=ver)
         if i >= GREMLIN_QUERY_SIZE:
             i = 1
@@ -540,7 +548,7 @@ def get_dependency_data(epv_set):
             payload = {'gremlin': query}
             result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
             if result:
-                epv_list['result']['data'] += result['result']['data']
+                tr_epv_list['result']['data'] += result['result']['data']
             query = "epv=[];"
         i += 1
 
@@ -548,23 +556,39 @@ def get_dependency_data(epv_set):
         payload = {'gremlin': query}
         result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
         if result:
-            epv_list['result']['data'] += result['result']['data']
-
+            tr_epv_list['result']['data'] += result['result']['data']
+    transitive_count = len(tr_epv_list['result']['data'])
     # Identification of unknown dependencies
     epv_data = epv_list['result']['data']
     for k, v in dep_list.items():
         known_flag = False
         for knowndep in epv_data:
             version_node = knowndep['version']
-            if k == knowndep['version']['pname'][0] and v == knowndep['version']['version'][0] \
-                    and (version_node.get('licenses') or version_node.get('declared_licenses')):
-                known_flag = True
-                break
+            if k == knowndep['version']['pname'][0] and v == knowndep['version']['version'][0]:
+                if version_node.get('licenses') or version_node.get('declared_licenses'):
+                    known_flag = True
+            break
+        if not known_flag:
+            unknown_deps_list.append({'name': k, 'version': v})
+
+    # Identification of unknown transitive dependencies
+    epv_data = tr_epv_list['result']['data']
+    for k, v in tr_list.items():
+        known_flag = False
+        for knowndep in epv_data:
+            version_node = knowndep['version']
+            if k == knowndep['version']['pname'][0] and v == knowndep['version']['version'][0]:
+                if 'cve' in knowndep:
+                    epv_list['result']['data'].append(knowndep)
+                if version_node.get('licenses') or version_node.get('declared_licenses'):
+                    known_flag = True
+            break
         if not known_flag:
             unknown_deps_list.append({'name': k, 'version': v})
 
     result = add_transitive_details(epv_list, epv_set)
-    return {'result': result, 'unknown_deps': unknown_deps_list}
+    return {'result': result, 'unknown_deps': unknown_deps_list,
+            'transitive_count': transitive_count}
 
 
 class StackAggregator:
@@ -587,14 +611,15 @@ class StackAggregator:
             manifest = result['details'][0]['manifest_file']
             manifest_file_path = result['details'][0]['manifest_file_path']
             epv_set = create_dependency_data_set(resolved, ecosystem)
+
+            finished = get_dependency_data(epv_set)
             """ Direct deps can have 0 transitives. This condition is added
             so that in ext, we get to know if deps are 0 or if the transitive flag
             is false """
             if show_transitive == "true":
-                transitive_count = len(epv_set.get('transitive', []))
+                transitive_count = finished['transitive_count']
             else:
                 transitive_count = -1
-            finished = get_dependency_data(epv_set)
             if finished is not None:
                 output = aggregate_stack_data(finished, manifest, ecosystem.lower(), resolved,
                                               manifest_file_path, persist, transitive_count)
