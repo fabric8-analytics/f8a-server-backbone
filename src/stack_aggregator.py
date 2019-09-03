@@ -625,7 +625,7 @@ class StackAggregator:
             so that in ext, we get to know if deps are 0 or if the transitive flag
             is false """
             if show_transitive == "true":
-                transitive_count = finished['transitive_count']
+                transitive_count = finished.get('transitive_count', 0)
             else:
                 transitive_count = -1
             if finished is not None:
