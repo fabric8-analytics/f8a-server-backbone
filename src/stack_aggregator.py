@@ -535,7 +535,7 @@ def find_unknown_deps(epv_data, epv_list, dep_list, unknown_deps_list, is_transi
                     epv_list['result']['data'].append(knowndep)
                 if version_node.get('licenses') or version_node.get('declared_licenses'):
                     known_flag = True
-            break
+                break
         if not known_flag:
             unknown_deps_list.append({'name': k, 'version': v})
     return epv_list, unknown_deps_list
@@ -618,13 +618,10 @@ class StackAggregator:
             ecosystem = result['details'][0]['ecosystem']
             manifest = result['details'][0]['manifest_file']
             manifest_file_path = result['details'][0]['manifest_file_path']
-            epv_set = create_dependency_data_set(resolved, ecosystem)
 
-            print("-----------------------------------------")
-            print("Calling get dependency data")
+            epv_set = create_dependency_data_set(resolved, ecosystem)
             finished = get_dependency_data(epv_set)
-            print("Dependency data over")
-            print("-----------------------------------------")
+
             """ Direct deps can have 0 transitives. This condition is added
             so that in ext, we get to know if deps are 0 or if the transitive flag
             is false """
