@@ -9,6 +9,6 @@ build_image
 
 prep
 
-./runtests.sh
+./qa/runtests.sh
 
 push_image

@@ -1,5 +1,9 @@
 #!/bin/bash -ex
 
+SCRIPT_DIR="$( cd "$( dirname "$0" )" && pwd )"
+
+pushd "${SCRIPT_DIR}/.." > /dev/null
+
 # test coverage threshold
 COVERAGE_THRESHOLD=85
 
@@ -90,3 +94,5 @@ PYTHONDONTWRITEBYTECODE=1 GOLANG_SERVICE_HOST='golang-insights' PYPI_SERVICE_HOS
 printf "%stests passed%s\n\n" "${GREEN}" "${NORMAL}"
 
 codecov --token=74b5a608-da00-4b26-aec8-8f7f47489f86
+
+popd > /dev/null
