@@ -662,7 +662,7 @@ class StackAggregator:
         logger.info("Unknown ingestion flow process initiated.")
         try:
             for dep in unknown_dep_list:
-                server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=False,
+                server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=True,
                                        force=False, force_graph_sync=True)
         except Exception as e:
             logger.error('Ingestion has been failed for ' + dep['name'])
