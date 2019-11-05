@@ -490,8 +490,6 @@ def get_tr_dependency_data(epv_set):
             "data": []
         }
     }
-    tr_list = {}
-
     batch_query = "g.V().has('pecosystem', '{eco}').has('pname', '{name}')." \
                   "has('version', '{ver}').dedup().as('version').select('version')." \
                   "coalesce(out('has_cve').as('cve')." \
@@ -500,9 +498,10 @@ def get_tr_dependency_data(epv_set):
                   ".fill(epv);"
     i = 1
     epvs = [x for x, y in epv_set['transitive'].items()]
+    tr_list = []
     for epv in epvs:
         eco, name, ver = epv.split('|#|')
-        tr_list[name] = ver
+        tr_list.append((name, ver))
         query += batch_query.format(eco=eco, name=name, ver=ver)
         if i >= GREMLIN_QUERY_SIZE:
             i = 1
@@ -525,18 +524,18 @@ def get_tr_dependency_data(epv_set):
 
 def find_unknown_deps(epv_data, epv_list, dep_list, unknown_deps_list, is_transitive=False):
     """Find the list of unknown dependencies."""
-    for k, v in dep_list.items():
+    for pkg, ver in dep_list:
         known_flag = False
         for knowndep in epv_data:
             version_node = knowndep['version']
-            if k == knowndep['version']['pname'][0] and v == knowndep['version']['version'][0]:
+            if pkg == knowndep['version']['pname'][0] and ver == knowndep['version']['version'][0]:
                 if is_transitive and 'cve' in knowndep:
                     epv_list['result']['data'].append(knowndep)
                 if version_node.get('licenses') or version_node.get('declared_licenses'):
                     known_flag = True
                 break
         if not known_flag:
-            unknown_deps_list.append({'name': k, 'version': v})
+            unknown_deps_list.append({'name': pkg, 'version': ver})
     return epv_list, unknown_deps_list
 
 
@@ -548,7 +547,6 @@ def get_dependency_data(epv_set):
             "unknown_deps": []
         }
     }
-    dep_list = {}
     unknown_deps_list = []
     query = "epv=[];"
     batch_query = "a = g.V().has('pecosystem', '{eco}').has('pname', '{name}')." \
@@ -560,9 +558,10 @@ def get_dependency_data(epv_set):
                   "fill(epv);"
     i = 1
     epvs = [x for x, y in epv_set['direct'].items()]
+    dep_list = []
     for epv in epvs:
         eco, name, ver = epv.split('|#|')
-        dep_list[name] = ver
+        dep_list.append((name, ver))
         query += batch_query.format(eco=eco, name=name, ver=ver)
         if i >= GREMLIN_QUERY_SIZE:
             i = 1
