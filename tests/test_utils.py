@@ -92,8 +92,12 @@ def test_format_date():
     """Check the function format_date()."""
     date1 = '2019-05-21 06:44:15'
     date2 = 'N/A'
+    date3 = 'None'
+    date4 = 'Blah Blah'
     assert format_date(date1) == '21 May 2019'
     assert format_date(date2) == 'N/A'
+    assert format_date(date3) == 'N/A'
+    assert format_date(date4) == 'N/A'
 
 
 def test_version_info_tuple():

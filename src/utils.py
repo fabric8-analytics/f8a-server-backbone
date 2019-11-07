@@ -75,8 +75,8 @@ def format_date(date):
         if date != 'N/A':
             date = datetime.datetime.strptime(date, '%Y-%m-%d %H:%M:%S').strftime('%d %b %Y')
     except ValueError:
-        logger.error("Unexpected ValueError while trying to format date -> {}".format(date))
-        pass
+        logger.info("Incorrect value for date -> {}. Ignored".format(date))
+        return 'N/A'
     return date
 
 
