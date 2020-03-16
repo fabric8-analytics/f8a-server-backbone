@@ -26,6 +26,9 @@ def get_recommended_version(ecosystem, name, version):
         .format(eco=ecosystem, pkg=name)
     payload = {'gremlin': query}
     result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
+    logger.info("Ecosystem {eco}, name {name}, version {version}".format(
+        eco=ecosystem, name=name, version=version
+    ))
     if result:
         versions = result['result']['data']
         if len(versions) == 0:
@@ -490,12 +493,13 @@ def get_tr_dependency_data(epv_set):
             "data": []
         }
     }
-    batch_query = "g.V().has('pecosystem', '{eco}').has('pname', '{name}')." \
-                  "has('version', '{ver}').dedup().as('version').select('version')." \
+    batch_query = "a = g.V().has('pecosystem', '{eco}').has('pname', '{name}')." \
+                  "has('version', '{ver}').dedup(); a.clone().as('version')." \
+                  "in('has_version').dedup().as('package').select('version')." \
                   "coalesce(out('has_cve').as('cve')." \
-                  "select('version','cve').by(valueMap())" \
-                  ", select('version', 'version').by(valueMap()))" \
-                  ".fill(epv);"
+                  "select('package','version','cve').by(valueMap())," \
+                  "select('package','version').by(valueMap()))." \
+                  "fill(epv);"
     i = 1
     epvs = [x for x, y in epv_set['transitive'].items()]
     tr_list = []
@@ -518,7 +522,7 @@ def get_tr_dependency_data(epv_set):
         result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
         if result:
             tr_epv_list['result']['data'] += result['result']['data']
-
+    logger.info('Generated Transitive Data \n\n EPV : {tr}'.format(tr=tr_list))
     return tr_epv_list, tr_list
 
 
@@ -591,8 +595,10 @@ def get_dependency_data(epv_set):
     epv_data = tr_epv_list['result']['data']
     epv_list, unknown_deps_list = find_unknown_deps(epv_data, epv_list,
                                                     tr_list, unknown_deps_list, True)
+    logger.info('Unknown Dependencies {ud}'.format(ud=unknown_deps_list))
 
     result = add_transitive_details(epv_list, epv_set)
+    logger.info('Result with Transitive details: {ud}'.format(ud=result))
     return {'result': result, 'unknown_deps': unknown_deps_list,
             'transitive_count': transitive_count}
 
