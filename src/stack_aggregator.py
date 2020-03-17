@@ -7,6 +7,7 @@ Output: TBD
 
 """
 import datetime
+import time
 from flask import current_app
 import requests
 import copy
@@ -26,9 +27,6 @@ def get_recommended_version(ecosystem, name, version):
         .format(eco=ecosystem, pkg=name)
     payload = {'gremlin': query}
     result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
-    logger.info("Ecosystem {eco}, name {name}, version {version}".format(
-        eco=ecosystem, name=name, version=version
-    ))
     if result:
         versions = result['result']['data']
         if len(versions) == 0:
@@ -519,10 +517,11 @@ def get_tr_dependency_data(epv_set):
 
     if i > 1:
         payload = {'gremlin': query}
+        time_start = time.time()
         result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
+        logger.info('elapsed_time for gremlin call: {}'.format(time.time() - time_start))
         if result:
             tr_epv_list['result']['data'] += result['result']['data']
-    logger.info('Generated Transitive Data \n\n EPV : {tr}'.format(tr=tr_list))
     return tr_epv_list, tr_list
 
 
