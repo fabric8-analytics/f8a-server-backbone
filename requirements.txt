@@ -22,7 +22,7 @@ markupsafe==1.1.1         # via jinja2
 psycopg2==2.7.4           # via -r requirements.in
 raven[flask]==6.10.0      # via -r requirements.in
 requests-futures==0.9.7   # via -r requirements.in
-requests==2.18.4          # via -r requirements.in, codecov, requests-futures
+requests==2.20.0          # via -r requirements.in, codecov, requests-futures
 semantic-version==2.6.0   # via -r requirements.in
 six==1.11.0               # via flask-cors
 sqlalchemy==1.2.6         # via -r requirements.in
