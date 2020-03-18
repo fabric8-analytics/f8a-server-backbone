@@ -16,7 +16,7 @@ gunicorn==19.7.1
 idna==2.6                 # via requests
 itsdangerous==0.24        # via flask
 jinja2==2.10              # via flask
-markupsafe==1.1.1           # via jinja2
+markupsafe==1.0           # via jinja2
 psycopg2==2.7.4
 requests-futures==0.9.7
 requests==2.18.4
