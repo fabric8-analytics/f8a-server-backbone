@@ -1,11 +1,11 @@
 FROM registry.centos.org/centos/centos:7
 
-ENV F8A_WORKER_VERSION=ca7d91f \
+ENV F8A_WORKER_VERSION=fefc764 \
     F8A_UTIL_VERSION=3bca34e
 LABEL name="f8analytics backbone services" \
       description="Stack aggregation and recommendation service." \
       git-sha="46e443d" \
-      email-ids="nshaikh@redhat.com,samuzzal@redhat.com" \
+      email-ids="yzainee@redhat.com,deepshar@redhat.com" \
       git-url="https://github.com/fabric8-analytics/f8a-server-backbone" \
       git-path="/" \
       target-file="Dockerfile" \

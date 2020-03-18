@@ -66,7 +66,7 @@ API Endpoint `api/v1/recommender`
 }
 ```
 
-#### Recommendation Response
+#### Stack Aggregator Response
 API Endpoint `api/v1/stack_aggregator`
 
 ```

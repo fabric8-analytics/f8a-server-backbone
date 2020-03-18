@@ -7,6 +7,7 @@ Output: TBD
 
 """
 import datetime
+import time
 from flask import current_app
 import requests
 import copy
@@ -490,12 +491,13 @@ def get_tr_dependency_data(epv_set):
             "data": []
         }
     }
-    batch_query = "g.V().has('pecosystem', '{eco}').has('pname', '{name}')." \
-                  "has('version', '{ver}').dedup().as('version').select('version')." \
+    batch_query = "a = g.V().has('pecosystem', '{eco}').has('pname', '{name}')." \
+                  "has('version', '{ver}').dedup(); a.clone().as('version')." \
+                  "in('has_version').dedup().as('package').select('version')." \
                   "coalesce(out('has_cve').as('cve')." \
-                  "select('version','cve').by(valueMap())" \
-                  ", select('version', 'version').by(valueMap()))" \
-                  ".fill(epv);"
+                  "select('package','version','cve').by(valueMap())," \
+                  "select('package','version').by(valueMap()))." \
+                  "fill(epv);"
     i = 1
     epvs = [x for x, y in epv_set['transitive'].items()]
     tr_list = []
@@ -515,10 +517,11 @@ def get_tr_dependency_data(epv_set):
 
     if i > 1:
         payload = {'gremlin': query}
+        time_start = time.time()
         result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
+        logger.info('elapsed_time for gremlin call: {}'.format(time.time() - time_start))
         if result:
             tr_epv_list['result']['data'] += result['result']['data']
-
     return tr_epv_list, tr_list
 
 
@@ -591,10 +594,11 @@ def get_dependency_data(epv_set):
     epv_data = tr_epv_list['result']['data']
     epv_list, unknown_deps_list = find_unknown_deps(epv_data, epv_list,
                                                     tr_list, unknown_deps_list, True)
-
     result = add_transitive_details(epv_list, epv_set)
-    return {'result': result, 'unknown_deps': unknown_deps_list,
-            'transitive_count': transitive_count}
+    accumulated_data = {'result': result, 'unknown_deps': unknown_deps_list,
+                        'transitive_count': transitive_count}
+    logger.info('Accumulated data: {}'.format(accumulated_data))
+    return accumulated_data
 
 
 class StackAggregator:
