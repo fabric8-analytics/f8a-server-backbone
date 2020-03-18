@@ -594,12 +594,11 @@ def get_dependency_data(epv_set):
     epv_data = tr_epv_list['result']['data']
     epv_list, unknown_deps_list = find_unknown_deps(epv_data, epv_list,
                                                     tr_list, unknown_deps_list, True)
-    logger.info('Unknown Dependencies {ud}'.format(ud=unknown_deps_list))
-
     result = add_transitive_details(epv_list, epv_set)
-    logger.info('Result with Transitive details: {ud}'.format(ud=result))
-    return {'result': result, 'unknown_deps': unknown_deps_list,
-            'transitive_count': transitive_count}
+    accumulated_data = {'result': result, 'unknown_deps': unknown_deps_list,
+                        'transitive_count': transitive_count}
+    logger.info('Accumulated data: {}'.format(accumulated_data))
+    return accumulated_data
 
 
 class StackAggregator:
