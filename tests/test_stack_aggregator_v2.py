@@ -1,7 +1,7 @@
 """Tests for the stack_aggregator module."""
 
 from unittest import mock
-from src import stack_aggregator
+from src import stack_aggregator_v2
 import json
 
 

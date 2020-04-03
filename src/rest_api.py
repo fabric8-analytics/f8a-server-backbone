@@ -1,16 +1,16 @@
 """Implementation of the REST API for the backbone service."""
 
 import os
-import flask
 import logging
 from f8a_worker.setup_celery import init_selinon
 from flask import Flask, request, current_app
 from flask_cors import CORS
-from recommender import RecommendationTask
-from stack_aggregator import StackAggregator
 from raven.contrib.flask import Sentry
-from src.utils import push_data, total_time_elapsed, get_time_delta
 
+from src.recommender import RecommendationTask
+from src.stack_aggregator_v1 import StackAggregator as StackAggregatorV1
+from src.stack_aggregator_v2 import StackAggregator as StackAggregatorV2
+from src.utils import push_data, total_time_elapsed, get_time_delta
 
 def setup_logging(flask_app):
     """Perform the setup of logging (file, log level) for this application."""
@@ -85,8 +85,8 @@ def recommender():
     return flask.jsonify(r), metrics_payload['status_code']
 
 
-@app.route('/api/v1/stack_aggregator', methods=['POST'])
-def stack_aggregator():
+@app.route('/api/{version}/stack_aggregator', methods=['POST'])
+def stack_aggregator(version):
     """Handle POST requests that are sent to /api/v1/stack_aggregator REST API endpoint."""
     s = {'stack_aggregator': 'failure', 'external_request_id': None}
     input_json = request.get_json()
@@ -103,6 +103,7 @@ def stack_aggregator():
 
         try:
             persist = request.args.get('persist', 'true') == 'true'
+            StackAggregator = StackAggregatorV1 if version == 'v1' else StackAggregatorV2
             s = StackAggregator().execute(input_json, persist=persist)
             if s is not None and s.get('result') and s.get('result').get('_audit'):
                 # Creating and Pushing Total Metrics Data to Accumulator
