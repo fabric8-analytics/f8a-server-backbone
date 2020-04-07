@@ -2,6 +2,7 @@
 
 import os
 import logging
+import flask
 from f8a_worker.setup_celery import init_selinon
 from flask import Flask, request, current_app
 from flask_cors import CORS
@@ -75,17 +76,18 @@ def recommender():
                 'message': '%s' % e
             }
             metrics_payload['status_code'] = 400
+            raise e
 
     try:
         metrics_payload['value'] = get_time_delta(audit_data=r['result']['_audit'])
         push_data(metrics_payload)
-    except KeyError:
-        pass
+    except KeyError as e:
+        raise e
 
     return flask.jsonify(r), metrics_payload['status_code']
 
 
-@app.route('/api/{version}/stack_aggregator', methods=['POST'])
+@app.route('/api/<version>/stack_aggregator', methods=['POST'])
 def stack_aggregator(version):
     """Handle POST requests that are sent to /api/v1/stack_aggregator REST API endpoint."""
     s = {'stack_aggregator': 'failure', 'external_request_id': None}
@@ -119,14 +121,15 @@ def stack_aggregator(version):
                 'message': '%s' % e
             }
             metrics_payload['status_code'] = 400
+            raise e
 
         try:
             # Pushing Individual Metrics Data to Accumulator
             metrics_payload['value'] = get_time_delta(audit_data=s['result']['_audit'])
             metrics_payload['endpoint'] = request.endpoint
             push_data(metrics_payload)
-        except KeyError:
-            pass
+        except KeyError as e:
+            raise e
 
     return flask.jsonify(s)
 

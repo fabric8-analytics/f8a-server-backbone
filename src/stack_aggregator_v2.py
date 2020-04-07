@@ -23,7 +23,7 @@ logger = logging.getLogger(__file__)
 def get_recommended_version(ecosystem, name, version):
     """Fetch the recommended version in case of CVEs."""
     query = "g.V().has('ecosystem', '{eco}').has('name', '{pkg}')" \
-            ".out('has_version').not(out('has_cve')).values('version');"\
+            ".out('has_version').not(out('has_snyk_cve')).values('version');"\
         .format(eco=ecosystem, pkg=name)
     payload = {'gremlin': query}
     result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
@@ -43,6 +43,33 @@ def get_recommended_version(ecosystem, name, version):
         return None
     return rec_version
 
+def get_vulnerability_for_free_tier(vulnerability_node):
+    return {
+        'id': vulnerability_node.get('snyk_vuln_id')[0],
+        'cvss': vulnerability_node.get('cvss_scores', [''])[0],
+        'cve_ids': vulnerability_node.get('snyk_cve_ids'),
+        'cvss_v3': vulnerability_node.get('snyk_cvss_v3')[0],
+        'cwes': vulnerability_node.get('snyk_cwes')[0],
+        'severity': vulnerability_node.get('severity')[0],
+        'title': vulnerability_node.get('title')[0],
+        'url': vulnerability_node.get('snyk_url')[0],
+    }
+
+def get_vulnerability_for_registered_user(vulnerability_node):
+    info_free_tier = get_vulnerability_for_free_tier(vulnerability_node)
+    info_for_registered_user = {
+        'description': vulnerability_node.get('description')[0],
+        'exploit': vulnerability_node.get('exploit')[0],
+        'malicious': vulnerability_node.get('malicious', ['false'])[0] == 'true',
+        'patch_exists': vulnerability_node.get('patch_exists', ['false'])[0] == 'true',
+        'fixable': vulnerability_node.get('fixable', ['false'])[0] == 'true',
+        'fixed_in': vulnerability_node.get('snyk_cvss_v3')[0],
+        'cwes': vulnerability_node.get('snyk_cwes')[0],
+        'severity': vulnerability_node.get('severity')[0],
+        'title': vulnerability_node.get('title')[0],
+        'url': vulnerability_node.get('snyk_url')[0],
+    }
+    return {**info_free_tier, **info_for_registered_user}
 
 def extract_component_details(component):
     """Extract details from given component."""
@@ -104,11 +131,7 @@ def extract_component_details(component):
     ecosystem = component.get("version", {}).get("pecosystem", [""])[0]
     if len(component.get("cves", [])) > 0:
         for cve in component.get("cves", []):
-            component_cve = {
-                'CVE': cve.get('cve_id')[0],
-                'CVSS': cve.get('cvss_v2', [''])[0]
-            }
-            cves.append(component_cve)
+            cves.append(get_vulnerability_for_free_tier(cve))
         recommended_latest_version = component.get("package", {}).get("latest_non_cve_version", "")
         if not recommended_latest_version:
             recommended_latest_version = get_recommended_version(ecosystem, name, version)
@@ -494,7 +517,7 @@ def get_tr_dependency_data(epv_set):
     batch_query = "a = g.V().has('pecosystem', '{eco}').has('pname', '{name}')." \
                   "has('version', '{ver}').dedup(); a.clone().as('version')." \
                   "in('has_version').dedup().as('package').select('version')." \
-                  "coalesce(out('has_cve').as('cve')." \
+                  "coalesce(out('has_snyk_cve').as('cve')." \
                   "select('package','version','cve').by(valueMap())," \
                   "select('package','version').by(valueMap()))." \
                   "fill(epv);"
@@ -555,7 +578,7 @@ def get_dependency_data(epv_set):
     batch_query = "a = g.V().has('pecosystem', '{eco}').has('pname', '{name}')." \
                   "has('version', '{ver}').dedup(); a.clone().as('version')." \
                   "in('has_version').dedup().as('package').select('version')." \
-                  "coalesce(out('has_cve').as('cve')." \
+                  "coalesce(out('has_snyk_cve').as('cve')." \
                   "select('package','version','cve').by(valueMap())," \
                   "select('package','version').by(valueMap()))." \
                   "fill(epv);"

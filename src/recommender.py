@@ -76,7 +76,7 @@ from utils import (create_package_dict, get_session_retry, select_latest_version
                    convert_version_to_proper_semantic, get_response_data,
                    version_info_tuple, persist_data_in_db,
                    is_quickstart_majority, execute_gremlin_dsl)
-from stack_aggregator import extract_user_stack_package_licenses
+from src.stack_aggregator_v1 import extract_user_stack_package_licenses
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__file__)
