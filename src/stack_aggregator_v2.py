@@ -19,7 +19,6 @@ import logging
 
 logger = logging.getLogger(__file__)
 
-
 def get_recommended_version(ecosystem, name, version):
     """Fetch the recommended version in case of CVEs."""
     query = "g.V().has('ecosystem', '{eco}').has('name', '{pkg}')" \
@@ -506,7 +505,7 @@ def add_transitive_details(epv_list, epv_set):
     return result
 
 
-def get_tr_dependency_data(epv_set):
+def get_package_details_with_vulnerabilities(epv_set):
     """Get transitive dependency data from graph."""
     query = "epv=[];"
     tr_epv_list = {
@@ -605,7 +604,7 @@ def get_dependency_data(epv_set):
         if result:
             epv_list['result']['data'] += result['result']['data']
 
-    tr_epv_list, tr_list = get_tr_dependency_data(epv_set)
+    tr_epv_list, tr_list = get_package_details_with_vulnerabilities(epv_set)
     transitive_count = len(tr_epv_list['result']['data'])
 
     # Identification of unknown direct dependencies
@@ -667,7 +666,7 @@ class StackAggregator:
         audit = {
             'started_at': started_at,
             'ended_at': ended_at,
-            'version': 'v1'
+            'version': 'v2'
         }
         stack_data = {
             'stack_data': stack_data,
