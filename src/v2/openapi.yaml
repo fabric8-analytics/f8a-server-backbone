@@ -142,7 +142,6 @@ components:
           example: https://snyk.io/vuln/SNYK-PYTHON-DJANGO-4002
       description: Limited private vulnerability details for free tier users
 
-
     PremiumVulnerabilityFields:
       title: PremiumVulnerabilityFields
       type: object
