@@ -1,0 +1,592 @@
+openapi: 3.0.1
+info:
+  title: Backbone API
+  version: "2.0"
+servers:
+  - url: /api/v2
+  
+paths:
+  /recommender:
+    post:
+      tags:
+      - Scan Services
+      summary: |
+        Generates companion recommendation and writes into RDS.
+      parameters:
+      - name: persist
+        in: query
+        schema:
+          type: boolean
+          default: true
+        description: |
+          Whether to persist generated report into RDS.
+      - name: check_license
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: |
+          Whether to do license analyses for the recommend packages.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommenderRequest'
+        required: true
+      responses:
+        200:
+          description: Stack report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StackRecommendationResult'
+        400:
+          description: Bad request
+          content: {}
+
+  /stack_aggregator:
+    post:
+      tags:
+      - Scan Services
+      summary: |
+        Generates stack report by doing various operations like License analyses, Vulerability analyses and stores report into RDS.
+      parameters:
+      - name: persist
+        in: query
+        schema:
+          type: boolean
+          default: true
+        description: |
+          Whether to persist generated report into RDS.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StackAggregatorRequest'
+        required: true
+      responses:
+        200:
+          description: Stack report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StackAggregatorResult'
+        400:
+          description: Bad request
+          content: {}
+
+components:
+  schemas:
+    RecommenderRequest:
+      title: RecommenderRequest
+      allOf:
+        - $ref: '#/components/schemas/StackAggregatorRequest'
+      description: EPV details for stack report generation
+
+    StackAggregatorRequest:
+      title: StackAggregatorRequest
+      type: object
+      properties:
+        external_request_id:
+          type: string
+          example: 229e7da76708fe374d8c10fa752e72989f
+        show_transitive:
+          type: boolean
+          default: true
+          description: |
+            This is required to enable or disable the transitive support
+        ecosystem:
+          $ref: '#/components/schemas/Ecosystem'
+        manifest_file:
+          type: string
+        manifest_file_path:
+          type: string
+        packages:
+          $ref: '#/components/schemas/PackageWithTransitives'
+      description: EPV details for stack report generation
+
+    Ecosystem:
+      title: Ecosystem
+      type: string
+      enum:
+        - maven
+        - pypi
+        - npm
+      description: List of supported package ecosystems
+
+    BasicVulnerabilityFields:
+      title: VulnerabilityBase
+      properties:
+        cvss:
+          type: number
+          format: float
+          example: 9.8
+        cvss_v3:
+          type: string
+          example: "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+        severity:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - critical
+        title:
+          type: string
+          example: SQL Injection
+        id:
+          type: string
+          example: SNYK-PYTHON-DJANGO-40027
+        url:
+          type: string
+          example: https://snyk.io/vuln/SNYK-PYTHON-DJANGO-4002
+      description: Limited private vulnerability details for free tier users
+
+
+    PremiumVulnerabilityFields:
+      title: PremiumVulnerabilityFields
+      type: object
+      properties:
+        malicious:
+          type: boolean
+          default: true
+        patch_exists:
+          type: boolean
+          default: false
+          example: true
+        fixable:
+          type: boolean
+          default: false
+          example: true
+        exploit:
+          type: string
+          enum:
+            - High
+            - Functional
+            - Proof of Concept
+            - Unproven
+            - Not Defined
+          example: High
+        description:
+          type: string
+          example: |
+            "## Overview\r\n[`django`](https://pypi.python.org/pypi/django) is a high-level Python Web framework that encourages rapid development and clean, pragmatic design.\r\n\r\nAffected versions of this package expose sensitive information due to not properly restricting the use of a query string that performs certain object filtering. An attacker may obtain sensitive information via a series of requests containing regular expressions, as demonstrated by a `created_by__password__regex` parameter.\r\n\r\n## References\r\n- [Django Vulnerability Description](http://www.djangoproject.com/weblog/2010/dec/22/security/)\r\n- [GitHub Commit](https://github.com/django/django/commit/732198ed5c)\r\n- [Redhat Bugzilla](https://bugzilla.redhat.com/show_bug.cgi?id=665373)\r\n- [Openwall](http://www.openwall.com/lists/oss-security/2011/01/03/5)\r\n- [CVE](https://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2010-4534)\r\n"
+        fixed_in:
+          type: array
+          items:
+            type: string
+          example:
+            - 2.6.7
+            - 2.7.5
+            - 2.8.0
+        references:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+                example: Redhat Security Advisory
+              url:
+                type: string
+                example: https://access.redhat.com/security/cve/CVE-2013-2186
+      description: |
+        Extended Vulnerability details, available only to registered users
+
+    PublicVulnerabilityDetails:
+      title: PublicVulnerabilityDetails
+      description: |
+        Publicaly known Vulnerability details with associated CVES
+      allOf:
+        - $ref: '#/components/schemas/BasicVulnerabilityFields'
+        - type: object
+          properties:
+            cve_ids:
+              type: array
+              items:
+                type: string
+              example: 
+                - CVE-2014-0474
+                - CVE-2014-0475
+
+    PrivateVulnerabilityDetails:
+      title: PrivateVulnerabilityDetails
+      allOf:
+        - $ref: '#/components/schemas/BasicVulnerabilityFields'
+      description: Private vulnerability details
+
+    LimitedPrivateVulnerabilityDetails:
+      title: LimitedPrivateVulnerabilityDetails
+      allOf:
+        - $ref: '#/components/schemas/BasicVulnerabilityFields'
+      description: Basic private vulnerability details
+
+    Package:
+      title: Package
+      type: object
+      properties:
+        name:
+          type: string
+          example: django
+        version:
+          type: string
+          example: 1.2.1
+      description: Package details
+
+    PackageWithTransitives:
+      title: PackageWithTransitives
+      allOf:
+        - $ref: '#/components/schemas/Package'
+        - type: object
+          properties:
+            deps:
+              type: array
+              items:
+                $ref: '#/components/schemas/Package'
+              example:
+                - requests:
+                    name: requests
+                    version: 1.2.3
+                - six:
+                    name: six
+                    version: 5.1.1
+      description: Package details with transitives
+
+    UnknownLicenses:
+      title: UnknownLicenses
+      type: object
+      properties:
+        component_conflict:
+          type: array
+          items:
+            type: object
+            properties:
+              license1:
+                type: string
+                example: BSD License (BSD)
+              license2:
+                type: string
+                example: General Public License V3(GPL)
+        really_unknown:
+          type: array
+          items:
+            type: object
+            properties:
+              package:
+                type: string
+                example: django
+              license:
+                type: string
+                example: BSD License (BSD)
+      description: Data of licenses unknown to the system
+
+    ConflictPackages:
+      title: ConflictPackages
+      type: object
+      properties:
+        package1:
+          type: string
+          example: django
+        license1:
+          type: string
+          example: BSD License (BSD)
+        package2:
+          type: string
+          example: rustdoc
+        license2: 
+          type: string
+          example: General Public License V3(GPL)
+      description: Pair of packages which has conflict in license
+
+    LicenseAnalysis:
+      title: LicenseAnalysis
+      type: object
+      properties:
+        outlier_packages:
+          type: array
+          items:
+            type: object
+            properties: {}
+        conflict_packages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConflictPackages'
+        current_stack_license:
+          type: object
+          properties: {}
+        unknown_licenses:
+          $ref: '#/components/schemas/UnknownLicenses'
+      description: License analyses data
+
+    GitHubDetails:
+      title: GitHubDetails
+      type: object
+      properties:
+        watchers:
+          type: integer
+          example: 1002
+        first_release_date:
+          type: string
+        total_releases:
+          type: integer
+          example: 12
+        issues:
+          type: object
+          properties: {}
+        pull_requests:
+          type: object
+          properties: {}
+        dependent_repos:
+          type: integer
+        open_issues_count:
+          type: integer
+        latest_release_duration:
+          type: string
+        forks_count:
+          type: integer
+          example: 123
+        contributors:
+          type: integer
+          example: 12
+        size:
+          type: string
+        stargazers_count:
+          type: integer
+          example: 50000
+        used_by:
+          type: array
+          items:
+            type: string
+        dependent_projects:
+          type: integer
+          example: 1534
+      description: Github details
+
+    PackageDetailsBase:
+      title: PackageDetailsBase
+      allOf:
+        - $ref: '#/components/schemas/Package'
+        - type: object
+          properties:
+            latest_version:
+              type: string
+              example: 3.0.5
+            github:
+              $ref: '#/components/schemas/GitHubDetails'
+            licenses:
+              type: array
+              items:
+                type: string
+              example:
+                - Apache License, Version 2.0
+            topic_list:
+              type: array
+              items:
+                type: string
+            ecosystem:
+              $ref: '#/components/schemas/Ecosystem'
+            public_vulnerabilities_count:
+              type: integer
+              example: 21
+            private_vulnerabilities_count:
+              type: integer
+              example: 3
+            affected_direct_deps:
+              type: array
+              description: Lists all direct dependencies of this package
+              items:
+                $ref: '#/components/schemas/Package'
+              example:
+                - name: jinja2
+                  version: 2.5.2
+                - name: django-orm
+                  version: 7.1.0
+            osio_user_count:
+              type: integer
+              example: 123
+          description: Details of the package
+
+    RecommendedVersionForPublicVulnerabilities:
+      title: RecommendedVersionForPublicVulnerabilities
+      properties:
+        recommended_version:
+            type: string
+            example: 3.0.0
+      description: |
+        Recommended package version which includes only fix 
+        public vulnerability
+
+    RecommendedVersionForPublicAndPrivateVulnerabilities:
+      title: RecommendedVersionForPublicAndPrivateVulnerabilities
+      properties:
+        recommended_version:
+            type: string
+            example: 3.0.0
+      description: |
+        Recommended package version which includes fix for 
+        public and private vulnerability
+
+    PackageDetailsForRegisteredUser:
+      title: PackageDetailsForRegisteredUser
+      allOf:
+        - $ref: '#/components/schemas/PackageDetailsBase'
+        - $ref: '#/components/schemas/RecommendedVersionForPublicAndPrivateVulnerabilities'
+        - type: object
+          properties:
+            public_vulnerabilities:
+              type: array
+              description: Publicly known vulnerability details
+              items:
+                allOf:
+                  - $ref: '#/components/schemas/PremiumVulnerabilityFields'
+                  - $ref: '#/components/schemas/PublicVulnerabilityDetails'
+            private_vulnerabilities:
+              type: array
+              description: |
+                Private vulnerability details, available only to registered
+                users
+              items:
+                allOf:
+                  - $ref: '#/components/schemas/PremiumVulnerabilityFields'
+                  - $ref: '#/components/schemas/PrivateVulnerabilityDetails'
+          description: Details of the package for registered users
+
+    PackageDetailsForFreeTier:
+      title: PackageDetailsForFreeTier
+      allOf:
+        - $ref: '#/components/schemas/PackageDetailsBase'
+        - $ref: '#/components/schemas/RecommendedVersionForPublicVulnerabilities'
+        - type: object
+          properties:
+            public_vulnerabilities:
+              type: array
+              description: Publicly known vulnerability details
+              items:
+                $ref: '#/components/schemas/PublicVulnerabilityDetails'
+            private_vulnerabilities:
+              type: array
+              description: Private vulnerability details with limited info
+              items:
+                $ref: '#/components/schemas/LimitedPrivateVulnerabilityDetails'
+          description: Details of the package for free tier users
+
+    RecommendedPackageData:
+      title: RecommendedPackageData
+      description: Recommended packages data
+      allOf:
+      - oneOf:
+        - $ref: '#/components/schemas/PackageDetailsForFreeTier'
+        - $ref: '#/components/schemas/PackageDetailsForRegisteredUser'
+      - type: object
+        properties:
+          confidence_reason:
+            type: number
+            format: float
+            example: 83.16431
+          reason:
+            type: string
+          topic_list:
+            type: array
+            items:
+              type: string
+
+    StackRecommendationResult:
+      title: StackRecommendation
+      type: object
+      properties:
+        _audit:
+          $ref: '#/components/schemas/Audit'
+        external_request_id:
+          type: string
+          example: "229e7da76708fe374d8c10fa752e72989f"
+        recommendation_status:
+          type: string
+          enum:
+            - success
+            - pgm_error
+          example: success
+        companion:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecommendedPackageData'
+        manifest_file_path:
+          type: string
+          example: pom.xml
+        usage_outliers:
+          type: array
+          items:
+            type: object
+            properties: {}
+      description: Application stack recommendations
+
+    Audit:
+      title: Audit
+      type: object
+      properties:
+        started_at:
+          type: integer
+        ended_at:
+          type: integer
+        api_version:
+          type: string
+
+    StackAggregatorResult:
+      title: StackAggregatorResult
+      type: object
+      properties:
+        _audit:
+          $ref: '#/components/schemas/Audit'
+        external_request_id:
+          type: string
+          example: 229e7da76708fe374d8c10fa752e72989f
+        manifest_file_path:
+          type: string
+          example: pom.xml
+        manifest_name:
+          type: string
+          example: dependencies.txt
+        unknown_dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Package'
+          example:
+            - name: rocket-db
+              version: 2020.1.alpha
+            - name: jsonp
+              version: 0.0.1
+        ecosystem:
+          $ref: '#/components/schemas/Ecosystem'
+        unknown_dependencies_count:
+          type: integer
+          example: 2
+        analyzed_dependencies:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/PackageDetailsForFreeTier'
+              - $ref: '#/components/schemas/PackageDetailsForRegisteredUser'
+        analyzed_dependencies_count:
+          type: integer
+          example: 25
+        transitive_count:
+          type: integer
+          default: -1
+          example: 11
+        license_analysis:
+          $ref: '#/components/schemas/LicenseAnalysis'
+        distinct_licenses:
+          type: array
+          items:
+            type: string
+        stack_license_conflict:
+          type: boolean
+        dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/PackageWithTransitives'
+        total_licenses:
+          type: integer
+          example: 15
+        recommendation_ready:
+          type: boolean  
+      description: Stack analyses result data
