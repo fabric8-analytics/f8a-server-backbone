@@ -11,7 +11,8 @@ paths:
       tags:
       - Scan Services
       summary: |
-        Generates companion recommendation and writes into RDS.
+        Generates companion recommendation with the help of Ecosystem
+        specific recommendation engine and writes it into RDS.
       parameters:
       - name: persist
         in: query
@@ -49,7 +50,7 @@ paths:
       tags:
       - Scan Services
       summary: |
-        Generates stack report by doing various operations like License analyses, Vulerability analyses and stores report into RDS.
+        Aggregates vulnerabilities, licenses and github statistics associate with list of given packages and writes it into RDS.
       parameters:
       - name: persist
         in: query
@@ -86,6 +87,14 @@ components:
     StackAggregatorRequest:
       title: StackAggregatorRequest
       type: object
+      required:
+        - is_registered_user
+        - uuid
+        - external_request_id
+        - ecosystem
+        - packages
+        - manifest_file
+        - manifest_file_path
       properties:
         is_registered_user:
           type: boolean
