@@ -87,6 +87,12 @@ components:
       title: StackAggregatorRequest
       type: object
       properties:
+        is_registered_user:
+          type: boolean
+          default: false
+        uuid:
+          type: string
+          format: uuid
         external_request_id:
           type: string
           example: 229e7da76708fe374d8c10fa752e72989f
@@ -495,6 +501,12 @@ components:
       properties:
         _audit:
           $ref: '#/components/schemas/Audit'
+        is_registered_user:
+          type: boolean
+          default: false
+        uuid:
+          type: string
+          format: uuid          
         external_request_id:
           type: string
           example: "229e7da76708fe374d8c10fa752e72989f"
@@ -535,6 +547,12 @@ components:
       properties:
         _audit:
           $ref: '#/components/schemas/Audit'
+        is_registered_user:
+          type: boolean
+          default: false
+        uuid:
+          type: string
+          format: uuid          
         external_request_id:
           type: string
           example: 229e7da76708fe374d8c10fa752e72989f
