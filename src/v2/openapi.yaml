@@ -71,7 +71,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StackAggregatorResult'
+                oneOf:
+                - $ref: '#/components/schemas/StackAggregatorResultForRegisteredUser'
+                - $ref: '#/components/schemas/StackAggregatorResultForFreeTier'
         400:
           description: Bad request
           content: {}
@@ -88,7 +90,7 @@ components:
       title: StackAggregatorRequest
       type: object
       required:
-        - is_registered_user
+        - registration_status
         - uuid
         - external_request_id
         - ecosystem
@@ -96,9 +98,8 @@ components:
         - manifest_file
         - manifest_file_path
       properties:
-        is_registered_user:
-          type: boolean
-          default: false
+        registration_status:
+          $ref: '#/components/schemas/RegistrationStatus'
         uuid:
           type: string
           format: uuid
@@ -130,12 +131,33 @@ components:
       description: List of supported package ecosystems
 
     BasicVulnerabilityFields:
-      title: VulnerabilityBase
+      title: BasicVulnerabilityFields
+      required: 
+        - cvss
+        - cvss_v3
+        - severity
+        - title
+        - id
+        - url
       properties:
+        cve_ids:
+          type: array
+          items:
+            type: string
+          example: 
+            - CVE-2014-0474
+            - CVE-2014-0475
         cvss:
           type: number
           format: float
           example: 9.8
+        cwes:
+          type: array
+          items:
+            type: string
+          example: 
+            - CWE-185
+            - CWE-730
         cvss_v3:
           type: string
           example: "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
@@ -207,37 +229,12 @@ components:
       description: |
         Extended Vulnerability details, available only to registered users
 
-    PublicVulnerabilityDetails:
-      title: PublicVulnerabilityDetails
-      description: |
-        Publicaly known Vulnerability details with associated CVES
-      allOf:
-        - $ref: '#/components/schemas/BasicVulnerabilityFields'
-        - type: object
-          properties:
-            cve_ids:
-              type: array
-              items:
-                type: string
-              example: 
-                - CVE-2014-0474
-                - CVE-2014-0475
-
-    PrivateVulnerabilityDetails:
-      title: PrivateVulnerabilityDetails
-      allOf:
-        - $ref: '#/components/schemas/BasicVulnerabilityFields'
-      description: Private vulnerability details
-
-    LimitedPrivateVulnerabilityDetails:
-      title: LimitedPrivateVulnerabilityDetails
-      allOf:
-        - $ref: '#/components/schemas/BasicVulnerabilityFields'
-      description: Basic private vulnerability details
-
     Package:
       title: Package
       type: object
+      required: 
+        - name
+        - version
       properties:
         name:
           type: string
@@ -269,6 +266,9 @@ components:
     UnknownLicenses:
       title: UnknownLicenses
       type: object
+      required: 
+        - component_conflict
+        - really_unknown
       properties:
         component_conflict:
           type: array
@@ -297,6 +297,11 @@ components:
     ConflictPackages:
       title: ConflictPackages
       type: object
+      required: 
+        - package1
+        - package2
+        - license1
+        - license2
       properties:
         package1:
           type: string
@@ -315,6 +320,11 @@ components:
     LicenseAnalysis:
       title: LicenseAnalysis
       type: object
+      required: 
+        - outlier_packages
+        - conflict_packages
+        - current_stack_license
+        - unknown_licenses
       properties:
         outlier_packages:
           type: array
@@ -376,11 +386,16 @@ components:
           example: 1534
       description: Github details
 
-    PackageDetailsBase:
-      title: PackageDetailsBase
+    PackageDetails:
+      title: PackageDetails
       allOf:
         - $ref: '#/components/schemas/Package'
         - type: object
+          required:
+            - latest_version
+            - ecosystem
+            - public_vulnerabilities_count
+            - private_vulnerabilities_count
           properties:
             latest_version:
               type: string
@@ -405,19 +420,14 @@ components:
             private_vulnerabilities_count:
               type: integer
               example: 3
-            affected_direct_deps:
-              type: array
-              description: Lists all direct dependencies of this package
-              items:
-                $ref: '#/components/schemas/Package'
-              example:
-                - name: jinja2
-                  version: 2.5.2
-                - name: django-orm
-                  version: 7.1.0
             osio_user_count:
               type: integer
               example: 123
+            url:
+              type: string
+              example: 
+                - https://snyk.io/vuln/pip:django
+                - https://snyk.io/vuln/pip:jinja2
           description: Details of the package
 
     RecommendedVersionForPublicVulnerabilities:
@@ -437,13 +447,13 @@ components:
             type: string
             example: 3.0.0
       description: |
-        Recommended package version which includes fix for 
-        public and private vulnerability
+        Recommended package version which includes fix for public 
+        and private vulnerability
 
     PackageDetailsForRegisteredUser:
       title: PackageDetailsForRegisteredUser
       allOf:
-        - $ref: '#/components/schemas/PackageDetailsBase'
+        - $ref: '#/components/schemas/PackageDetails'
         - $ref: '#/components/schemas/RecommendedVersionForPublicAndPrivateVulnerabilities'
         - type: object
           properties:
@@ -453,7 +463,7 @@ components:
               items:
                 allOf:
                   - $ref: '#/components/schemas/PremiumVulnerabilityFields'
-                  - $ref: '#/components/schemas/PublicVulnerabilityDetails'
+                  - $ref: '#/components/schemas/BasicVulnerabilityFields'
             private_vulnerabilities:
               type: array
               description: |
@@ -462,13 +472,13 @@ components:
               items:
                 allOf:
                   - $ref: '#/components/schemas/PremiumVulnerabilityFields'
-                  - $ref: '#/components/schemas/PrivateVulnerabilityDetails'
+                  - $ref: '#/components/schemas/BasicVulnerabilityFields'
           description: Details of the package for registered users
 
     PackageDetailsForFreeTier:
       title: PackageDetailsForFreeTier
       allOf:
-        - $ref: '#/components/schemas/PackageDetailsBase'
+        - $ref: '#/components/schemas/PackageDetails'
         - $ref: '#/components/schemas/RecommendedVersionForPublicVulnerabilities'
         - type: object
           properties:
@@ -476,21 +486,19 @@ components:
               type: array
               description: Publicly known vulnerability details
               items:
-                $ref: '#/components/schemas/PublicVulnerabilityDetails'
+                $ref: '#/components/schemas/BasicVulnerabilityFields'
             private_vulnerabilities:
               type: array
               description: Private vulnerability details with limited info
               items:
-                $ref: '#/components/schemas/LimitedPrivateVulnerabilityDetails'
+                $ref: '#/components/schemas/BasicVulnerabilityFields'
           description: Details of the package for free tier users
 
     RecommendedPackageData:
       title: RecommendedPackageData
       description: Recommended packages data
       allOf:
-      - oneOf:
-        - $ref: '#/components/schemas/PackageDetailsForFreeTier'
-        - $ref: '#/components/schemas/PackageDetailsForRegisteredUser'
+      - $ref: '#/components/schemas/PackageDetails'
       - type: object
         properties:
           confidence_reason:
@@ -503,22 +511,38 @@ components:
             type: array
             items:
               type: string
+              
+    RegistrationStatus:
+      title: RegistrationStatus
+      type: string
+      enum:
+        - registered
+        - freetier
+      default: freetier
 
     StackRecommendationResult:
       title: StackRecommendation
       type: object
+      required:
+        - _audit
+        - uuid
+        - external_request_id
+        - registration_status
+        - recommendation_status
+        - companion
+        - manifest_file_path
+        - usage_outliers
       properties:
         _audit:
           $ref: '#/components/schemas/Audit'
-        is_registered_user:
-          type: boolean
-          default: false
         uuid:
           type: string
           format: uuid          
         external_request_id:
           type: string
-          example: "229e7da76708fe374d8c10fa752e72989f"
+          example: 229e7da76708fe374d8c10fa752e72989f      
+        registration_status:
+          $ref: '#/components/schemas/RegistrationStatus'
         recommendation_status:
           type: string
           enum:
@@ -542,6 +566,10 @@ components:
     Audit:
       title: Audit
       type: object
+      required:
+        - started_at
+        - ended_at
+        - api_version
       properties:
         started_at:
           type: integer
@@ -553,24 +581,52 @@ components:
     StackAggregatorResult:
       title: StackAggregatorResult
       type: object
+      required:
+       - _audit
+        - uuid
+        - external_request_id
+        - registration_status
+        - manifest_file_path
+        - manifest_name
+        - ecosystem
+        - unknown_dependencies_count
+        - unknown_dependencies
+        - analyzed_direct_dependencies_count
+        - transitive_count
+        - vulnerable_transitives_count
+        - license_analysis
+        - distinct_licenses
+        - stack_license_conflict
+        - dependencies
+        - total_licenses
+        - recommendation_ready
+      discriminator:
+        propertyName: registration_status
+        mapping:
+          registerd: StackAnalysesResultForRegisteredUser
+          freetier: StackAnalysesResultForFreeTier
       properties:
         _audit:
           $ref: '#/components/schemas/Audit'
-        is_registered_user:
-          type: boolean
-          default: false
         uuid:
           type: string
           format: uuid          
         external_request_id:
           type: string
-          example: 229e7da76708fe374d8c10fa752e72989f
+          example: 229e7da76708fe374d8c10fa752e72989f      
+        registration_status:
+          $ref: '#/components/schemas/RegistrationStatus'
         manifest_file_path:
           type: string
           example: pom.xml
         manifest_name:
           type: string
           example: dependencies.txt
+        ecosystem:
+          $ref: '#/components/schemas/Ecosystem'
+        unknown_dependencies_count:
+          type: integer
+          example: 2
         unknown_dependencies:
           type: array
           items:
@@ -580,24 +636,17 @@ components:
               version: 2020.1.alpha
             - name: jsonp
               version: 0.0.1
-        ecosystem:
-          $ref: '#/components/schemas/Ecosystem'
-        unknown_dependencies_count:
+        analyzed_direct_dependencies_count:
           type: integer
-          example: 2
-        analyzed_dependencies:
-          type: array
-          items:
-            oneOf:
-              - $ref: '#/components/schemas/PackageDetailsForFreeTier'
-              - $ref: '#/components/schemas/PackageDetailsForRegisteredUser'
-        analyzed_dependencies_count:
-          type: integer
-          example: 25
+          example: 25              
         transitive_count:
           type: integer
           default: -1
           example: 11
+        vulnerable_transitives_count:
+          type: integer
+          default: -1
+          example: 1
         license_analysis:
           $ref: '#/components/schemas/LicenseAnalysis'
         distinct_licenses:
@@ -614,5 +663,78 @@ components:
           type: integer
           example: 15
         recommendation_ready:
-          type: boolean  
+          type: boolean
       description: Stack analyses result data
+
+    StackAggregatorResultForRegisteredUser:
+      title: StackAggregatorResultForRegisteredUser
+      allOf:
+      - $ref: '#/components/schemas/StackAggregatorResult'      
+      - type: object
+        required:
+          - analyzed_direct_dependencies
+          - vulnerable_transitives
+        properties:
+          analyzed_direct_dependencies:
+            type: array
+            items:
+              $ref: '#/components/schemas/PackageDetailsForRegisteredUser'
+            description: |
+              All direct dependencies details regardless of it's vulnerability status
+          vulnerable_transitives:
+            type: array
+            items:
+              allOf:
+                - type: object
+                  properties:
+                    dependents:
+                      type: array
+                      description: Lists all direct dependencies of this package
+                      items:
+                        $ref: '#/components/schemas/Package'
+                      example:
+                        - name: jinja2
+                          version: 2.5.2
+                        - name: django-orm
+                - $ref: '#/components/schemas/PackageDetailsForRegisteredUser'
+            description: |
+              Only Transitives which has vulnerability associated with it.
+      description: Stack analyses result for registered user
+      
+    StackAggregatorResultForFreeTier:
+      title: StackAggregatorResultForFreeTier
+      allOf:
+      - $ref: '#/components/schemas/StackAggregatorResult'
+      - type: object
+        required:
+          - registration_link
+          - analyzed_direct_dependencies
+          - vulnerable_transitives
+        properties:
+          registration_link:
+            type: string
+            format: url
+          analyzed_direct_dependencies:
+            type: array
+            items:
+              $ref: '#/components/schemas/PackageDetailsForFreeTier'
+            description: |
+              All direct dependencies details regardless of it's vulnerability status
+          vulnerable_transitives:
+            type: array
+            items:
+              allOf:
+                - type: object
+                  properties:
+                    dependents:
+                      type: array
+                      description: Lists all direct dependencies of this package
+                      items:
+                        $ref: '#/components/schemas/Package'
+                      example:
+                        - name: jinja2
+                          version: 2.5.2
+                        - name: django-orm
+                          version: 7.1.0
+                - $ref: '#/components/schemas/PackageDetailsForFreeTier'
+      description: Stack analyses result for free tier user
