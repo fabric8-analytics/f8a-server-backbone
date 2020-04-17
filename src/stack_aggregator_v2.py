@@ -6,7 +6,9 @@ by stack-analyses endpoint
 Output: TBD
 
 """
+from typing import Dict, List, Tuple
 import datetime
+import json
 import time
 from flask import current_app
 import requests
@@ -42,13 +44,16 @@ def get_recommended_version(ecosystem, name, version):
         return None
     return rec_version
 
+def is_private_vulnerability(vulnerability_node):
+    return vulnerability_node.get('snyk_pvt_vulnerability', [True])[0]
+
 def get_vulnerability_for_free_tier(vulnerability_node):
     return {
         'id': vulnerability_node.get('snyk_vuln_id')[0],
         'cvss': vulnerability_node.get('cvss_scores', [''])[0],
         'cve_ids': vulnerability_node.get('snyk_cve_ids'),
         'cvss_v3': vulnerability_node.get('snyk_cvss_v3')[0],
-        'cwes': vulnerability_node.get('snyk_cwes')[0],
+        'cwes': vulnerability_node.get('snyk_cwes'),
         'severity': vulnerability_node.get('severity')[0],
         'title': vulnerability_node.get('title')[0],
         'url': vulnerability_node.get('snyk_url')[0],
@@ -59,14 +64,10 @@ def get_vulnerability_for_registered_user(vulnerability_node):
     info_for_registered_user = {
         'description': vulnerability_node.get('description')[0],
         'exploit': vulnerability_node.get('exploit')[0],
-        'malicious': vulnerability_node.get('malicious', ['false'])[0] == 'true',
-        'patch_exists': vulnerability_node.get('patch_exists', ['false'])[0] == 'true',
-        'fixable': vulnerability_node.get('fixable', ['false'])[0] == 'true',
+        'malicious': vulnerability_node.get('malicious', [False])[0],
+        'patch_exists': vulnerability_node.get('patch_exists', [False])[0],
+        'fixable': vulnerability_node.get('fixable', [False])[0],
         'fixed_in': vulnerability_node.get('snyk_cvss_v3')[0],
-        'cwes': vulnerability_node.get('snyk_cwes')[0],
-        'severity': vulnerability_node.get('severity')[0],
-        'title': vulnerability_node.get('title')[0],
-        'url': vulnerability_node.get('snyk_url')[0],
     }
     return {**info_free_tier, **info_for_registered_user}
 
@@ -116,21 +117,18 @@ def extract_component_details(component):
         used_by_list.append(used_by_dict)
     github_details['used_by'] = used_by_list
 
-    code_metrics = {
-        "code_lines": component.get("version", {}).get("cm_loc", [-1])[0],
-        "average_cyclomatic_complexity":
-            component.get("version", {}).get("cm_avg_cyclomatic_complexity", [-1])[0],
-        "total_files": component.get("version", {}).get("cm_num_files", [-1])[0]
-    }
-
-    cves = []
+    public_vulnerabilities = []
+    private_vulnerabilities = []
     recommended_latest_version = None
     name = component.get("version", {}).get("pname", [""])[0]
     version = component.get("version", {}).get("version", [""])[0]
     ecosystem = component.get("version", {}).get("pecosystem", [""])[0]
     if len(component.get("cves", [])) > 0:
         for cve in component.get("cves", []):
-            cves.append(get_vulnerability_for_free_tier(cve))
+            if is_private_vulnerability(cve):
+                private_vulnerabilities.append(get_vulnerability_for_free_tier(cve))
+            else:
+                public_vulnerabilities.append(get_vulnerability_for_free_tier(cve))
         recommended_latest_version = component.get("package", {}).get("latest_non_cve_version", "")
         if not recommended_latest_version:
             recommended_latest_version = get_recommended_version(ecosystem, name, version)
@@ -148,19 +146,21 @@ def extract_component_details(component):
         "name": name,
         "version": version,
         "licenses": licenses,
-        "security": cves,
+        "public_vulnerabilities_count": len(public_vulnerabilities),
+        "public_vulnerabilities": public_vulnerabilities,
+        "private_vulnerabilities_count": len(private_vulnerabilities),
+        "private_vulnerabilities": private_vulnerabilities,
         "osio_user_count": component.get("version", {}).get("osio_usage_count", 0),
         "latest_version": latest_version,
-        "recommended_latest_version": recommended_latest_version,
+        "recommended_version": recommended_latest_version,
         "github": github_details,
-        "code_metrics": code_metrics
     }
     # Add transitive block for transitive deps
-    if component.get('transitive', {}):
-        if not cves:
+    if component.get('dependents', {}):
+        if not public_vulnerabilities and not private_vulnerabilities:
             return None
         else:
-            component_summary['transitive'] = component.get('transitive')
+            component_summary['dependents'] = component.get('dependents')
     return component_summary
 
 
@@ -399,23 +399,34 @@ def aggregate_stack_data(stack, manifest_file, ecosystem, deps,
     for name, version in all_dependencies.difference(analyzed_dependencies):
         unknown_dependencies.append({'name': name, 'version': version})
 
+    analyzed_direct_dependencies = []
+    vulnerable_transitives = []
+    for dep in dependencies:
+        if dep.get('dependents'):
+            vulnerable_transitives.append(dep)
+        else:
+            analyzed_direct_dependencies.append(dep)
     data = {
             "manifest_name": manifest_file,
             "manifest_file_path": manifest_file_path,
-            "user_stack_info": {
-                "ecosystem": ecosystem,
-                "analyzed_dependencies_count": len(dependencies),
-                "analyzed_dependencies": dependencies,
-                "transitive_count": transitive_count,
-                "unknown_dependencies": unknown_dependencies,
-                "unknown_dependencies_count": len(unknown_dependencies),
-                "recommendation_ready": True,  # based on the percentage of dependencies analysed
-                "total_licenses": len(stack_distinct_licenses),
-                "distinct_licenses": list(stack_distinct_licenses),
-                "stack_license_conflict": stack_license_conflict,
-                "dependencies": deps,
-                "license_analysis": license_analysis
-            }
+            "ecosystem": ecosystem,
+            "analyzed_direct_dependencies_count": len(analyzed_direct_dependencies),
+            "analyzed_direct_dependencies": analyzed_direct_dependencies,
+            "vulnerable_transitives_count": len(vulnerable_transitives),
+            "vulnerable_transitives": vulnerable_transitives,
+            "transitive_count": transitive_count,
+            "unknown_dependencies": unknown_dependencies,
+            "unknown_dependencies_count": len(unknown_dependencies),
+            "recommendation_ready": True,  # based on the percentage of dependencies analysed
+            "total_licenses": len(stack_distinct_licenses),
+            "distinct_licenses": list(stack_distinct_licenses),
+            "stack_license_conflict": stack_license_conflict,
+            "dependencies": deps,
+            "license_analysis": license_analysis,
+            # TODO: should be set based on request field
+            "registration_status": "unregistered",
+            # TODO: read from config
+            "registration_link": "https://snyk.io/login"
     }
     return data
 
@@ -486,46 +497,49 @@ def add_transitive_details(epv_list, epv_set):
             result.append(copy.deepcopy(data))
         if epv_str in transitive:
             affected_deps = transitive[epv_str]
-            trans_dict = {
-                'isTransitive': True,
-                'affected_direct_deps': []
-            }
+            dependents = []
             for dep in affected_deps:
                 eco, name, version = dep.split("|#|")
                 if name and version:
-                    trans_dict['affected_direct_deps'].append(
+                    dependents.append(
                         {
                             "package": name,
                             "version": version
                         }
                     )
-            epv['transitive'] = trans_dict
+            epv['dependents'] = dependents
             result.append(copy.deepcopy(data))
 
     return result
 
 
-def get_package_details_with_vulnerabilities(epv_set):
-    """Get transitive dependency data from graph."""
+def get_package_version(epv_set: Dict[str, str]) -> List[Tuple[str, str]]:
+    """Get package along with version from epv set."""
+    # TODO: Use EPV abstraction
+    pkgs = []
+    for epv, _ in epv_set.items():
+        eco, name, ver = epv.split('|#|')
+        pkgs.append((name, ver))
+    return pkgs
+
+def get_package_details_with_vulnerabilities(epv_set: Dict[str, str]) -> Dict[str, str]:
+    """Get package data from graph along with vulnerability."""
     query = "epv=[];"
-    tr_epv_list = {
+    epvs_with_vuln = {
         "result": {
             "data": []
         }
     }
-    batch_query = "a = g.V().has('pecosystem', '{eco}').has('pname', '{name}')." \
-                  "has('version', '{ver}').dedup(); a.clone().as('version')." \
-                  "in('has_version').dedup().as('package').select('version')." \
-                  "coalesce(out('has_snyk_cve').as('cve')." \
-                  "select('package','version','cve').by(valueMap())," \
-                  "select('package','version').by(valueMap()))." \
-                  "fill(epv);"
+    batch_query = ("a = g.V().has('pecosystem', '{eco}').has('pname', '{name}')."
+                  "has('version', '{ver}').dedup(); a.clone().as('version')."
+                  "in('has_version').dedup().as('package').select('version')."
+                  "coalesce(out('has_snyk_cve').as('cve')."
+                  "select('package','version','cve').by(valueMap()),"
+                  "select('package','version').by(valueMap()))."
+                  "fill(epv);")
     i = 1
-    epvs = [x for x, y in epv_set['transitive'].items()]
-    tr_list = []
-    for epv in epvs:
+    for epv, _ in epv_set.items():
         eco, name, ver = epv.split('|#|')
-        tr_list.append((name, ver))
         query += batch_query.format(eco=eco, name=name, ver=ver)
         if i >= GREMLIN_QUERY_SIZE:
             i = 1
@@ -533,7 +547,7 @@ def get_package_details_with_vulnerabilities(epv_set):
             payload = {'gremlin': query}
             result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
             if result:
-                tr_epv_list['result']['data'] += result['result']['data']
+                epvs_with_vuln['result']['data'] += result['result']['data']
             query = "epv=[];"
         i += 1
 
@@ -543,8 +557,8 @@ def get_package_details_with_vulnerabilities(epv_set):
         result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
         logger.info('elapsed_time for gremlin call: {}'.format(time.time() - time_start))
         if result:
-            tr_epv_list['result']['data'] += result['result']['data']
-    return tr_epv_list, tr_list
+            epvs_with_vuln['result']['data'] += result['result']['data']
+    return epvs_with_vuln
 
 
 def find_unknown_deps(epv_data, epv_list, dep_list, unknown_deps_list, is_transitive=False):
@@ -566,51 +580,16 @@ def find_unknown_deps(epv_data, epv_list, dep_list, unknown_deps_list, is_transi
 
 def get_dependency_data(epv_set):
     """Get dependency data from graph."""
-    epv_list = {
-        "result": {
-            "data": [],
-            "unknown_deps": []
-        }
-    }
-    unknown_deps_list = []
-    query = "epv=[];"
-    batch_query = "a = g.V().has('pecosystem', '{eco}').has('pname', '{name}')." \
-                  "has('version', '{ver}').dedup(); a.clone().as('version')." \
-                  "in('has_version').dedup().as('package').select('version')." \
-                  "coalesce(out('has_snyk_cve').as('cve')." \
-                  "select('package','version','cve').by(valueMap())," \
-                  "select('package','version').by(valueMap()))." \
-                  "fill(epv);"
-    i = 1
-    epvs = [x for x, y in epv_set['direct'].items()]
-    dep_list = []
-    for epv in epvs:
-        eco, name, ver = epv.split('|#|')
-        dep_list.append((name, ver))
-        query += batch_query.format(eco=eco, name=name, ver=ver)
-        if i >= GREMLIN_QUERY_SIZE:
-            i = 1
-            # call_gremlin in batch
-            payload = {'gremlin': query}
-            result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
-            if result:
-                epv_list['result']['data'] += result['result']['data']
-            query = "epv=[];"
-        i += 1
-
-    if i > 1:
-        payload = {'gremlin': query}
-        result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
-        if result:
-            epv_list['result']['data'] += result['result']['data']
-
-    tr_epv_list, tr_list = get_package_details_with_vulnerabilities(epv_set)
+    dep_list = get_package_version(epv_set['direct'])
+    tr_list = get_package_version(epv_set['transitive'])
+    epv_list = get_package_details_with_vulnerabilities(epv_set['direct'])
+    tr_epv_list = get_package_details_with_vulnerabilities(epv_set['transitive'])
     transitive_count = len(tr_epv_list['result']['data'])
 
     # Identification of unknown direct dependencies
     epv_data = epv_list['result']['data']
     epv_list, unknown_deps_list = find_unknown_deps(epv_data, epv_list,
-                                                    dep_list, unknown_deps_list)
+                                                    dep_list, [])
 
     # Identification of unknown transitive dependencies
     epv_data = tr_epv_list['result']['data']
@@ -619,7 +598,7 @@ def get_dependency_data(epv_set):
     result = add_transitive_details(epv_list, epv_set)
     accumulated_data = {'result': result, 'unknown_deps': unknown_deps_list,
                         'transitive_count': transitive_count}
-    logger.info('Accumulated data: {}'.format(accumulated_data))
+    logger.info('Accumulated data: {}'.format(json.dumps(accumulated_data)))
     return accumulated_data
 
 
