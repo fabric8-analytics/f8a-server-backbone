@@ -392,7 +392,7 @@ def aggregate_stack_data(stack, manifest_file, ecosystem, deps,
         license_analysis = dict()
         stack_license_conflict = None
 
-    all_dependencies = {(dependency['package'], dependency['version']) for dependency in deps}
+    all_dependencies = {(dependency['name'], dependency['version']) for dependency in deps}
     analyzed_dependencies = {(dependency['name'], dependency['version'])
                              for dependency in dependencies}
     unknown_dependencies = list()
@@ -431,19 +431,19 @@ def aggregate_stack_data(stack, manifest_file, ecosystem, deps,
     return data
 
 
-def create_dependency_data_set(resolved, ecosystem):
+def create_dependency_data_set(packages, ecosystem):
     """Create direct and transitive set to reduce calls to graph."""
     unique_epv_dict = {
         "direct": defaultdict(set),
         "transitive": defaultdict(set)
     }
 
-    for pv in resolved:
-        if pv.get('package') and pv.get('version'):
-            key = ecosystem + "|#|" + pv.get('package') + "|#|" + pv.get('version')
+    for pv in packages:
+        if pv.get('name') and pv.get('version'):
+            key = ecosystem + "|#|" + pv.get('name') + "|#|" + pv.get('version')
             unique_epv_dict['direct'][key] = set()
             for trans_pv in pv.get('deps', []):
-                trans_key = ecosystem + "|#|" + trans_pv.get('package') + "|#|" + \
+                trans_key = ecosystem + "|#|" + trans_pv.get('name') + "|#|" + \
                             trans_pv.get('version')
                 unique_epv_dict['transitive'][trans_key].add(key)
 
@@ -609,38 +609,34 @@ class StackAggregator:
     def execute(aggregated=None, persist=True):
         """Task code."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
-        stack_data = []
         unknown_dep_list = []
         show_transitive = aggregated.get('show_transitive')
         external_request_id = aggregated.get('external_request_id')
         # TODO multiple license file support
         current_stack_license = aggregated.get('current_stack_license', {}).get('1', {})
 
-        for result in aggregated['result']:
-            resolved = result['details'][0]['_resolved']
-            ecosystem = result['details'][0]['ecosystem']
-            manifest = result['details'][0]['manifest_file']
-            manifest_file_path = result['details'][0]['manifest_file_path']
+        packages = aggregated.get('packages')
+        ecosystem = aggregated.get('ecosystem')
+        manifest = aggregated.get('manifest_file')
+        manifest_file_path = aggregated.get('manifest_file_path')
 
-            epv_set = create_dependency_data_set(resolved, ecosystem)
-            finished = get_dependency_data(epv_set)
+        epv_set = create_dependency_data_set(packages, ecosystem)
+        finished = get_dependency_data(epv_set)
 
-            """ Direct deps can have 0 transitives. This condition is added
-            so that in ext, we get to know if deps are 0 or if the transitive flag
-            is false """
-            if show_transitive == "true":
-                transitive_count = finished.get('transitive_count', 0)
-            else:
-                transitive_count = -1
-            if finished is not None:
-                output = aggregate_stack_data(finished, manifest, ecosystem.lower(), resolved,
-                                              manifest_file_path, persist, transitive_count)
-                if output and output.get('user_stack_info'):
-                    output['user_stack_info']['license_analysis'].update({
-                        "current_stack_license": current_stack_license
-                    })
-                stack_data.append(output)
-            unknown_dep_list.extend(finished['unknown_deps'])
+        """ Direct deps can have 0 transitives. This condition is added
+        so that in ext, we get to know if deps are 0 or if the transitive flag
+        is false """
+        if show_transitive == "true":
+            transitive_count = finished.get('transitive_count', 0)
+        else:
+            transitive_count = -1
+        if finished is not None:
+            output = aggregate_stack_data(finished, manifest, ecosystem.lower(), packages,
+                    manifest_file_path, persist, transitive_count)
+            output['license_analysis'].update({
+                "current_stack_license": current_stack_license
+                })
+        unknown_dep_list.extend(finished['unknown_deps'])
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         audit = {
             'started_at': started_at,
@@ -648,10 +644,10 @@ class StackAggregator:
             'version': 'v2'
         }
         stack_data = {
-            'stack_data': stack_data,
             '_audit': audit,
             '_release': 'None:None:None'
         }
+        stack_data.update(output)
         if persist:
             logger.info("Aggregation process completed for {}."
                         " Writing to RDS.".format(external_request_id))
