@@ -9,8 +9,8 @@ from flask_cors import CORS
 from raven.contrib.flask import Sentry
 
 from src.recommender import RecommendationTask
-from src.stack_aggregator_v1 import StackAggregator as StackAggregatorV1
-from src.stack_aggregator_v2 import StackAggregator as StackAggregatorV2
+from src.stack_aggregator import StackAggregator as StackAggregatorV1
+from src.v2.stack_aggregator import StackAggregator as StackAggregatorV2
 from src.utils import push_data, total_time_elapsed, get_time_delta
 
 def setup_logging(flask_app):
