@@ -123,15 +123,14 @@ def extract_component_details(component):
     name = component.get("version", {}).get("pname", [""])[0]
     version = component.get("version", {}).get("version", [""])[0]
     ecosystem = component.get("version", {}).get("pecosystem", [""])[0]
-    if len(component.get("cves", [])) > 0:
-        for cve in component.get("cves", []):
-            if is_private_vulnerability(cve):
-                private_vulnerabilities.append(get_vulnerability_for_free_tier(cve))
-            else:
-                public_vulnerabilities.append(get_vulnerability_for_free_tier(cve))
-        recommended_latest_version = component.get("package", {}).get("latest_non_cve_version", "")
-        if not recommended_latest_version:
-            recommended_latest_version = get_recommended_version(ecosystem, name, version)
+    for cve in component.get("cve", []):
+        if is_private_vulnerability(cve):
+            private_vulnerabilities.append(get_vulnerability_for_free_tier(cve))
+        else:
+            public_vulnerabilities.append(get_vulnerability_for_free_tier(cve))
+    recommended_latest_version = component.get("package", {}).get("latest_non_cve_version", "")
+    if not recommended_latest_version:
+        recommended_latest_version = get_recommended_version(ecosystem, name, version)
 
     licenses = component.get("version", {}).get("declared_licenses", [])
 
@@ -368,19 +367,17 @@ def aggregate_stack_data(stack, manifest_file, ecosystem, deps,
     licenses = []
     license_score_list = []
     for component in stack.get('result', []):
-        data = component.get("data", None)
-        if data:
-            component_data = extract_component_details(data[0])
-            if component_data:
-                # create license dict for license scoring
-                license_scoring_input = {
-                    'package': component_data['name'],
-                    'version': component_data['version'],
-                    'licenses': component_data['licenses']
-                }
-                dependencies.append(component_data)
-                licenses.extend(component_data['licenses'])
-                license_score_list.append(license_scoring_input)
+        component_data = extract_component_details(component)
+        if component_data:
+            # create license dict for license scoring
+            license_scoring_input = {
+                'package': component_data['name'],
+                'version': component_data['version'],
+                'licenses': component_data['licenses']
+            }
+            dependencies.append(component_data)
+            licenses.extend(component_data['licenses'])
+            license_score_list.append(license_scoring_input)
 
     stack_distinct_licenses = set(licenses)
 
@@ -450,51 +447,20 @@ def create_dependency_data_set(packages, ecosystem):
     return unique_epv_dict
 
 
-def remove_duplicate_cve_data(epv_list):
-    """Club all CVEs for an EPV."""
-    graph_dict = {}
-    result = []
-    for data in epv_list['result']['data']:
-        pv = data.get('version').get('pname')[0] + ":" + \
-             data.get('version').get('version')[0]
-        if pv not in graph_dict:
-            graph_dict[pv] = {}
-        graph_dict[pv].update(data)
-        if 'cves' not in graph_dict[pv]:
-            graph_dict[pv]['cves'] = list()
-        if 'cve' in data:
-            cve = graph_dict[pv].pop('cve')
-            # Fixes Issue
-            # https://github.com/fabric8-analytics/fabric8-analytics-vscode-extension/issues/328
-            if cve not in graph_dict[pv]['cves']:
-                graph_dict[pv]['cves'].append(cve)
-
-    # create a uniform structure for direct and transitive
-    for x, y in graph_dict.items():
-        z = list()
-        z.append(y)
-        data = {'data': z}
-        result.append(data)
-
-    return result
-
-
 def add_transitive_details(epv_list, epv_set):
     """Add transitive dict which affects direct dependencies."""
     direct = epv_set['direct']
     transitive = epv_set['transitive']
     result = []
 
-    cve_epv_list = remove_duplicate_cve_data(epv_list)
     # Add transitive dict as necessary
-    for data in cve_epv_list:
-        epv = data['data'][0]
+    for epv in epv_list['result']['data']:
         epv_str = epv['version']['pecosystem'][0] + "|#|" + \
             epv['version']['pname'][0] + "|#|" + \
             epv['version']['version'][0]
 
         if epv_str in direct:
-            result.append(copy.deepcopy(data))
+            result.append(copy.deepcopy(epv))
         if epv_str in transitive:
             affected_deps = transitive[epv_str]
             dependents = []
@@ -508,7 +474,7 @@ def add_transitive_details(epv_list, epv_set):
                         }
                     )
             epv['dependents'] = dependents
-            result.append(copy.deepcopy(data))
+            result.append(copy.deepcopy(epv))
 
     return result
 
@@ -524,19 +490,18 @@ def get_package_version(epv_set: Dict[str, str]) -> List[Tuple[str, str]]:
 
 def get_package_details_with_vulnerabilities(epv_set: Dict[str, str]) -> Dict[str, str]:
     """Get package data from graph along with vulnerability."""
+    time_start = time.time()
     query = "epv=[];"
     epvs_with_vuln = {
         "result": {
             "data": []
         }
     }
-    batch_query = ("a = g.V().has('pecosystem', '{eco}').has('pname', '{name}')."
-                  "has('version', '{ver}').dedup(); a.clone().as('version')."
-                  "in('has_version').dedup().as('package').select('version')."
-                  "coalesce(out('has_snyk_cve').as('cve')."
-                  "select('package','version','cve').by(valueMap()),"
-                  "select('package','version').by(valueMap()))."
-                  "fill(epv);")
+    batch_query = ("g.V().has('pecosystem', '{eco}').has('pname', '{name}')."
+                   "has('version', '{ver}').as('version', 'cve')."
+                   "select('version').in('has_version').as('package')."
+                   "select('package', 'version', 'cve').by(valueMap())."
+                   "by(valueMap()).by(out('has_snyk_cve').valueMap().fold()).fill(epv);")
     i = 1
     for epv, _ in epv_set.items():
         eco, name, ver = epv.split('|#|')
@@ -553,11 +518,10 @@ def get_package_details_with_vulnerabilities(epv_set: Dict[str, str]) -> Dict[st
 
     if i > 1:
         payload = {'gremlin': query}
-        time_start = time.time()
         result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
-        logger.info('elapsed_time for gremlin call: {}'.format(time.time() - time_start))
         if result:
             epvs_with_vuln['result']['data'] += result['result']['data']
+    logger.info('elapsed_time for gremlin calls: {} total {}'.format(time.time() - time_start, len(epvs_with_vuln['result']['data'])))
     return epvs_with_vuln
 
 
