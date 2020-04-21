@@ -118,7 +118,9 @@ components:
         manifest_file_path:
           type: string
         packages:
-          $ref: '#/components/schemas/Package'
+          type: array
+          items:
+            $ref: '#/components/schemas/Package'
       description: EPV details for stack report generation
 
     Ecosystem:
