@@ -183,53 +183,55 @@ components:
 
     PremiumVulnerabilityFields:
       title: PremiumVulnerabilityFields
-      type: object
-      properties:
-        malicious:
-          type: boolean
-          default: true
-        patch_exists:
-          type: boolean
-          default: false
-          example: true
-        fixable:
-          type: boolean
-          default: false
-          example: true
-        exploit:
-          type: string
-          enum:
-            - High
-            - Functional
-            - Proof of Concept
-            - Unproven
-            - Not Defined
-          example: High
-        description:
-          type: string
-          example: |
-            "## Overview\r\n[`django`](https://pypi.python.org/pypi/django) is a high-level Python Web framework that encourages rapid development and clean, pragmatic design.\r\n\r\nAffected versions of this package expose sensitive information due to not properly restricting the use of a query string that performs certain object filtering. An attacker may obtain sensitive information via a series of requests containing regular expressions, as demonstrated by a `created_by__password__regex` parameter.\r\n\r\n## References\r\n- [Django Vulnerability Description](http://www.djangoproject.com/weblog/2010/dec/22/security/)\r\n- [GitHub Commit](https://github.com/django/django/commit/732198ed5c)\r\n- [Redhat Bugzilla](https://bugzilla.redhat.com/show_bug.cgi?id=665373)\r\n- [Openwall](http://www.openwall.com/lists/oss-security/2011/01/03/5)\r\n- [CVE](https://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2010-4534)\r\n"
-        fixed_in:
-          type: array
-          items:
-            type: string
-          example:
-            - 2.6.7
-            - 2.7.5
-            - 2.8.0
-        references:
-          type: array
-          items:
-            type: object
-            properties:
-              title:
+      allOf:
+        - $ref: '#/components/schemas/BasicVulnerabilityFields'
+        - type: object
+          properties:
+            malicious:
+              type: boolean
+              default: true
+            patch_exists:
+              type: boolean
+              default: false
+              example: true
+            fixable:
+              type: boolean
+              default: false
+              example: true
+            exploit:
+              type: string
+              enum:
+                - High
+                - Functional
+                - Proof of Concept
+                - Unproven
+                - Not Defined
+              example: High
+            description:
+              type: string
+              example: |
+                "## Overview\r\n[`django`](https://pypi.python.org/pypi/django) is a high-level Python Web framework that encourages rapid development and clean, pragmatic design.\r\n\r\nAffected versions of this package expose sensitive information due to not properly restricting the use of a query string that performs certain object filtering. An attacker may obtain sensitive information via a series of requests containing regular expressions, as demonstrated by a `created_by__password__regex` parameter.\r\n\r\n## References\r\n- [Django Vulnerability Description](http://www.djangoproject.com/weblog/2010/dec/22/security/)\r\n- [GitHub Commit](https://github.com/django/django/commit/732198ed5c)\r\n- [Redhat Bugzilla](https://bugzilla.redhat.com/show_bug.cgi?id=665373)\r\n- [Openwall](http://www.openwall.com/lists/oss-security/2011/01/03/5)\r\n- [CVE](https://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2010-4534)\r\n"
+            fixed_in:
+              type: array
+              items:
                 type: string
-                example: Redhat Security Advisory
-              url:
-                type: string
-                example: https://access.redhat.com/security/cve/CVE-2013-2186
-      description: |
-        Extended Vulnerability details, available only to registered users
+              example:
+                - 2.6.7
+                - 2.7.5
+                - 2.8.0
+            references:
+              type: array
+              items:
+                type: object
+                properties:
+                  title:
+                    type: string
+                    example: Redhat Security Advisory
+                  url:
+                    type: string
+                    example: https://access.redhat.com/security/cve/CVE-2013-2186
+          description: |
+            Extended Vulnerability details, available only to registered users
 
     Package:
       title: Package
@@ -409,10 +411,6 @@ components:
                 type: string
               example:
                 - Apache License, Version 2.0
-            topic_list:
-              type: array
-              items:
-                type: string
             ecosystem:
               $ref: '#/components/schemas/Ecosystem'
             public_vulnerabilities_count:
@@ -421,6 +419,12 @@ components:
             private_vulnerabilities_count:
               type: integer
               example: 3
+            vulnerable_transitives_count:
+              type: integer
+              default: 0
+              example: 1
+              description: |
+                No of vulnerable transitives              
             osio_user_count:
               type: integer
               example: 123
@@ -441,18 +445,14 @@ components:
               type: array
               description: Publicly known vulnerability details
               items:
-                allOf:
-                  - $ref: '#/components/schemas/PremiumVulnerabilityFields'
-                  - $ref: '#/components/schemas/BasicVulnerabilityFields'
+                $ref: '#/components/schemas/PremiumVulnerabilityFields'
             private_vulnerabilities:
               type: array
               description: |
                 Private vulnerability details, available only to registered
                 users
               items:
-                allOf:
-                  - $ref: '#/components/schemas/PremiumVulnerabilityFields'
-                  - $ref: '#/components/schemas/BasicVulnerabilityFields'
+                $ref: '#/components/schemas/PremiumVulnerabilityFields'
             recommended_version:
               type: string
               example: 3.0.0
@@ -462,6 +462,8 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/PackageDetailsForRegisteredUser'
+              description: |
+                List of transitives which are vulnerable.
           description: Details of the package for registered users
 
     PackageDetailsForFreeTier:
@@ -488,7 +490,9 @@ components:
             vulnerable_transitives:
               type: array
               items:
-                $ref: '#/components/schemas/PackageDetailsForFreeTier'                
+                $ref: '#/components/schemas/PackageDetailsForFreeTier'    
+              description: |
+                List of transitives which are vulnerable.
           description: Details of the package for free tier users
 
     RecommendedPackageData:
@@ -633,17 +637,13 @@ components:
               version: 2020.1.alpha
             - name: jsonp
               version: 0.0.1
-        analyzed_direct_dependencies_count:
+        analyzed_ependencies_count:
           type: integer
           example: 25              
         transitive_count:
           type: integer
           default: -1
           example: 11
-        vulnerable_transitives_count:
-          type: integer
-          default: -1
-          example: 1
         license_analysis:
           $ref: '#/components/schemas/LicenseAnalysis'
         distinct_licenses:
@@ -670,32 +670,13 @@ components:
       - type: object
         required:
           - analyzed_direct_dependencies
-          - vulnerable_transitives
         properties:
-          analyzed_direct_dependencies:
+          analyzed_dependencies:
             type: array
             items:
               $ref: '#/components/schemas/PackageDetailsForRegisteredUser'
             description: |
               All direct dependencies details regardless of it's vulnerability status
-          vulnerable_transitives:
-            type: array
-            items:
-              allOf:
-                - type: object
-                  properties:
-                    dependents:
-                      type: array
-                      description: Lists all direct dependencies of this package
-                      items:
-                        $ref: '#/components/schemas/Package'
-                      example:
-                        - name: jinja2
-                          version: 2.5.2
-                        - name: django-orm
-                - $ref: '#/components/schemas/PackageDetailsForRegisteredUser'
-            description: |
-              Only Transitives which has vulnerability associated with it.
       description: Stack analyses result for registered user
       
     StackAggregatorResultForFreeTier:
@@ -706,32 +687,14 @@ components:
         required:
           - registration_link
           - analyzed_direct_dependencies
-          - vulnerable_transitives
         properties:
           registration_link:
             type: string
             format: url
-          analyzed_direct_dependencies:
+          analyzed_dependencies:
             type: array
             items:
               $ref: '#/components/schemas/PackageDetailsForFreeTier'
             description: |
               All direct dependencies details regardless of it's vulnerability status
-          vulnerable_transitives:
-            type: array
-            items:
-              allOf:
-                - type: object
-                  properties:
-                    dependents:
-                      type: array
-                      description: Lists all direct dependencies of this package
-                      items:
-                        $ref: '#/components/schemas/Package'
-                      example:
-                        - name: jinja2
-                          version: 2.5.2
-                        - name: django-orm
-                          version: 7.1.0
-                - $ref: '#/components/schemas/PackageDetailsForFreeTier'
       description: Stack analyses result for free tier user
