@@ -118,7 +118,7 @@ components:
         manifest_file_path:
           type: string
         packages:
-          $ref: '#/components/schemas/PackageWithTransitives'
+          $ref: '#/components/schemas/Package'
       description: EPV details for stack report generation
 
     Ecosystem:
@@ -242,26 +242,18 @@ components:
         version:
           type: string
           example: 1.2.1
+        deps:
+          type: array
+          items:
+            $ref: '#/components/schemas/Package'
+          example:
+            - requests:
+                name: requests
+                version: 1.2.3
+            - six:
+                name: six
+                version: 5.1.1          
       description: Package details
-
-    PackageWithTransitives:
-      title: PackageWithTransitives
-      allOf:
-        - $ref: '#/components/schemas/Package'
-        - type: object
-          properties:
-            deps:
-              type: array
-              items:
-                $ref: '#/components/schemas/Package'
-              example:
-                - requests:
-                    name: requests
-                    version: 1.2.3
-                - six:
-                    name: six
-                    version: 5.1.1
-      description: Package details with transitives
 
     UnknownLicenses:
       title: UnknownLicenses
@@ -389,14 +381,21 @@ components:
     PackageDetails:
       title: PackageDetails
       allOf:
-        - $ref: '#/components/schemas/Package'
         - type: object
           required:
+            - name
+            - version
             - latest_version
             - ecosystem
             - public_vulnerabilities_count
             - private_vulnerabilities_count
           properties:
+            name:
+              type: string
+              example: django
+            version:
+              type: string
+              example: 1.2.1          
             latest_version:
               type: string
               example: 3.0.5
@@ -430,31 +429,10 @@ components:
                 - https://snyk.io/vuln/pip:jinja2
           description: Details of the package
 
-    RecommendedVersionForPublicVulnerabilities:
-      title: RecommendedVersionForPublicVulnerabilities
-      properties:
-        recommended_version:
-            type: string
-            example: 3.0.0
-      description: |
-        Recommended package version which includes only fix 
-        public vulnerability
-
-    RecommendedVersionForPublicAndPrivateVulnerabilities:
-      title: RecommendedVersionForPublicAndPrivateVulnerabilities
-      properties:
-        recommended_version:
-            type: string
-            example: 3.0.0
-      description: |
-        Recommended package version which includes fix for public 
-        and private vulnerability
-
     PackageDetailsForRegisteredUser:
       title: PackageDetailsForRegisteredUser
       allOf:
         - $ref: '#/components/schemas/PackageDetails'
-        - $ref: '#/components/schemas/RecommendedVersionForPublicAndPrivateVulnerabilities'
         - type: object
           properties:
             public_vulnerabilities:
@@ -473,13 +451,21 @@ components:
                 allOf:
                   - $ref: '#/components/schemas/PremiumVulnerabilityFields'
                   - $ref: '#/components/schemas/BasicVulnerabilityFields'
+            recommended_version:
+              type: string
+              example: 3.0.0
+              description: |
+                Recommended package version which includes fix for both public and private vulnerabilities.
+            vulnerable_transitives:
+              type: array
+              items:
+                $ref: '#/components/schemas/PackageDetailsForRegisteredUser'
           description: Details of the package for registered users
 
     PackageDetailsForFreeTier:
       title: PackageDetailsForFreeTier
       allOf:
         - $ref: '#/components/schemas/PackageDetails'
-        - $ref: '#/components/schemas/RecommendedVersionForPublicVulnerabilities'
         - type: object
           properties:
             public_vulnerabilities:
@@ -492,6 +478,15 @@ components:
               description: Private vulnerability details with limited info
               items:
                 $ref: '#/components/schemas/BasicVulnerabilityFields'
+            recommended_version:
+              type: string
+              example: 3.0.0
+              description: |
+                Recommended package version which includes fix for public vulnerabilities.
+            vulnerable_transitives:
+              type: array
+              items:
+                $ref: '#/components/schemas/PackageDetailsForFreeTier'                
           description: Details of the package for free tier users
 
     RecommendedPackageData:
@@ -658,7 +653,7 @@ components:
         dependencies:
           type: array
           items:
-            $ref: '#/components/schemas/PackageWithTransitives'
+            $ref: '#/components/schemas/Package'
         total_licenses:
           type: integer
           example: 15
