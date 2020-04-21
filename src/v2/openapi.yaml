@@ -246,7 +246,7 @@ components:
         version:
           type: string
           example: 1.2.1
-        deps:
+        dependencies:
           type: array
           items:
             $ref: '#/components/schemas/Package'
@@ -385,6 +385,7 @@ components:
     PackageDetails:
       title: PackageDetails
       allOf:
+        - $ref: '#/components/schemas/Package'
         - type: object
           required:
             - name
@@ -393,13 +394,8 @@ components:
             - ecosystem
             - public_vulnerabilities_count
             - private_vulnerabilities_count
+            - vulnerable_dependencies_count
           properties:
-            name:
-              type: string
-              example: django
-            version:
-              type: string
-              example: 1.2.1          
             latest_version:
               type: string
               example: 3.0.5
@@ -419,12 +415,12 @@ components:
             private_vulnerabilities_count:
               type: integer
               example: 3
-            vulnerable_transitives_count:
+            vulnerable_dependencies_count:
               type: integer
               default: 0
               example: 1
               description: |
-                No of vulnerable transitives              
+                No of vulnerable dependencies of this package.              
             osio_user_count:
               type: integer
               example: 123
@@ -458,12 +454,12 @@ components:
               example: 3.0.0
               description: |
                 Recommended package version which includes fix for both public and private vulnerabilities.
-            vulnerable_transitives:
+            vulnerable_dependencies:
               type: array
               items:
                 $ref: '#/components/schemas/PackageDetailsForRegisteredUser'
               description: |
-                List of transitives which are vulnerable.
+                List of dependencies which are vulnerable.
           description: Details of the package for registered users
 
     PackageDetailsForFreeTier:
@@ -487,12 +483,12 @@ components:
               example: 3.0.0
               description: |
                 Recommended package version which includes fix for public vulnerabilities.
-            vulnerable_transitives:
+            vulnerable_dependencies:
               type: array
               items:
                 $ref: '#/components/schemas/PackageDetailsForFreeTier'    
               description: |
-                List of transitives which are vulnerable.
+                List of dependencies which are vulnerable.
           description: Details of the package for free tier users
 
     RecommendedPackageData:
@@ -637,10 +633,10 @@ components:
               version: 2020.1.alpha
             - name: jsonp
               version: 0.0.1
-        analyzed_ependencies_count:
+        analyzed_dependencies_count:
           type: integer
           example: 25              
-        transitive_count:
+        indirect_dependencies_count:
           type: integer
           default: -1
           example: 11
