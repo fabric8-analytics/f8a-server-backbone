@@ -392,9 +392,6 @@ components:
             - version
             - latest_version
             - ecosystem
-            - public_vulnerabilities_count
-            - private_vulnerabilities_count
-            - vulnerable_dependencies_count
           properties:
             latest_version:
               type: string
@@ -409,18 +406,6 @@ components:
                 - Apache License, Version 2.0
             ecosystem:
               $ref: '#/components/schemas/Ecosystem'
-            public_vulnerabilities_count:
-              type: integer
-              example: 21
-            private_vulnerabilities_count:
-              type: integer
-              example: 3
-            vulnerable_dependencies_count:
-              type: integer
-              default: 0
-              example: 1
-              description: |
-                No of vulnerable dependencies of this package.              
             osio_user_count:
               type: integer
               example: 123
@@ -586,11 +571,7 @@ components:
         - manifest_file_path
         - manifest_name
         - ecosystem
-        - unknown_dependencies_count
         - unknown_dependencies
-        - analyzed_direct_dependencies_count
-        - transitive_count
-        - vulnerable_transitives_count
         - license_analysis
         - distinct_licenses
         - stack_license_conflict
@@ -621,9 +602,6 @@ components:
           example: dependencies.txt
         ecosystem:
           $ref: '#/components/schemas/Ecosystem'
-        unknown_dependencies_count:
-          type: integer
-          example: 2
         unknown_dependencies:
           type: array
           items:
@@ -633,13 +611,6 @@ components:
               version: 2020.1.alpha
             - name: jsonp
               version: 0.0.1
-        analyzed_dependencies_count:
-          type: integer
-          example: 25              
-        indirect_dependencies_count:
-          type: integer
-          default: -1
-          example: 11
         license_analysis:
           $ref: '#/components/schemas/LicenseAnalysis'
         distinct_licenses:
