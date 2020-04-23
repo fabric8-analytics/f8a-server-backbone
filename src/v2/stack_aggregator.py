@@ -10,6 +10,7 @@ from typing import Dict, List, Tuple
 import datetime
 import json
 import time
+import logging
 from flask import current_app
 import requests
 import copy
@@ -17,7 +18,8 @@ from collections import defaultdict
 from src.utils import (select_latest_version, server_create_analysis, LICENSE_SCORING_URL_REST,
                    execute_gremlin_dsl, GREMLIN_SERVER_URL_REST, persist_data_in_db,
                    GREMLIN_QUERY_SIZE, format_date)
-import logging
+from src.v2.models import StackAggregatorRequest
+from src.v2.normalized_packages import EPV, NormalizedPackages
 
 logger = logging.getLogger(__file__)
 
@@ -360,8 +362,7 @@ def extract_user_stack_package_licenses(resolved, ecosystem):
     return list_package_licenses
 
 
-def aggregate_stack_data(stack, manifest_file, ecosystem, deps,
-                         manifest_file_path, persist, transitive_count):
+def aggregate_stack_data(stack, request, packages, persist, transitive_count):
     """Aggregate stack data."""
     dependencies = []
     licenses = []
@@ -389,8 +390,8 @@ def aggregate_stack_data(stack, manifest_file, ecosystem, deps,
         license_analysis = dict()
         stack_license_conflict = None
 
-    all_dependencies = {(dependency['name'], dependency['version']) for dependency in deps}
-    analyzed_dependencies = {(dependency['name'], dependency['version'])
+    all_dependencies = set(packages.all_dependencies)
+    analyzed_dependencies = {(EPV(request.ecosystem, dependency['name'], dependency['version']))
                              for dependency in dependencies}
     unknown_dependencies = list()
     for name, version in all_dependencies.difference(analyzed_dependencies):
@@ -404,9 +405,9 @@ def aggregate_stack_data(stack, manifest_file, ecosystem, deps,
         else:
             analyzed_direct_dependencies.append(dep)
     data = {
-            "manifest_name": manifest_file,
-            "manifest_file_path": manifest_file_path,
-            "ecosystem": ecosystem,
+            "manifest_name": request.manifest_file,
+            "manifest_file_path": request.manifest_file_path,
+            "ecosystem": request.ecosystem,
             "analyzed_direct_dependencies_count": len(analyzed_direct_dependencies),
             "analyzed_direct_dependencies": analyzed_direct_dependencies,
             "vulnerable_transitives_count": len(vulnerable_transitives),
@@ -418,7 +419,7 @@ def aggregate_stack_data(stack, manifest_file, ecosystem, deps,
             "total_licenses": len(stack_distinct_licenses),
             "distinct_licenses": list(stack_distinct_licenses),
             "stack_license_conflict": stack_license_conflict,
-            "dependencies": deps,
+            "dependencies": [d.dict() for d in request.packages],
             "license_analysis": license_analysis,
             # TODO: should be set based on request field
             "registration_status": "unregistered",
@@ -488,7 +489,7 @@ def get_package_version(epv_set: Dict[str, str]) -> List[Tuple[str, str]]:
         pkgs.append((name, ver))
     return pkgs
 
-def get_package_details_with_vulnerabilities(epv_set: Dict[str, str]) -> Dict[str, str]:
+def get_package_details_with_vulnerabilities(dependencies) -> Dict[str, str]:
     """Get package data from graph along with vulnerability."""
     time_start = time.time()
     query = "epv=[];"
@@ -503,9 +504,8 @@ def get_package_details_with_vulnerabilities(epv_set: Dict[str, str]) -> Dict[st
                    "select('package', 'version', 'cve').by(valueMap())."
                    "by(valueMap()).by(out('has_snyk_cve').valueMap().fold()).fill(epv);")
     i = 1
-    for epv, _ in epv_set.items():
-        eco, name, ver = epv.split('|#|')
-        query += batch_query.format(eco=eco, name=name, ver=ver)
+    for dep in dependencies:
+        query += batch_query.format(eco=dep.ecosystem, name=dep.package, ver=dep.version)
         if i >= GREMLIN_QUERY_SIZE:
             i = 1
             # call_gremlin in batch
@@ -542,12 +542,12 @@ def find_unknown_deps(epv_data, epv_list, dep_list, unknown_deps_list, is_transi
     return epv_list, unknown_deps_list
 
 
-def get_dependency_data(epv_set):
+def get_dependency_data(packages):
     """Get dependency data from graph."""
-    dep_list = get_package_version(epv_set['direct'])
-    tr_list = get_package_version(epv_set['transitive'])
-    epv_list = get_package_details_with_vulnerabilities(epv_set['direct'])
-    tr_epv_list = get_package_details_with_vulnerabilities(epv_set['transitive'])
+    dep_list = [(d.package, d.version) for d in packages.direct_dependencies]
+    tr_list = [(d.package, d.version) for d in packages.transitive_dependencies]
+    epv_list = get_package_details_with_vulnerabilities(packages.direct_dependencies)
+    tr_epv_list = get_package_details_with_vulnerabilities(packages.transitive_dependencies)
     transitive_count = len(tr_epv_list['result']['data'])
 
     # Identification of unknown direct dependencies
@@ -559,7 +559,7 @@ def get_dependency_data(epv_set):
     epv_data = tr_epv_list['result']['data']
     epv_list, unknown_deps_list = find_unknown_deps(epv_data, epv_list,
                                                     tr_list, unknown_deps_list, True)
-    result = add_transitive_details(epv_list, epv_set)
+    result = epv_list['result']['data']
     accumulated_data = {'result': result, 'unknown_deps': unknown_deps_list,
                         'transitive_count': transitive_count}
     logger.info('Accumulated data: {}'.format(json.dumps(accumulated_data)))
@@ -570,22 +570,19 @@ class StackAggregator:
     """Aggregate stack data from components."""
 
     @staticmethod
-    def execute(aggregated=None, persist=True):
+    def execute(request, persist=True):
         """Task code."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
+        request = StackAggregatorRequest(**request)
         unknown_dep_list = []
-        show_transitive = aggregated.get('show_transitive')
-        external_request_id = aggregated.get('external_request_id')
+        show_transitive = request.show_transitive
+        external_request_id = request.external_request_id
         # TODO multiple license file support
-        current_stack_license = aggregated.get('current_stack_license', {}).get('1', {})
+        # current_stack_license = request.get('current_stack_license', {}).get('1', {})
+        current_stack_license = []
 
-        packages = aggregated.get('packages')
-        ecosystem = aggregated.get('ecosystem')
-        manifest = aggregated.get('manifest_file')
-        manifest_file_path = aggregated.get('manifest_file_path')
-
-        epv_set = create_dependency_data_set(packages, ecosystem)
-        finished = get_dependency_data(epv_set)
+        normalized_packages = NormalizedPackages(request.packages, request.ecosystem)
+        finished = get_dependency_data(normalized_packages)
 
         """ Direct deps can have 0 transitives. This condition is added
         so that in ext, we get to know if deps are 0 or if the transitive flag
@@ -595,8 +592,7 @@ class StackAggregator:
         else:
             transitive_count = -1
         if finished is not None:
-            output = aggregate_stack_data(finished, manifest, ecosystem.lower(), packages,
-                    manifest_file_path, persist, transitive_count)
+            output = aggregate_stack_data(finished, request, normalized_packages, persist, transitive_count)
             output['license_analysis'].update({
                 "current_stack_license": current_stack_license
                 })

@@ -97,15 +97,23 @@ def test_normalized_packages_basic_transitive():
     assert flask in normalized.all_dependencies
     assert six in normalized.all_dependencies
 
-def test_normalized_packages_duplicate_transitive():
+def test_normalized_packages_with_duplicates():
     flask = EPV('pypi', 'flask', '0.12')
     six = EPV('pypi', 'six', '1.2.3')
     foo = Package(**{
         'name': flask.package,
         'version': flask.version,
         'dependencies': [{
-            'name': six.package,
-            'version': six.version
+                'name': six.package,
+                'version': six.version
+            },
+            {
+                'name': six.package,
+                'version': six.version
+            },
+            {
+                'name': flask.package,
+                'version': flask.version
             }
          ]
     })
@@ -125,10 +133,12 @@ def test_normalized_packages_duplicate_transitive():
     assert normalized.direct_dependencies != None
     assert len(normalized.direct_dependencies) == 1
     assert flask in normalized.direct_dependencies
+    assert six not in normalized.direct_dependencies
 
     # transtive should have an entry
-    assert len(normalized.transitive_dependencies) == 1
+    assert len(normalized.transitive_dependencies) == 2
     assert six in normalized.transitive_dependencies
+    assert flask in normalized.transitive_dependencies
 
     # all must be 2
     assert len(normalized.all_dependencies) == 2

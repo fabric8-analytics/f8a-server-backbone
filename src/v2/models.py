@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 
 class Ecosystem(Enum):
@@ -229,8 +229,8 @@ class StackAggregatorResultForFreeTier(StackAggregatorResult):
 
 
 class StackAggregatorRequest(BaseModel):
-    registration_status: 'RegistrationStatus'
-    uuid: UUID
+    registration_status: 'RegistrationStatus' = 'freetier'
+    uuid: UUID = None
     external_request_id: str
     show_transitive: Optional[bool] = Field(
         True,
@@ -239,7 +239,11 @@ class StackAggregatorRequest(BaseModel):
     ecosystem: 'Ecosystem'
     manifest_file: str
     manifest_file_path: str
-    packages: 'Package'
+    packages: List['Package']
+
+    @validator('ecosystem')
+    def normalize_ecosystem(cls, ecosystem):
+        return ecosystem.value.lower()
 
 
 class StackRecommendationResult(BaseModel):
