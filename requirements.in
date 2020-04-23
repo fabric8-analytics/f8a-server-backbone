@@ -5,6 +5,7 @@ requests
 requests-futures
 gevent
 semantic_version
+pydantic
 psycopg2
 sqlalchemy
 codecov

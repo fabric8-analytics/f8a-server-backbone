@@ -59,7 +59,7 @@ class PremiumVulnerabilityFields(BaseModel):
 class Package(BaseModel):
     name: str
     version: str
-    deps: Optional[List['Package']] = None
+    dependencies: Optional[List['Package']] = []
 
 
 class ComponentConflictItem(BaseModel):
