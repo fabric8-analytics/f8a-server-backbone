@@ -575,7 +575,6 @@ components:
         - license_analysis
         - distinct_licenses
         - stack_license_conflict
-        - dependencies
         - total_licenses
         - recommendation_ready
       discriminator:
@@ -619,10 +618,6 @@ components:
             type: string
         stack_license_conflict:
           type: boolean
-        dependencies:
-          type: array
-          items:
-            $ref: '#/components/schemas/Package'
         total_licenses:
           type: integer
           example: 15
@@ -633,7 +628,7 @@ components:
     StackAggregatorResultForRegisteredUser:
       title: StackAggregatorResultForRegisteredUser
       allOf:
-      - $ref: '#/components/schemas/StackAggregatorResult'      
+      - $ref: '#/components/schemas/StackAggregatorResult'  
       - type: object
         required:
           - analyzed_direct_dependencies
