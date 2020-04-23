@@ -419,7 +419,7 @@ def aggregate_stack_data(stack, request, packages, persist, transitive_count):
             "total_licenses": len(stack_distinct_licenses),
             "distinct_licenses": list(stack_distinct_licenses),
             "stack_license_conflict": stack_license_conflict,
-            "dependencies": [d.dict() for d in request.packages],
+            "dependencies": request.dict(include={'packages'}),
             "license_analysis": license_analysis,
             # TODO: should be set based on request field
             "registration_status": "unregistered",
