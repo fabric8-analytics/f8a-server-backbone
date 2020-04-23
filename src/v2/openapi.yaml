@@ -336,6 +336,15 @@ components:
           properties: {}
         unknown_licenses:
           $ref: '#/components/schemas/UnknownLicenses'
+        distinct_licenses:
+          type: array
+          items:
+            type: string
+        stack_license_conflict:
+          type: boolean
+        total_licenses:
+          type: integer
+          example: 15          
       description: License analyses data
 
     GitHubDetails:
@@ -573,10 +582,6 @@ components:
         - ecosystem
         - unknown_dependencies
         - license_analysis
-        - distinct_licenses
-        - stack_license_conflict
-        - total_licenses
-        - recommendation_ready
       discriminator:
         propertyName: registration_status
         mapping:
@@ -612,17 +617,6 @@ components:
               version: 0.0.1
         license_analysis:
           $ref: '#/components/schemas/LicenseAnalysis'
-        distinct_licenses:
-          type: array
-          items:
-            type: string
-        stack_license_conflict:
-          type: boolean
-        total_licenses:
-          type: integer
-          example: 15
-        recommendation_ready:
-          type: boolean
       description: Stack analyses result data
 
     StackAggregatorResultForRegisteredUser:
