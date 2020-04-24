@@ -405,9 +405,6 @@ def aggregate_stack_data(stack, request, packages, persist, transitive_count):
         else:
             analyzed_direct_dependencies.append(dep)
     data = {
-            "manifest_name": request.manifest_file,
-            "manifest_file_path": request.manifest_file_path,
-            "ecosystem": request.ecosystem,
             "analyzed_direct_dependencies_count": len(analyzed_direct_dependencies),
             "analyzed_direct_dependencies": analyzed_direct_dependencies,
             "vulnerable_transitives_count": len(vulnerable_transitives),
@@ -419,13 +416,13 @@ def aggregate_stack_data(stack, request, packages, persist, transitive_count):
             "total_licenses": len(stack_distinct_licenses),
             "distinct_licenses": list(stack_distinct_licenses),
             "stack_license_conflict": stack_license_conflict,
-            "dependencies": request.dict(include={'packages'}),
             "license_analysis": license_analysis,
             # TODO: should be set based on request field
             "registration_status": "unregistered",
             # TODO: read from config
             "registration_link": "https://snyk.io/login"
     }
+    data.update(request.dict(exclude={'packages'}))
     return data
 
 
@@ -489,38 +486,36 @@ def get_package_version(epv_set: Dict[str, str]) -> List[Tuple[str, str]]:
         pkgs.append((name, ver))
     return pkgs
 
+def _get_package_details_query_in_batches(dependencies: Tuple[EPV]):
+    batch_query = ("g.V().has('pecosystem', '{eco}').has('pname', '{name}')."
+                   "has('version', '{ver}').as('version', 'cve')."
+                   "select('version').in('has_version').as('package')."
+                   "select('package', 'version', 'cve').by(valueMap())."
+                   "by(valueMap()).by(out('has_snyk_cve').valueMap().fold()).fill(epv)")
+    query: List[str] = ['epv = []']
+    for i, dep in enumerate(dependencies, start=1):
+        query.append(batch_query.format(eco=dep.ecosystem, name=dep.package, ver=dep.version))
+        if i % GREMLIN_QUERY_SIZE == 0:
+            yield ';'.join(query)
+            query = ['epv = []']
+    if len(query) > 1:
+        yield ';'.join(query)
+
 def get_package_details_with_vulnerabilities(dependencies) -> Dict[str, str]:
     """Get package data from graph along with vulnerability."""
     time_start = time.time()
-    query = "epv=[];"
     epvs_with_vuln = {
         "result": {
             "data": []
         }
     }
-    batch_query = ("g.V().has('pecosystem', '{eco}').has('pname', '{name}')."
-                   "has('version', '{ver}').as('version', 'cve')."
-                   "select('version').in('has_version').as('package')."
-                   "select('package', 'version', 'cve').by(valueMap())."
-                   "by(valueMap()).by(out('has_snyk_cve').valueMap().fold()).fill(epv);")
-    i = 1
-    for dep in dependencies:
-        query += batch_query.format(eco=dep.ecosystem, name=dep.package, ver=dep.version)
-        if i >= GREMLIN_QUERY_SIZE:
-            i = 1
-            # call_gremlin in batch
-            payload = {'gremlin': query}
-            result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
-            if result:
-                epvs_with_vuln['result']['data'] += result['result']['data']
-            query = "epv=[];"
-        i += 1
-
-    if i > 1:
+    for query in _get_package_details_query_in_batches(dependencies):
+        # call_gremlin in batch
         payload = {'gremlin': query}
         result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
         if result:
             epvs_with_vuln['result']['data'] += result['result']['data']
+
     logger.info('elapsed_time for gremlin calls: {} total {}'.format(time.time() - time_start, len(epvs_with_vuln['result']['data'])))
     return epvs_with_vuln
 
@@ -622,7 +617,7 @@ class StackAggregator:
         logger.info("Unknown ingestion flow process initiated.")
         try:
             for dep in unknown_dep_list:
-                server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=True,
+                server_create_analysis(request.ecosystem, dep['name'], dep['version'], api_flow=True,
                                        force=False, force_graph_sync=True)
         except Exception as e:
             logger.error('Ingestion has been failed for ' + dep['name'])

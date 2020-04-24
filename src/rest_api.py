@@ -129,7 +129,7 @@ def stack_aggregator(version):
             metrics_payload['endpoint'] = request.endpoint
             push_data(metrics_payload)
         except KeyError as e:
-            raise e
+            pass
 
     return flask.jsonify(s)
 
