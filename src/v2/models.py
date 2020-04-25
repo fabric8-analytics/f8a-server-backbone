@@ -94,6 +94,11 @@ class LicenseAnalysis(BaseModel):
     total_licenses: Optional[int] = None
 
 
+class UsedByItem(BaseModel):
+    name: Optional[str] = None
+    stars: Optional[int] = None
+
+
 class GitHubDetails(BaseModel):
     watchers: Optional[int] = None
     first_release_date: Optional[str] = None
@@ -107,7 +112,7 @@ class GitHubDetails(BaseModel):
     contributors: Optional[int] = None
     size: Optional[str] = None
     stargazers_count: Optional[int] = None
-    used_by: Optional[List[str]] = None
+    used_by: Optional[List[UsedByItem]] = None
     dependent_projects: Optional[int] = None
 
 

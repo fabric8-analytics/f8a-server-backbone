@@ -18,7 +18,8 @@ from collections import defaultdict
 from src.utils import (select_latest_version, server_create_analysis, LICENSE_SCORING_URL_REST,
                    execute_gremlin_dsl, GREMLIN_SERVER_URL_REST, persist_data_in_db,
                    GREMLIN_QUERY_SIZE, format_date)
-from src.v2.models import StackAggregatorRequest
+from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails,
+                        BasicVulnerabilityFields, PackageDetailsForFreeTier)
 from src.v2.normalized_packages import EPV, NormalizedPackages
 
 logger = logging.getLogger(__file__)
@@ -49,66 +50,65 @@ def get_recommended_version(ecosystem, name, version):
 def is_private_vulnerability(vulnerability_node):
     return vulnerability_node.get('snyk_pvt_vulnerability', [True])[0]
 
-def get_vulnerability_for_free_tier(vulnerability_node):
+def get_vuln_for_free_tier(vuln_node):
     return {
-        'id': vulnerability_node.get('snyk_vuln_id')[0],
-        'cvss': vulnerability_node.get('cvss_scores', [''])[0],
-        'cve_ids': vulnerability_node.get('snyk_cve_ids'),
-        'cvss_v3': vulnerability_node.get('snyk_cvss_v3')[0],
-        'cwes': vulnerability_node.get('snyk_cwes'),
-        'severity': vulnerability_node.get('severity')[0],
-        'title': vulnerability_node.get('title')[0],
-        'url': vulnerability_node.get('snyk_url')[0],
+        'id': vuln_node.get('snyk_vuln_id')[0],
+        'cvss': vuln_node.get('cvss_scores', [''])[0],
+        'cve_ids': vuln_node.get('snyk_cve_ids'),
+        'cvss_v3': vuln_node.get('snyk_cvss_v3')[0],
+        'cwes': vuln_node.get('snyk_cwes'),
+        'severity': vuln_node.get('severity')[0],
+        'title': vuln_node.get('title')[0],
+        'url': vuln_node.get('snyk_url')[0],
     }
 
-def get_vulnerability_for_registered_user(vulnerability_node):
-    info_free_tier = get_vulnerability_for_free_tier(vulnerability_node)
+def get_vuln_for_registered_user(vuln_node):
+    info_free_tier = get_vuln_for_free_tier(vuln_node)
     info_for_registered_user = {
-        'description': vulnerability_node.get('description')[0],
-        'exploit': vulnerability_node.get('exploit')[0],
-        'malicious': vulnerability_node.get('malicious', [False])[0],
-        'patch_exists': vulnerability_node.get('patch_exists', [False])[0],
-        'fixable': vulnerability_node.get('fixable', [False])[0],
-        'fixed_in': vulnerability_node.get('snyk_cvss_v3')[0],
+        'description': vuln_node.get('description')[0],
+        'exploit': vuln_node.get('exploit')[0],
+        'malicious': vuln_node.get('malicious', [False])[0],
+        'patch_exists': vuln_node.get('patch_exists', [False])[0],
+        'fixable': vuln_node.get('fixable', [False])[0],
+        'fixed_in': vuln_node.get('snyk_cvss_v3')[0],
     }
     return {**info_free_tier, **info_for_registered_user}
 
-def extract_component_details(component):
-    """Extract details from given component."""
-    date = format_date(component.get("package", {}).get("gh_refreshed_on", ["N/A"])[0])
+def get_github_details(package_node) -> GitHubDetails:
+    date = format_date(package_node.get("gh_refreshed_on", ["N/A"])[0])
     github_details = {
         "dependent_projects":
-            component.get("package", {}).get("libio_dependents_projects", [-1])[0],
-        "dependent_repos": component.get("package", {}).get("libio_dependents_repos", [-1])[0],
-        "total_releases": component.get("package", {}).get("libio_total_releases", [-1])[0],
+            package_node.get("libio_dependents_projects", [-1])[0],
+        "dependent_repos": package_node.get("libio_dependents_repos", [-1])[0],
+        "total_releases": package_node.get("libio_total_releases", [-1])[0],
         "latest_release_duration":
-            str(datetime.datetime.fromtimestamp(component.get("package", {}).get(
+            str(datetime.datetime.fromtimestamp(package_node.get(
                 "libio_latest_release", [1496302486.0])[0])),
         "first_release_date": "Apr 16, 2010",
         "issues": {
             "month": {
-                "opened": component.get("package", {}).get("gh_issues_last_month_opened", [-1])[0],
-                "closed": component.get("package", {}).get("gh_issues_last_month_closed", [-1])[0]
+                "opened": package_node.get("gh_issues_last_month_opened", [-1])[0],
+                "closed": package_node.get("gh_issues_last_month_closed", [-1])[0]
             }, "year": {
-                "opened": component.get("package", {}).get("gh_issues_last_year_opened", [-1])[0],
-                "closed": component.get("package", {}).get("gh_issues_last_year_closed", [-1])[0]
+                "opened": package_node.get("gh_issues_last_year_opened", [-1])[0],
+                "closed": package_node.get("gh_issues_last_year_closed", [-1])[0]
             }},
         "pull_requests": {
             "month": {
-                "opened": component.get("package", {}).get("gh_prs_last_month_opened", [-1])[0],
-                "closed": component.get("package", {}).get("gh_prs_last_month_closed", [-1])[0]
+                "opened": package_node.get("gh_prs_last_month_opened", [-1])[0],
+                "closed": package_node.get("gh_prs_last_month_closed", [-1])[0]
             }, "year": {
-                "opened": component.get("package", {}).get("gh_prs_last_year_opened", [-1])[0],
-                "closed": component.get("package", {}).get("gh_prs_last_year_closed", [-1])[0]
+                "opened": package_node.get("gh_prs_last_year_opened", [-1])[0],
+                "closed": package_node.get("gh_prs_last_year_closed", [-1])[0]
             }},
-        "stargazers_count": component.get("package", {}).get("gh_stargazers", [-1])[0],
-        "forks_count": component.get("package", {}).get("gh_forks", [-1])[0],
+        "stargazers_count": package_node.get("gh_stargazers", [-1])[0],
+        "forks_count": package_node.get("gh_forks", [-1])[0],
         "refreshed_on": date,
-        "open_issues_count": component.get("package", {}).get("gh_open_issues_count", [-1])[0],
-        "contributors": component.get("package", {}).get("gh_contributors_count", [-1])[0],
+        "open_issues_count": package_node.get("gh_open_issues_count", [-1])[0],
+        "contributors": package_node.get("gh_contributors_count", [-1])[0],
         "size": "N/A"
     }
-    used_by = component.get("package", {}).get("libio_usedby", [])
+    used_by = package_node.get("libio_usedby", [])
     used_by_list = []
     for epvs in used_by:
         slc = epvs.split(':')
@@ -118,51 +118,51 @@ def extract_component_details(component):
         }
         used_by_list.append(used_by_dict)
     github_details['used_by'] = used_by_list
+    return GitHubDetails(**github_details)
 
-    public_vulnerabilities = []
-    private_vulnerabilities = []
-    recommended_latest_version = None
-    name = component.get("version", {}).get("pname", [""])[0]
-    version = component.get("version", {}).get("version", [""])[0]
-    ecosystem = component.get("version", {}).get("pecosystem", [""])[0]
-    for cve in component.get("cve", []):
-        if is_private_vulnerability(cve):
-            private_vulnerabilities.append(get_vulnerability_for_free_tier(cve))
+def get_vulnerabilities(vulnerability_nodes):
+    public_vulns = []
+    private_vulns = []
+    for vuln in vulnerability_nodes:
+        if is_private_vulnerability(vuln):
+            private_vulns.append(BasicVulnerabilityFields(**get_vuln_for_free_tier(vuln)))
         else:
-            public_vulnerabilities.append(get_vulnerability_for_free_tier(cve))
-    recommended_latest_version = component.get("package", {}).get("latest_non_cve_version", "")
+            public_vulns.append(BasicVulnerabilityFields(**get_vuln_for_free_tier(vuln)))
+    return public_vulns, private_vulns
+
+def get_epv_from_graph_version_node(version_node) -> EPV:
+    name = version_node.get("pname", [""])[0]
+    version = version_node.get("version", [""])[0]
+    ecosystem = version_node.get("pecosystem", [""])[0]
+    return EPV(ecosystem, name, version)
+
+def extract_component_details(component):
+    """Extract package details from given graph response."""
+    pkg_node = component.get("package", {})
+    version_node = component.get("version", {})
+    epv = get_epv_from_graph_version_node(version_node)
+    github_details = get_github_details(pkg_node)
+    public_vulns, private_vulns = get_vulnerabilities(component.get("cve", {}))
+    recommended_latest_version = pkg_node.get("latest_non_cve_version", [""])[0]
     if not recommended_latest_version:
         recommended_latest_version = get_recommended_version(ecosystem, name, version)
 
     licenses = component.get("version", {}).get("declared_licenses", [])
 
     latest_version = select_latest_version(
-        version,
-        component.get("package", {}).get("libio_latest_version", [""])[0],
-        component.get("package", {}).get("latest_version", [""])[0],
-        name
+        epv.version,
+        pkg_node.get("libio_latest_version", [""])[0],
+        pkg_node.get("latest_version", [""])[0],
+        epv.package
     )
-    component_summary = {
-        "ecosystem": ecosystem,
-        "name": name,
-        "version": version,
-        "licenses": licenses,
-        "public_vulnerabilities_count": len(public_vulnerabilities),
-        "public_vulnerabilities": public_vulnerabilities,
-        "private_vulnerabilities_count": len(private_vulnerabilities),
-        "private_vulnerabilities": private_vulnerabilities,
-        "osio_user_count": component.get("version", {}).get("osio_usage_count", 0),
-        "latest_version": latest_version,
-        "recommended_version": recommended_latest_version,
-        "github": github_details,
-    }
-    # Add transitive block for transitive deps
-    if component.get('dependents', {}):
-        if not public_vulnerabilities and not private_vulnerabilities:
-            return None
-        else:
-            component_summary['dependents'] = component.get('dependents')
-    return component_summary
+    return epv, PackageDetailsForFreeTier(ecosystem=epv.ecosystem, name=epv.package,
+                                     version=epv.version, latest_version=latest_version,
+                                     github=github_details, licenses=licenses,
+                                     osio_usage_count=version_node.get("osio_usage_count"),
+                                     url='http://snyk.io/{eco}:{pkg}'.format(eco=epv.ecosystem, pkg=epv.package),
+                                     private_vulnerabilities=private_vulns,
+                                     public_vulnerabilities=public_vulns,
+                                     recommended_version=recommended_latest_version)
 
 
 def _extract_conflict_packages(license_service_output):
@@ -362,56 +362,27 @@ def extract_user_stack_package_licenses(resolved, ecosystem):
     return list_package_licenses
 
 
-def aggregate_stack_data(stack, request, packages, persist, transitive_count):
+def aggregate_stack_data(normalized_package_details, request, packages, persist, transitive_count):
     """Aggregate stack data."""
-    dependencies = []
-    licenses = []
-    license_score_list = []
-    for component in stack.get('result', []):
-        component_data = extract_component_details(component)
-        if component_data:
-            # create license dict for license scoring
-            license_scoring_input = {
-                'package': component_data['name'],
-                'version': component_data['version'],
-                'licenses': component_data['licenses']
-            }
-            dependencies.append(component_data)
-            licenses.extend(component_data['licenses'])
-            license_score_list.append(license_scoring_input)
-
-    stack_distinct_licenses = set(licenses)
-
-    # Call License Scoring to Get Stack License
-    if persist:
-        license_analysis, dependencies = perform_license_analysis(license_score_list, dependencies)
-        stack_license_conflict = len(license_analysis.get('f8a_stack_licenses', [])) == 0
-    else:
-        license_analysis = dict()
-        stack_license_conflict = None
+    # denormalize package details according to request.dependencies relations
+    package_details = _get_denormalized_package_details(request, normalized_package_details)
+    # TODO(license integration)
+    stack_distinct_licenses = []
+    license_analysis = dict()
+    stack_license_conflict = None
 
     all_dependencies = set(packages.all_dependencies)
-    analyzed_dependencies = {(EPV(request.ecosystem, dependency['name'], dependency['version']))
-                             for dependency in dependencies}
+    analyzed_dependencies = set(normalized_package_details.keys())
     unknown_dependencies = list()
-    for name, version in all_dependencies.difference(analyzed_dependencies):
-        unknown_dependencies.append({'name': name, 'version': version})
+    for epv in all_dependencies.difference(analyzed_dependencies):
+        unknown_dependencies.append({'name': epv.package, 'version': epv.version})
 
     analyzed_direct_dependencies = []
     vulnerable_transitives = []
-    for dep in dependencies:
-        if dep.get('dependents'):
-            vulnerable_transitives.append(dep)
-        else:
-            analyzed_direct_dependencies.append(dep)
     data = {
-            "analyzed_direct_dependencies_count": len(analyzed_direct_dependencies),
-            "analyzed_direct_dependencies": analyzed_direct_dependencies,
-            "vulnerable_transitives_count": len(vulnerable_transitives),
-            "vulnerable_transitives": vulnerable_transitives,
+            "analyzed_dependencies": package_details,
             "transitive_count": transitive_count,
             "unknown_dependencies": unknown_dependencies,
-            "unknown_dependencies_count": len(unknown_dependencies),
             "recommendation_ready": True,  # based on the percentage of dependencies analysed
             "total_licenses": len(stack_distinct_licenses),
             "distinct_licenses": list(stack_distinct_licenses),
@@ -501,7 +472,7 @@ def _get_package_details_query_in_batches(dependencies: Tuple[EPV]):
     if len(query) > 1:
         yield ';'.join(query)
 
-def get_package_details_with_vulnerabilities(dependencies) -> Dict[str, str]:
+def get_package_details_with_vulnerabilities(dependencies) -> List[Dict[str, object]]:
     """Get package data from graph along with vulnerability."""
     time_start = time.time()
     epvs_with_vuln = {
@@ -517,7 +488,7 @@ def get_package_details_with_vulnerabilities(dependencies) -> Dict[str, str]:
             epvs_with_vuln['result']['data'] += result['result']['data']
 
     logger.info('elapsed_time for gremlin calls: {} total {}'.format(time.time() - time_start, len(epvs_with_vuln['result']['data'])))
-    return epvs_with_vuln
+    return epvs_with_vuln['result']['data']
 
 
 def find_unknown_deps(epv_data, epv_list, dep_list, unknown_deps_list, is_transitive=False):
@@ -537,29 +508,43 @@ def find_unknown_deps(epv_data, epv_list, dep_list, unknown_deps_list, is_transi
     return epv_list, unknown_deps_list
 
 
-def get_dependency_data(packages):
+def get_package_details_map(graph_response: List[Dict[str, object]]) -> Dict[EPV, PackageDetails]:
+    """
+    Transforms the graph response with package, version, vulnerability fields
+    to PackageDetails model and maps it with corresponding EPV
+    """
+    package_details = []
+    for pkg in graph_response:
+        package_details.append(extract_component_details(pkg))
+    # covert list of (epv, package_details) into map
+    return dict(package_details)
+
+def _get_denormalized_package_details(request, package_details_map) -> List[PackageDetails]:
+    package_details = []
+    for package in request.packages:
+        epv = EPV(request.ecosystem, package.name, package.version)
+        package_detail = package_details_map.get(epv)
+        if package_detail:
+            package_detail = package_detail.copy()
+        else:
+            continue
+        transitive_details = []
+        for transitive in package.dependencies:
+            transitive_epv = EPV(request.ecosystem, transitive.name, transitive.version)
+            transitive_detail = package_details_map.get(transitive_epv)
+            if transitive_detail:
+                transitive_detail = transitive_detail.copy().dict()
+            else:
+                continue
+            transitive_details.append(transitive_detail)
+        package_detail.vulnerable_dependencies = transitive_details
+        package_details.append(package_detail.dict())
+    return package_details
+
+def get_package_details_from_graph(request: StackAggregatorRequest, packages: NormalizedPackages) -> List[PackageDetails]:
     """Get dependency data from graph."""
-    dep_list = [(d.package, d.version) for d in packages.direct_dependencies]
-    tr_list = [(d.package, d.version) for d in packages.transitive_dependencies]
-    epv_list = get_package_details_with_vulnerabilities(packages.direct_dependencies)
-    tr_epv_list = get_package_details_with_vulnerabilities(packages.transitive_dependencies)
-    transitive_count = len(tr_epv_list['result']['data'])
-
-    # Identification of unknown direct dependencies
-    epv_data = epv_list['result']['data']
-    epv_list, unknown_deps_list = find_unknown_deps(epv_data, epv_list,
-                                                    dep_list, [])
-
-    # Identification of unknown transitive dependencies
-    epv_data = tr_epv_list['result']['data']
-    epv_list, unknown_deps_list = find_unknown_deps(epv_data, epv_list,
-                                                    tr_list, unknown_deps_list, True)
-    result = epv_list['result']['data']
-    accumulated_data = {'result': result, 'unknown_deps': unknown_deps_list,
-                        'transitive_count': transitive_count}
-    logger.info('Accumulated data: {}'.format(json.dumps(accumulated_data)))
-    return accumulated_data
-
+    graph_response = get_package_details_with_vulnerabilities(packages.all_dependencies)
+    return get_package_details_map(graph_response)
 
 class StackAggregator:
     """Aggregate stack data from components."""
@@ -577,7 +562,7 @@ class StackAggregator:
         current_stack_license = []
 
         normalized_packages = NormalizedPackages(request.packages, request.ecosystem)
-        finished = get_dependency_data(normalized_packages)
+        normalized_package_details = get_package_details_from_graph(request, normalized_packages)
 
         """ Direct deps can have 0 transitives. This condition is added
         so that in ext, we get to know if deps are 0 or if the transitive flag
@@ -586,12 +571,11 @@ class StackAggregator:
             transitive_count = finished.get('transitive_count', 0)
         else:
             transitive_count = -1
-        if finished is not None:
-            output = aggregate_stack_data(finished, request, normalized_packages, persist, transitive_count)
-            output['license_analysis'].update({
-                "current_stack_license": current_stack_license
-                })
-        unknown_dep_list.extend(finished['unknown_deps'])
+        output = aggregate_stack_data(normalized_package_details, request, normalized_packages, persist, transitive_count)
+        output['license_analysis'].update({
+            "current_stack_license": current_stack_license
+            })
+        unknown_dep_list.extend(output['unknown_dependencies'])
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         audit = {
             'started_at': started_at,
