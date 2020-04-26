@@ -9,13 +9,13 @@ from uuid import UUID
 from pydantic import BaseModel, Field, validator
 
 
-class Ecosystem(Enum):
+class Ecosystem(str, Enum):
     maven = 'maven'
     pypi = 'pypi'
     npm = 'npm'
 
 
-class Severity(Enum):
+class Severity(str, Enum):
     low = 'low'
     medium = 'medium'
     high = 'high'
@@ -85,10 +85,10 @@ class ConflictPackages(BaseModel):
 
 
 class LicenseAnalysis(BaseModel):
-    outlier_packages: List[Dict[str, Any]]
-    conflict_packages: List['ConflictPackages']
-    current_stack_license: Dict[str, Any]
-    unknown_licenses: 'UnknownLicenses'
+    outlier_packages: List[Dict[str, Any]] = None
+    conflict_packages: List['ConflictPackages'] = None
+    current_stack_license: Dict[str, Any] = None
+    unknown_licenses: 'UnknownLicenses' = None
     distinct_licenses: Optional[List[str]] = None
     stack_license_conflict: Optional[bool] = None
     total_licenses: Optional[int] = None

@@ -19,7 +19,9 @@ from src.utils import (select_latest_version, server_create_analysis, LICENSE_SC
                    execute_gremlin_dsl, GREMLIN_SERVER_URL_REST, persist_data_in_db,
                    GREMLIN_QUERY_SIZE, format_date)
 from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails,
-                        BasicVulnerabilityFields, PackageDetailsForFreeTier)
+                        BasicVulnerabilityFields, PackageDetailsForFreeTier,
+                        Package,
+                        StackAggregatorResultForFreeTier)
 from src.v2.normalized_packages import EPV, NormalizedPackages
 
 logger = logging.getLogger(__file__)
@@ -362,6 +364,14 @@ def extract_user_stack_package_licenses(resolved, ecosystem):
     return list_package_licenses
 
 
+def get_unknown_packages(normalized_package_details, packages) -> List[Package]:
+    all_dependencies = set(packages.all_dependencies)
+    analyzed_dependencies = set(normalized_package_details.keys())
+    unknown_dependencies = list()
+    for epv in all_dependencies.difference(analyzed_dependencies):
+        unknown_dependencies.append(Package(name=epv.package, version=epv.version))
+    return unknown_dependencies
+
 def aggregate_stack_data(normalized_package_details, request, packages, persist, transitive_count):
     """Aggregate stack data."""
     # denormalize package details according to request.dependencies relations
@@ -371,30 +381,19 @@ def aggregate_stack_data(normalized_package_details, request, packages, persist,
     license_analysis = dict()
     stack_license_conflict = None
 
-    all_dependencies = set(packages.all_dependencies)
-    analyzed_dependencies = set(normalized_package_details.keys())
-    unknown_dependencies = list()
-    for epv in all_dependencies.difference(analyzed_dependencies):
-        unknown_dependencies.append({'name': epv.package, 'version': epv.version})
-
-    analyzed_direct_dependencies = []
-    vulnerable_transitives = []
-    data = {
-            "analyzed_dependencies": package_details,
-            "transitive_count": transitive_count,
-            "unknown_dependencies": unknown_dependencies,
-            "recommendation_ready": True,  # based on the percentage of dependencies analysed
-            "total_licenses": len(stack_distinct_licenses),
-            "distinct_licenses": list(stack_distinct_licenses),
-            "stack_license_conflict": stack_license_conflict,
-            "license_analysis": license_analysis,
-            # TODO: should be set based on request field
-            "registration_status": "unregistered",
-            # TODO: read from config
-            "registration_link": "https://snyk.io/login"
-    }
-    data.update(request.dict(exclude={'packages'}))
-    return data
+    unknown_dependencies = get_unknown_packages(normalized_package_details, packages)
+    aggregated = StackAggregatorResultForFreeTier(analyzed_dependencies=package_details,
+                                            transitive_count=transitive_count,
+                                            unknown_dependencies=unknown_dependencies,
+                                            recommendation_ready=True,
+                                            total_licenses=len(stack_distinct_licenses),
+                                            distinct_licenses=stack_distinct_licenses,
+                                            stack_license_conflict=stack_license_conflict,
+                                            license_analysis=license_analysis,
+                                            registration_link="https://snyk.io/login").dict()
+    # add fields from request
+    aggregated.update(request.dict(exclude={'packages'}))
+    return aggregated
 
 
 def create_dependency_data_set(packages, ecosystem):
@@ -533,12 +532,12 @@ def _get_denormalized_package_details(request, package_details_map) -> List[Pack
             transitive_epv = EPV(request.ecosystem, transitive.name, transitive.version)
             transitive_detail = package_details_map.get(transitive_epv)
             if transitive_detail:
-                transitive_detail = transitive_detail.copy().dict()
+                transitive_detail = transitive_detail.copy()
             else:
                 continue
             transitive_details.append(transitive_detail)
         package_detail.vulnerable_dependencies = transitive_details
-        package_details.append(package_detail.dict())
+        package_details.append(package_detail)
     return package_details
 
 def get_package_details_from_graph(request: StackAggregatorRequest, packages: NormalizedPackages) -> List[PackageDetails]:
