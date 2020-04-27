@@ -274,7 +274,9 @@ components:
               license2:
                 type: string
                 example: General Public License V3(GPL)
-        really_unknown:
+          description: |
+            List of conflicting licenses
+        unknowns:
           type: array
           items:
             type: object
@@ -285,7 +287,9 @@ components:
               license:
                 type: string
                 example: BSD License (BSD)
-      description: Data of licenses unknown to the system
+            description: |
+              List of licenses which are unknown to the platform.
+      description: Licesens which are unknown to the platform.
 
     ConflictPackages:
       title: ConflictPackages
@@ -557,9 +561,9 @@ components:
         - api_version
       properties:
         started_at:
-          type: integer
+          type: string
         ended_at:
-          type: integer
+          type: string
         api_version:
           type: string
 
