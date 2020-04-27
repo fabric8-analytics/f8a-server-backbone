@@ -75,7 +75,7 @@ from src.utils import (create_package_dict, get_session_retry, select_latest_ver
                    GREMLIN_SERVER_URL_REST, LICENSE_SCORING_URL_REST,
                    convert_version_to_proper_semantic, get_response_data,
                    version_info_tuple, persist_data_in_db,
-                   is_quickstart_majority, execute_gremlin_dsl)
+                   is_quickstart_majority, post_http_request)
 from src.stack_aggregator_v1 import extract_user_stack_package_licenses
 
 logging.basicConfig(level=logging.INFO)
@@ -114,7 +114,7 @@ class GraphDB:
         }
 
         # Query Gremlin with packages list to get their version information
-        gremlin_response = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
+        gremlin_response = post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
         if gremlin_response is None:
             return []
         response = get_response_data(gremlin_response, [{0: 0}])

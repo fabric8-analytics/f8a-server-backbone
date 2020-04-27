@@ -89,7 +89,7 @@ def get_osio_user_count(ecosystem, name, version):
         'gremlin': str_gremlin
     }
 
-    json_response = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
+    json_response = post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
     return json_response.get('result').get('data', ['-1'])[0]
 
 
@@ -301,16 +301,13 @@ def persist_data_in_db(external_request_id, task_result, worker, started_at=None
             set_=dict(task_result=task_result))
         session.execute(do_update_stmt)
         session.commit()
-        return {'recommendation': 'success', 'external_request_id': external_request_id,
-                'result': task_result}
     except (SQLAlchemyError, Exception) as e:
         logger.error("Error %r." % e)
         session.rollback()
-        return {'recommendation': 'database error', 'external_request_id': external_request_id,
-                'message': '%s' % e}
+        raise e
 
 
-def execute_gremlin_dsl(url, payload):
+def post_http_request(url, payload):
     """Execute the gremlin query and return the response."""
     try:
         response = get_session_retry().post(url=url, json=payload)

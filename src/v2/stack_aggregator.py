@@ -16,11 +16,11 @@ import requests
 import copy
 from collections import defaultdict
 from src.utils import (select_latest_version, server_create_analysis, LICENSE_SCORING_URL_REST,
-                   execute_gremlin_dsl, GREMLIN_SERVER_URL_REST, persist_data_in_db,
+                   post_http_request, GREMLIN_SERVER_URL_REST, persist_data_in_db,
                    GREMLIN_QUERY_SIZE, format_date)
 from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails,
                         BasicVulnerabilityFields, PackageDetailsForFreeTier,
-                        Package,
+                        Package, LicenseAnalysis, Audit,
                         StackAggregatorResultForFreeTier)
 from src.v2.normalized_packages import EPV, NormalizedPackages
 
@@ -32,7 +32,7 @@ def get_recommended_version(ecosystem, name, version):
             ".out('has_version').not(out('has_snyk_cve')).values('version');"\
         .format(eco=ecosystem, pkg=name)
     payload = {'gremlin': query}
-    result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
+    result = post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
     if result:
         versions = result['result']['data']
         if len(versions) == 0:
@@ -160,7 +160,6 @@ def extract_component_details(component):
     return epv, PackageDetailsForFreeTier(ecosystem=epv.ecosystem, name=epv.package,
                                      version=epv.version, latest_version=latest_version,
                                      github=github_details, licenses=licenses,
-                                     osio_usage_count=version_node.get("osio_usage_count"),
                                      url='http://snyk.io/{eco}:{pkg}'.format(eco=epv.ecosystem, pkg=epv.package),
                                      private_vulnerabilities=private_vulns,
                                      public_vulnerabilities=public_vulns,
@@ -291,10 +290,20 @@ def _extract_license_outliers(license_service_output):
     return outliers
 
 
-def perform_license_analysis(license_score_list, dependencies):
+def calculate_stack_level_license(normalized_package_details, ecosystem):
     """Pass given license_score_list to stack_license analysis and process response."""
     license_url = LICENSE_SCORING_URL_REST + "/api/v1/stack_license"
 
+    # form payload for license service request
+    license_score_list = []
+    licenses = []
+    for epv, package_detail in normalized_package_details.items():
+        license_score_list.append({
+                'package': epv.package,
+                'version': epv.version,
+                'licenses': package_detail.licenses
+            })
+        licenses.extend(package_detail.licenses)
     payload = {
         "packages": license_score_list
     }
@@ -302,7 +311,7 @@ def perform_license_analysis(license_score_list, dependencies):
     flag_stack_license_exception = False
     # TODO: refactoring
     try:
-        resp = execute_gremlin_dsl(url=license_url, payload=payload)
+        resp = post_http_request(url=license_url, payload=payload)
         # lic_response.raise_for_status()  # raise exception for bad http-status codes
         if not resp:
             raise requests.exceptions.RequestException
@@ -317,12 +326,13 @@ def perform_license_analysis(license_score_list, dependencies):
     license_conflict_packages = []
     license_outliers = []
     if not flag_stack_license_exception:
-        list_components = resp.get('packages', [])
-        for comp in list_components:  # output from license analysis
-            for dep in dependencies:  # the known dependencies
-                if dep.get('name', '') == comp.get('package', '') and \
-                                dep.get('version', '') == comp.get('version', ''):
-                    dep['license_analysis'] = comp.get('license_analysis', {})
+        # Unused as of now
+        # list_components = resp.get('packages', [])
+        # for comp in list_components:  # output from license analysis
+        #     epv = EPV(ecosystem, comp['package'], comp['version'])
+        #     package_detail = normalized_package_details.get(epv)
+        #     if package_detail:
+        #         package_detail.license_analysis = comp.get('license_analysis', {})
 
         msg = resp.get('message')
         _stack_license = resp.get('stack_license', None)
@@ -341,7 +351,7 @@ def perform_license_analysis(license_score_list, dependencies):
         "conflict_packages": license_conflict_packages,
         "outlier_packages": license_outliers
     }
-    return output, dependencies
+    return licenses, output
 
 
 def extract_user_stack_package_licenses(resolved, ecosystem):
@@ -372,28 +382,28 @@ def get_unknown_packages(normalized_package_details, packages) -> List[Package]:
         unknown_dependencies.append(Package(name=epv.package, version=epv.version))
     return unknown_dependencies
 
-def aggregate_stack_data(normalized_package_details, request, packages, persist, transitive_count):
+def get_license_analysis_for_stack(normalized_package_details, request) -> LicenseAnalysis:
+    licenses, license_analysis = calculate_stack_level_license(normalized_package_details, request.ecosystem)
+    stack_distinct_licenses = list(set(licenses))
+    stack_license_conflict = len(license_analysis.get('f8a_stack_licenses', [])) == 0
+    return LicenseAnalysis(total_licenses=len(stack_distinct_licenses),
+                           distinct_licenses=stack_distinct_licenses,
+                           stack_license_conflict=stack_license_conflict,
+                           **license_analysis)
+
+def aggregate_stack_data(normalized_package_details, request, packages, persist, transitive_count, current_stack_license):
     """Aggregate stack data."""
     # denormalize package details according to request.dependencies relations
     package_details = _get_denormalized_package_details(request, normalized_package_details)
-    # TODO(license integration)
-    stack_distinct_licenses = []
-    license_analysis = dict()
-    stack_license_conflict = None
-
     unknown_dependencies = get_unknown_packages(normalized_package_details, packages)
-    aggregated = StackAggregatorResultForFreeTier(analyzed_dependencies=package_details,
+    license_analysis = get_license_analysis_for_stack(normalized_package_details, request)
+    return StackAggregatorResultForFreeTier(**request.dict(exclude={'packages'}),
+                                            analyzed_dependencies=package_details,
                                             transitive_count=transitive_count,
                                             unknown_dependencies=unknown_dependencies,
                                             recommendation_ready=True,
-                                            total_licenses=len(stack_distinct_licenses),
-                                            distinct_licenses=stack_distinct_licenses,
-                                            stack_license_conflict=stack_license_conflict,
                                             license_analysis=license_analysis,
-                                            registration_link="https://snyk.io/login").dict()
-    # add fields from request
-    aggregated.update(request.dict(exclude={'packages'}))
-    return aggregated
+                                            registration_link="https://snyk.io/login")
 
 
 def create_dependency_data_set(packages, ecosystem):
@@ -413,39 +423,6 @@ def create_dependency_data_set(packages, ecosystem):
                 unique_epv_dict['transitive'][trans_key].add(key)
 
     return unique_epv_dict
-
-
-def add_transitive_details(epv_list, epv_set):
-    """Add transitive dict which affects direct dependencies."""
-    direct = epv_set['direct']
-    transitive = epv_set['transitive']
-    result = []
-
-    # Add transitive dict as necessary
-    for epv in epv_list['result']['data']:
-        epv_str = epv['version']['pecosystem'][0] + "|#|" + \
-            epv['version']['pname'][0] + "|#|" + \
-            epv['version']['version'][0]
-
-        if epv_str in direct:
-            result.append(copy.deepcopy(epv))
-        if epv_str in transitive:
-            affected_deps = transitive[epv_str]
-            dependents = []
-            for dep in affected_deps:
-                eco, name, version = dep.split("|#|")
-                if name and version:
-                    dependents.append(
-                        {
-                            "package": name,
-                            "version": version
-                        }
-                    )
-            epv['dependents'] = dependents
-            result.append(copy.deepcopy(epv))
-
-    return result
-
 
 def get_package_version(epv_set: Dict[str, str]) -> List[Tuple[str, str]]:
     """Get package along with version from epv set."""
@@ -482,29 +459,12 @@ def get_package_details_with_vulnerabilities(dependencies) -> List[Dict[str, obj
     for query in _get_package_details_query_in_batches(dependencies):
         # call_gremlin in batch
         payload = {'gremlin': query}
-        result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
+        result = post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
         if result:
             epvs_with_vuln['result']['data'] += result['result']['data']
 
-    logger.info('elapsed_time for gremlin calls: {} total {}'.format(time.time() - time_start, len(epvs_with_vuln['result']['data'])))
+    logger.info('get_package_details_with_vulnerabilities time: {} total_results {}'.format(time.time() - time_start, len(epvs_with_vuln['result']['data'])))
     return epvs_with_vuln['result']['data']
-
-
-def find_unknown_deps(epv_data, epv_list, dep_list, unknown_deps_list, is_transitive=False):
-    """Find the list of unknown dependencies."""
-    for pkg, ver in dep_list:
-        known_flag = False
-        for knowndep in epv_data:
-            version_node = knowndep['version']
-            if pkg == knowndep['version']['pname'][0] and ver == knowndep['version']['version'][0]:
-                if is_transitive and 'cve' in knowndep:
-                    epv_list['result']['data'].append(knowndep)
-                if version_node.get('licenses') or version_node.get('declared_licenses'):
-                    known_flag = True
-                break
-        if not known_flag:
-            unknown_deps_list.append({'name': pkg, 'version': ver})
-    return epv_list, unknown_deps_list
 
 
 def get_package_details_map(graph_response: List[Dict[str, object]]) -> Dict[EPV, PackageDetails]:
@@ -553,7 +513,6 @@ class StackAggregator:
         """Task code."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         request = StackAggregatorRequest(**request)
-        unknown_dep_list = []
         show_transitive = request.show_transitive
         external_request_id = request.external_request_id
         # TODO multiple license file support
@@ -570,40 +529,29 @@ class StackAggregator:
             transitive_count = finished.get('transitive_count', 0)
         else:
             transitive_count = -1
-        output = aggregate_stack_data(normalized_package_details, request, normalized_packages, persist, transitive_count)
-        output['license_analysis'].update({
-            "current_stack_license": current_stack_license
-            })
-        unknown_dep_list.extend(output['unknown_dependencies'])
+
+        output = aggregate_stack_data(normalized_package_details, request, normalized_packages, persist, transitive_count, current_stack_license)
+        output_dict = output.dict()
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
-        audit = {
-            'started_at': started_at,
-            'ended_at': ended_at,
-            'version': 'v2'
-        }
-        stack_data = {
-            '_audit': audit,
-            '_release': 'None:None:None'
-        }
-        stack_data.update(output)
+        output_dict["_audit"] = Audit(started_at=started_at, ended_at=ended_at, version="v2").dict()
+
         if persist:
+            persist_data_in_db(external_request_id=external_request_id,
+                               task_result=output_dict, worker='stack_aggregator_v2',
+                               started_at=started_at, ended_at=ended_at)
             logger.info("Aggregation process completed for {}."
-                        " Writing to RDS.".format(external_request_id))
-            persiststatus = persist_data_in_db(external_request_id=external_request_id,
-                                               task_result=stack_data, worker='stack_aggregator_v2',
-                                               started_at=started_at, ended_at=ended_at)
-        else:
-            persiststatus = {'stack_aggregator': 'success',
-                             'external_request_id': external_request_id,
-                             'result': stack_data}
+                        "Result persisted into RDS.".format(external_request_id))
         # Ingestion of Unknown dependencies
         logger.info("Unknown ingestion flow process initiated.")
         try:
-            for dep in unknown_dep_list:
-                server_create_analysis(request.ecosystem, dep['name'], dep['version'], api_flow=True,
+            for dep in output.unknown_dependencies:
+                server_create_analysis(request.ecosystem, dep.name, dep.version, api_flow=True,
                                        force=False, force_graph_sync=True)
         except Exception as e:
             logger.error('Ingestion has been failed for ' + dep['name'])
             logger.error(e)
             pass
-        return persiststatus
+        # result attribute is added to keep a compatibility with v1
+        # otherwise metric accumulator related handling has to be
+        # customized for v2.
+        return {"result": output_dict}

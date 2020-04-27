@@ -33,7 +33,7 @@ class BasicVulnerabilityFields(BaseModel):
     url: str
 
 
-class Exploit(Enum):
+class Exploit(str, Enum):
     High = 'High'
     Functional = 'Functional'
     Proof_of_Concept = 'Proof of Concept'
@@ -121,7 +121,6 @@ class PackageDetails(Package):
     github: Optional['GitHubDetails'] = None
     licenses: Optional[List[str]] = None
     ecosystem: 'Ecosystem'
-    osio_user_count: Optional[int] = None
     url: Optional[str] = None
 
 
@@ -164,20 +163,20 @@ class RecommendedPackageData(PackageDetails):
     topic_list: Optional[List[str]] = None
 
 
-class RegistrationStatus(Enum):
+class RegistrationStatus(str,Enum):
     registered = 'registered'
     freetier = 'freetier'
 
 
-class RecommendationStatus(Enum):
+class RecommendationStatus(str, Enum):
     success = 'success'
     pgm_error = 'pgm_error'
 
 
 class Audit(BaseModel):
-    started_at: int
-    ended_at: int
-    api_version: str
+    started_at: str
+    ended_at: str
+    version: str
 
 
 class StackAggregatorResult(BaseModel):
