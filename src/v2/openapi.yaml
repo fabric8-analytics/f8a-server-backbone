@@ -262,9 +262,6 @@ components:
     UnknownLicenses:
       title: UnknownLicenses
       type: object
-      required: 
-        - component_conflict
-        - really_unknown
       properties:
         component_conflict:
           type: array
@@ -415,9 +412,6 @@ components:
                 - Apache License, Version 2.0
             ecosystem:
               $ref: '#/components/schemas/Ecosystem'
-            osio_user_count:
-              type: integer
-              example: 123
             url:
               type: string
               example: 
