@@ -268,6 +268,9 @@ components:
           items:
             type: object
             properties:
+              package:
+                type: string
+                example: django
               license1:
                 type: string
                 example: BSD License (BSD)
