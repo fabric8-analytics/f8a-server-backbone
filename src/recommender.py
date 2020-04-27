@@ -583,10 +583,9 @@ class RecommendationTask:
                     filtered_companion_packages = \
                         set(companion_packages).difference(set(filtered_list))
                     logger.info(
-                        "Companion Packages Filtered for external_request_id {} {}"
-                        .format(external_request_id, filtered_companion_packages)
+                        "Companion Packages Filtered for external_request_id %s %s",
+                        external_request_id, filtered_companion_packages
                     )
-
                     # Get the topmost alternate package for each input package
                     alternate_packages, final_dict = GraphDB.get_topmost_alternate(
                         insights_result=insights_result, input_stack=input_stack
@@ -604,8 +603,8 @@ class RecommendationTask:
                     filtered_alternate_packages = \
                         set(alternate_packages).difference(set(filtered_list))
                     logger.info(
-                        "Alternate Packages Filtered for external_request_id {} {}"
-                        .format(external_request_id, filtered_alternate_packages)
+                        "Alternate Packages Filtered for external_request_id %s %s",
+                        external_request_id, filtered_alternate_packages
                     )
 
                     if check_license:

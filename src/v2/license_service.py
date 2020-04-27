@@ -2,6 +2,7 @@
 
 import logging
 import requests
+from typing import Set
 from src.utils import LICENSE_SCORING_URL_REST, post_http_request
 
 logger = logging.getLogger(__file__) # pylint:disable=C0103
@@ -131,22 +132,29 @@ def _extract_license_outliers(license_service_output):
     return outliers
 
 
-def calculate_stack_level_license(normalized_package_details): # pylint:disable=R0914
-    """Pass given license_score_list to stack_license analysis and process response."""
-    license_url = LICENSE_SCORING_URL_REST + "/api/v1/stack_license"
+def get_distinct_licenses(normalized_package_details) -> Set[str]:
+    licenses = list()
+    for _, package_detail in normalized_package_details.items():
+        licenses.extend(package_detail.licenses)
+    return set(licenses)
 
-    # form payload for license service request
+def get_license_service_request_payload(normalized_package_details):
     license_score_list = []
-    licenses = []
     for epv, package_detail in normalized_package_details.items():
         license_score_list.append({
             'package': epv.package,
             'version': epv.version,
             'licenses': package_detail.licenses
             })
-        licenses.extend(package_detail.licenses)
+    return license_score_list
+
+def calculate_stack_level_license(normalized_package_details): # pylint:disable=R0914
+    """Pass given license_score_list to stack_license analysis and process response."""
+    license_url = LICENSE_SCORING_URL_REST + "/api/v1/stack_license"
+
+    # form payload for license service request
     payload = {
-        "packages": license_score_list
+        "packages": get_license_service_request_payload(normalized_package_details)
     }
     resp = {}
     flag_stack_license_exception = False
@@ -192,4 +200,4 @@ def calculate_stack_level_license(normalized_package_details): # pylint:disable=
         "conflict_packages": license_conflict_packages,
         "outlier_packages": license_outliers
     }
-    return licenses, output
+    return output

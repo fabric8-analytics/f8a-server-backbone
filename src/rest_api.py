@@ -8,8 +8,9 @@ from flask import Flask, request, current_app
 from flask_cors import CORS
 from raven.contrib.flask import Sentry
 
-from src.recommender import RecommendationTask
+from src.recommender import RecommendationTask as RecommendationTaskV1
 from src.stack_aggregator import StackAggregator as StackAggregatorV1
+from src.v2.recommender import RecommendationTask as RecommendationTaskV2
 from src.v2.stack_aggregator import StackAggregator as StackAggregatorV2
 from src.utils import push_data, total_time_elapsed, get_time_delta
 
@@ -48,8 +49,8 @@ def liveness():
     return flask.jsonify({}), 200
 
 
-@app.route('/api/v1/recommender', methods=['POST'])
-def recommender():
+@app.route('/api/<version>/recommender', methods=['POST'])
+def recommender(version):
     """Handle POST requests that are sent to /api/v1/recommender REST API endpoint."""
     r = {'recommendation': 'failure', 'external_request_id': None}
     metrics_payload = {
@@ -67,6 +68,7 @@ def recommender():
         try:
             check_license = request.args.get('check_license', 'false') == 'true'
             persist = request.args.get('persist', 'true') == 'true'
+            RecommendationTask = RecommendationTaskV1 if version == 'v1' else RecommendationTaskV2
             r = RecommendationTask().execute(input_json, persist=persist,
                                              check_license=check_license)
         except Exception as e:
@@ -82,7 +84,7 @@ def recommender():
         metrics_payload['value'] = get_time_delta(audit_data=r['result']['_audit'])
         push_data(metrics_payload)
     except KeyError as e:
-        raise e
+        pass
 
     return flask.jsonify(r), metrics_payload['status_code']
 

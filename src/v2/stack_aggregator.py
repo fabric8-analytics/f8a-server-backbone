@@ -16,10 +16,12 @@ from src.utils import (select_latest_version, server_create_analysis,
                        GREMLIN_QUERY_SIZE, format_date)
 from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails,
                            BasicVulnerabilityFields, PackageDetailsForFreeTier,
-                           Package, LicenseAnalysis, Audit,
+                           Package, LicenseAnalysis, Audit, Ecosystem,
                            StackAggregatorResultForFreeTier)
 from src.v2.normalized_packages import EPV, NormalizedPackages
-from src.v2.license_service import calculate_stack_level_license
+from src.v2.license_service import (calculate_stack_level_license,
+                                    get_distinct_licenses,
+                                    get_license_service_request_payload)
 
 logger = logging.getLogger(__file__) # pylint:disable=C0103
 
@@ -176,9 +178,10 @@ def extract_component_details(component):
                                           recommended_version=recommended_latest_version)
 
 
-def extract_user_stack_package_licenses(resolved, ecosystem):
+def extract_user_stack_package_licenses(packages: List[Package], ecosystem: Ecosystem):
     """Extract user stack package licenses."""
-    pass
+    normalized_package_details = get_package_details_from_graph(packages)
+    return get_license_service_request_payload(normalized_package_details)
 
 def get_unknown_packages(normalized_package_details, packages) -> List[Package]:
     """Get list of unknown packages from the normalized_package_details."""
@@ -191,8 +194,8 @@ def get_unknown_packages(normalized_package_details, packages) -> List[Package]:
 
 def get_license_analysis_for_stack(normalized_package_details) -> LicenseAnalysis:
     """Create LicenseAnalysis from license server."""
-    licenses, license_analysis = calculate_stack_level_license(normalized_package_details)
-    stack_distinct_licenses = list(set(licenses))
+    license_analysis = calculate_stack_level_license(normalized_package_details)
+    stack_distinct_licenses = list(get_distinct_licenses(normalized_package_details))
     stack_license_conflict = len(license_analysis.get('f8a_stack_licenses', [])) == 0
     return LicenseAnalysis(total_licenses=len(stack_distinct_licenses),
                            distinct_licenses=stack_distinct_licenses,
@@ -289,6 +292,11 @@ def get_package_details_from_graph(packages: NormalizedPackages) -> List[Package
 
 class StackAggregator:
     """Aggregate stack data from components."""
+
+    # def __init__(self, request=None, persist=None):
+    #     self._request = request
+    #     self._persist = persist
+    #     pass
 
     @staticmethod
     def execute(request, persist=True):
