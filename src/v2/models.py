@@ -134,7 +134,8 @@ class PackageDetailsForRegisteredUser(PackageDetails):
     )
     recommended_version: Optional[str] = Field(
         None,
-        description='Recommended package version which includes fix for both public and private vulnerabilities.\n',
+        description=('Recommended package version which includes '
+                     'fix for both public and private vulnerabilities.\n'),
     )
     vulnerable_dependencies: Optional[List['PackageDetailsForRegisteredUser']] = Field(
         None, description='List of dependencies which are vulnerable.\n'
@@ -163,7 +164,7 @@ class RecommendedPackageData(PackageDetails):
     topic_list: Optional[List[str]] = None
 
 
-class RegistrationStatus(str,Enum):
+class RegistrationStatus(str, Enum):
     registered = 'registered'
     freetier = 'freetier'
 
