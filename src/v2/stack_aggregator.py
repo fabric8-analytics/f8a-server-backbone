@@ -189,10 +189,9 @@ def get_unknown_packages(normalized_package_details, packages) -> List[Package]:
         unknown_dependencies.append(Package(name=epv.package, version=epv.version))
     return unknown_dependencies
 
-def get_license_analysis_for_stack(normalized_package_details, request) -> LicenseAnalysis:
+def get_license_analysis_for_stack(normalized_package_details) -> LicenseAnalysis:
     """Create LicenseAnalysis from license server."""
-    licenses, license_analysis = calculate_stack_level_license(normalized_package_details,
-                                                               request.ecosystem)
+    licenses, license_analysis = calculate_stack_level_license(normalized_package_details)
     stack_distinct_licenses = list(set(licenses))
     stack_license_conflict = len(license_analysis.get('f8a_stack_licenses', [])) == 0
     return LicenseAnalysis(total_licenses=len(stack_distinct_licenses),
@@ -206,7 +205,7 @@ def aggregate_stack_data(normalized_package_details, request, # pylint:disable=R
     # denormalize package details according to request.dependencies relations
     package_details = _get_denormalized_package_details(request, normalized_package_details)
     unknown_dependencies = get_unknown_packages(normalized_package_details, packages)
-    license_analysis = get_license_analysis_for_stack(normalized_package_details, request)
+    license_analysis = get_license_analysis_for_stack(normalized_package_details)
     transitive_count = len(packages.transitive_dependencies) if request.show_transitive else -1
     return StackAggregatorResultForFreeTier(**request.dict(exclude={'packages'}),
                                             analyzed_dependencies=package_details,
@@ -315,7 +314,7 @@ class StackAggregator:
             persist_data_in_db(external_request_id=external_request_id,
                                task_result=output_dict, worker='stack_aggregator_v2',
                                started_at=started_at, ended_at=ended_at)
-            logger.info("Aggregation process completed for %s"
+            logger.info("Aggregation process completed for %s."
                         "Result persisted into RDS.", external_request_id)
         # Ingestion of Unknown dependencies
         logger.info("Unknown ingestion flow process initiated.")

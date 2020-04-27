@@ -1,8 +1,10 @@
 """ Abstracts license service related functionalities """
 
-from src.utils import (select_latest_version, server_create_analysis, LICENSE_SCORING_URL_REST,
-                       post_http_request, GREMLIN_SERVER_URL_REST, persist_data_in_db,
-                       GREMLIN_QUERY_SIZE, format_date)
+import logging
+import requests
+from src.utils import LICENSE_SCORING_URL_REST, post_http_request
+
+logger = logging.getLogger(__file__) # pylint:disable=C0103
 
 def _extract_conflict_packages(license_service_output):
     """Extract conflict licenses.
@@ -26,13 +28,14 @@ def _extract_conflict_packages(license_service_output):
     for conflict_pair in conflict_packages:
         list_pkgs = list(conflict_pair.keys())
         assert len(list_pkgs) == 2
-        d = {
-            "package1": list_pkgs[0],
-            "license1": conflict_pair[list_pkgs[0]],
-            "package2": list_pkgs[1],
-            "license2": conflict_pair[list_pkgs[1]]
-        }
-        license_conflict_packages.append(d)
+        license_conflict_packages.append(
+            {
+                "package1": list_pkgs[0],
+                "license1": conflict_pair[list_pkgs[0]],
+                "package2": list_pkgs[1],
+                "license2": conflict_pair[list_pkgs[1]]
+            }
+        )
 
     return license_conflict_packages
 
@@ -57,13 +60,13 @@ def _extract_unknown_licenses(license_service_output):
     :param license_service_output: output of license analysis REST service
     :return: list of packages with unknown licenses and/or conflicting licenses
     """
-    # TODO: reduce cyclomatic complexity
+    # (fixme) reduce cyclomatic complexity
     really_unknown_licenses = []
     lic_conflict_licenses = []
     if not license_service_output:
         return really_unknown_licenses
 
-    # TODO: refactoring
+    # (fixme) refactoring
     if license_service_output.get('status', '') == 'Unknown':
         list_components = license_service_output.get('packages', [])
         for comp in list_components:
@@ -77,14 +80,14 @@ def _extract_unknown_licenses(license_service_output):
                         'license': lic
                     })
 
-    # TODO: refactoring
+    # (fixme) refactoring
     if license_service_output.get('status', '') == 'ComponentLicenseConflict':
         list_components = license_service_output.get('packages', [])
         for comp in list_components:
             license_analysis = comp.get('license_analysis', {})
             if license_analysis.get('status', '') == 'Conflict':
                 pkg = comp.get('package', 'Unknown')
-                d = {
+                dep = {
                     "package": pkg
                 }
                 comp_conflict_licenses = license_analysis.get('conflict_licenses', [])
@@ -95,8 +98,8 @@ def _extract_unknown_licenses(license_service_output):
                         'license1': pair[0],
                         'license2': pair[1]
                     })
-                d['conflict_licenses'] = list_conflicting_pairs
-                lic_conflict_licenses.append(d)
+                dep['conflict_licenses'] = list_conflicting_pairs
+                lic_conflict_licenses.append(dep)
 
     output = {
         'really_unknown': really_unknown_licenses,
@@ -128,7 +131,7 @@ def _extract_license_outliers(license_service_output):
     return outliers
 
 
-def calculate_stack_level_license(normalized_package_details, ecosystem):
+def calculate_stack_level_license(normalized_package_details): # pylint:disable=R0914
     """Pass given license_score_list to stack_license analysis and process response."""
     license_url = LICENSE_SCORING_URL_REST + "/api/v1/stack_license"
 
@@ -137,9 +140,9 @@ def calculate_stack_level_license(normalized_package_details, ecosystem):
     licenses = []
     for epv, package_detail in normalized_package_details.items():
         license_score_list.append({
-                'package': epv.package,
-                'version': epv.version,
-                'licenses': package_detail.licenses
+            'package': epv.package,
+            'version': epv.version,
+            'licenses': package_detail.licenses
             })
         licenses.extend(package_detail.licenses)
     payload = {
@@ -147,14 +150,14 @@ def calculate_stack_level_license(normalized_package_details, ecosystem):
     }
     resp = {}
     flag_stack_license_exception = False
-    # TODO: refactoring
+    # (fixme) refactoring
     try:
         resp = post_http_request(url=license_url, payload=payload)
         # lic_response.raise_for_status()  # raise exception for bad http-status codes
         if not resp:
             raise requests.exceptions.RequestException
     except requests.exceptions.RequestException:
-        current_app.logger.exception("Unexpected error happened while invoking license analysis!")
+        logger.exception("Unexpected error happened while invoking license analysis!")
         flag_stack_license_exception = True
 
     msg = None
@@ -190,5 +193,3 @@ def calculate_stack_level_license(normalized_package_details, ecosystem):
         "outlier_packages": license_outliers
     }
     return licenses, output
-
-
