@@ -1,7 +1,7 @@
 """Tests for the stack_aggregator module."""
 
 from unittest import mock
-from src import stack_aggregator_v2
+from src import stack_aggregator
 import json
 
 
@@ -194,7 +194,7 @@ mock_gremlin_resp = {
 }
 
 
-@mock.patch('src.stack_aggregator.execute_gremlin_dsl', return_value=mock_gremlin_resp)
+@mock.patch('src.stack_aggregator.post_http_request', return_value=mock_gremlin_resp)
 def test_get_recommended_version(_mock1):
     """Test get_recommended_version."""
     rec_ver = stack_aggregator.get_recommended_version('maven', 'pkg', '2.0.0')

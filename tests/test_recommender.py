@@ -112,8 +112,9 @@ def mocked_response_license(*args, **_kwargs):
         return MockResponse(dep_resp, 200)
 
 
+@mock.patch('src.recommender.persist_data_in_db', return_value={"recommendation": "database error"})
 @mock.patch('src.recommender.RecommendationTask.call_insights_recommender', return_value=[])
-def test_execute(_mock_call_insights):
+def test_execute(_mock_call_insights, _mock_db):
     """Test the function execute."""
     with open("tests/data/stack_aggregator_execute_input.json", "r") as f:
         payload = json.load(f)
@@ -146,8 +147,9 @@ def test_execute_with_insights(_mock1, _mock2, _mock3):
     assert out['recommendation'] == "success"
 
 
+@mock.patch('src.recommender.persist_data_in_db', return_value={"recommendation": "database error"})
 @mock.patch('src.recommender.RecommendationTask.call_insights_recommender', return_value=[])
-def test_execute_empty_resolved(_mock_call_insights):
+def test_execute_empty_resolved(_mock_call_insights, _mock_db):
     """Test the function execute."""
     with open("tests/data/stack_aggregator_empty_resolved.json", "r") as f:
         payload = json.load(f)
@@ -165,11 +167,13 @@ def test_execute_empty_resolved(_mock_call_insights):
     assert out['recommendation'] == "success"
 
     out = r.execute(arguments=payload, persist=True)
+    _mock_db.assert_called()
     assert out['recommendation'] == "database error"
 
 
+@mock.patch('src.recommender.persist_data_in_db', return_value={"recommendation": "database error"})
 @mock.patch('src.recommender.RecommendationTask.call_insights_recommender', return_value=[])
-def test_execute_both_resolved_type(_mock_call_insights):
+def test_execute_both_resolved_type(_mock_call_insights, _mock_db):
     """Test the function execute."""
     with open("tests/data/stack_aggregator_combined_input.json", "r") as f:
         payload = json.load(f)

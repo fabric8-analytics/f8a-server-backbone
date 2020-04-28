@@ -2,7 +2,7 @@
 from src.utils import (
     convert_version_to_proper_semantic as cvs, GREMLIN_SERVER_URL_REST, format_date,
     version_info_tuple as vt, select_latest_version as slv,
-    get_osio_user_count, create_package_dict, is_quickstart_majority, execute_gremlin_dsl,
+    get_osio_user_count, create_package_dict, is_quickstart_majority, post_http_request,
     server_create_analysis, select_from_db, total_time_elapsed)
 import semantic_version as sv
 import json
@@ -166,10 +166,10 @@ def test_is_quickstart_majority():
 
 
 @mock.patch('requests.Session.post', side_effect=mock_error_response)
-def test_execute_gremlin_dsl(_mock1):
+def test_post_http_request(_mock1):
     """Test error response for gremlin."""
     payload = {'gremlin': ''}
-    result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
+    result = post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
     assert result is None
 
 
@@ -236,6 +236,6 @@ if __name__ == '__main__':
     test_select_latest_version()
     test_get_osio_user_count()
     test_is_quickstart_majority()
-    test_execute_gremlin_dsl()
+    test_post_http_request()
     test_create_package_dict()
     test_server_create_analysis()
