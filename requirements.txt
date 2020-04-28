@@ -10,6 +10,7 @@ chardet==3.0.4            # via requests
 click==6.7                # via flask
 codecov==2.0.15           # via -r requirements.in
 coverage==5.0.4           # via codecov
+dataclasses==0.7          # via pydantic
 flask-cors==3.0.2         # via -r requirements.in
 flask==0.12.2             # via -r requirements.in, flask-cors, raven
 gevent==1.2.2             # via -r requirements.in
@@ -20,6 +21,7 @@ itsdangerous==0.24        # via flask
 jinja2==2.10              # via flask
 markupsafe==1.1.1         # via jinja2
 psycopg2==2.7.4           # via -r requirements.in
+pydantic==1.5.1           # via -r requirements.in
 raven[flask]==6.10.0      # via -r requirements.in
 requests-futures==0.9.7   # via -r requirements.in
 requests==2.18.4          # via -r requirements.in, codecov, requests-futures
