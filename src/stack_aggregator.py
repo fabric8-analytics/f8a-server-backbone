@@ -654,13 +654,12 @@ class StackAggregator:
         if persist:
             logger.info("Aggregation process completed for {}."
                         " Writing to RDS.".format(external_request_id))
-            persiststatus = persist_data_in_db(external_request_id=external_request_id,
-                                               task_result=stack_data, worker='stack_aggregator_v2',
-                                               started_at=started_at, ended_at=ended_at)
-        else:
-            persiststatus = {'stack_aggregator': 'success',
-                             'external_request_id': external_request_id,
-                             'result': stack_data}
+            persist_data_in_db(external_request_id=external_request_id,
+                               task_result=stack_data, worker='stack_aggregator_v2',
+                               started_at=started_at, ended_at=ended_at)
+        persiststatus = {'stack_aggregator': 'success',
+                         'external_request_id': external_request_id,
+                         'result': stack_data}
         # Ingestion of Unknown dependencies
         logger.info("Unknown ingestion flow process initiated.")
         try:
