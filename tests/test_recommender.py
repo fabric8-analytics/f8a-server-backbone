@@ -46,12 +46,18 @@ def mocked_requests_get(*args, **_kwargs):
 
 class TestRecommendationTask(TestCase):
     """Tests for the recommendation task class."""
-
     @mock.patch('requests.get', side_effect=mocked_requests_get)
     @mock.patch('requests.Session.post', side_effect=mocked_requests_get)
     def test_call_insights_recommender_npm(self, _mock_get, _mock_post):
         """Test if the correct service is called for the correct ecosystem."""
-        with app.app_context():
+        with mock.patch.dict('src.recommender.os.environ', {
+                'GOLANG_SERVICE_HOST': 'golang-insights',
+                'CHESTER_SERVICE_HOST': 'npm-insights',
+                'PYPI_SERVICE_HOST': 'pypi-insights',
+                'PGM_SERVICE_HOST': 'pgm',
+                'PGM_SERVICE_PORT': '6006',
+                'HPF_SERVICE_HOST': 'hpf-insights',
+            }):
             # Test whether the correct service is called for NPM.
             called_url_json = RecommendationTask.call_insights_recommender([{"ecosystem": "npm"}])
             self.assertTrue('npm-insights' in called_url_json['url'])
@@ -112,7 +118,7 @@ def mocked_response_license(*args, **_kwargs):
         return MockResponse(dep_resp, 200)
 
 
-@mock.patch('src.recommender.persist_data_in_db', return_value={"recommendation": "database error"})
+@mock.patch('src.recommender.persist_data_in_db')
 @mock.patch('src.recommender.RecommendationTask.call_insights_recommender', return_value=[])
 def test_execute(_mock_call_insights, _mock_db):
     """Test the function execute."""
@@ -127,7 +133,7 @@ def test_execute(_mock_call_insights, _mock_db):
     assert out['recommendation'] == "success"
 
     out = r.execute(arguments=payload, persist=True)
-    assert out['recommendation'] == "database error"
+    _mock_db.assert_called_once()
 
 
 @mock.patch('src.recommender.RecommendationTask.call_insights_recommender',
@@ -147,7 +153,7 @@ def test_execute_with_insights(_mock1, _mock2, _mock3):
     assert out['recommendation'] == "success"
 
 
-@mock.patch('src.recommender.persist_data_in_db', return_value={"recommendation": "database error"})
+@mock.patch('src.recommender.persist_data_in_db')
 @mock.patch('src.recommender.RecommendationTask.call_insights_recommender', return_value=[])
 def test_execute_empty_resolved(_mock_call_insights, _mock_db):
     """Test the function execute."""
@@ -167,11 +173,10 @@ def test_execute_empty_resolved(_mock_call_insights, _mock_db):
     assert out['recommendation'] == "success"
 
     out = r.execute(arguments=payload, persist=True)
-    _mock_db.assert_called()
-    assert out['recommendation'] == "database error"
+    _mock_db.assert_called_once()
 
 
-@mock.patch('src.recommender.persist_data_in_db', return_value={"recommendation": "database error"})
+@mock.patch('src.recommender.persist_data_in_db')
 @mock.patch('src.recommender.RecommendationTask.call_insights_recommender', return_value=[])
 def test_execute_both_resolved_type(_mock_call_insights, _mock_db):
     """Test the function execute."""
@@ -190,7 +195,7 @@ def test_execute_both_resolved_type(_mock_call_insights, _mock_db):
     assert out['recommendation'] == "success"
 
     out = r.execute(arguments=payload, persist=True)
-    assert out['recommendation'] == "database error"
+    _mock_db.assert_called_once()
 
 
 def test_filter_versions():
