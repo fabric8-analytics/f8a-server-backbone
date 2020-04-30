@@ -1,90 +1,94 @@
 """Tests for the v2 normalized package module."""
 
-from src.v2.normalized_packages import EPV, NormalizedPackages
 from src.v2.models import Package
+from src.v2.normalized_packages import NormalizedPackages
 
-def test_epv_basic():
-    epv = EPV('pypi', 'flask', '0.12')
+def test_pkg_basic():
+    """Test basic package properties."""
+    pkg = Package(name='flask', version='0.12')
 
-    assert epv.ecosystem == 'pypi'
-    assert epv.package == 'flask'
-    assert epv.version == '0.12'
+    assert pkg.name == 'flask'
+    assert pkg.version == '0.12'
 
-def test_epv_equvality():
-    epv_0 = EPV('pypi', 'flask', '0.12')
-    epv_1 = EPV('pypi', 'flask', '0.12')
+def test_pkg_equvality():
+    """Test package equvality."""
+    pkg_0 = Package(name='flask', version='0.12')
+    pkg_1 = Package(name='flask', version='0.12')
 
-    assert epv_0 == epv_1
+    assert pkg_0 == pkg_1
 
-def test_epv_non_equvality():
-    epv_0 = EPV('pypi', 'flask', '0.12')
-    epv_1 = EPV('pypi', 'flask', '0.13')
+def test_pkg_non_equvality():
+    """Test not equvality."""
+    pkg_0 = Package(name='flask', version='0.12')
+    pkg_1 = Package(name='flask', version='0.13')
 
-    assert epv_0 != epv_1
+    assert pkg_0 != pkg_1
 
-    epv_0 = EPV('pypi', 'flask', '0.12')
-    epv_1 = EPV('pypi', 'django', '0.12')
+    pkg_0 = Package(name='flask', version='0.12')
+    pkg_1 = Package(name='django', version='0.12')
 
-    assert epv_0 != epv_1
+    assert pkg_0 != pkg_1
 
-    epv_0 = EPV('pypi', 'flask', '0.12')
-    epv_1 = EPV('npm', 'flask', '0.13')
+def test_pkg_hashing():
+    """Test hashing functionality of Package."""
+    pkg_0 = Package(name='flask', version='0.12')
+    pkg_1 = Package(name='flask', version='0.12')
+    pkg_2 = Package(name='flask', version='0.13')
+    pkg_3 = Package(name='django', version='0.13')
+    pkg_4 = Package(name='flask', version='0.12')
+    set_of_pkgs = set([pkg_0, pkg_1, pkg_2, pkg_3, pkg_4])
 
-    assert epv_0 != epv_1
-
-def test_epv_hashing():
-    epv_0 = EPV('pypi', 'flask', '0.12')
-    epv_1 = EPV('pypi', 'flask', '0.12')
-    epv_2 = EPV('pypi', 'flask', '0.13')
-    epv_3 = EPV('pypi', 'django', '0.13')
-    epv_4 = EPV('npm', 'flask', '0.12')
-    set_of_epvs = set([epv_0, epv_1, epv_2, epv_3, epv_4])
-
-    assert len(set_of_epvs) == 4
-    assert epv_0 in set_of_epvs
-    assert epv_1 in set_of_epvs
-    assert epv_2 in set_of_epvs
-    assert epv_3 in set_of_epvs
-    assert epv_4 in set_of_epvs
-    assert EPV('foo', 'bar', '0.0') not in set_of_epvs
+    assert len(set_of_pkgs) == 3
+    assert pkg_0 in set_of_pkgs
+    assert pkg_1 in set_of_pkgs
+    assert pkg_2 in set_of_pkgs
+    assert pkg_3 in set_of_pkgs
+    assert pkg_4 in set_of_pkgs
+    assert Package(name='bar', version='0.0') not in set_of_pkgs
 
 def test_normalized_packages_basic_direct():
-    epv = EPV('pypi', 'flask', '0.12')
+    """Test NormalizedPackages with basic dependency."""
+    pkg = Package(name='flask', version='0.12')
     foo = Package(**{
-        'name': epv.package,
-        'version': epv.version
+        'name': pkg.name,
+        'version': pkg.version
     })
-    assert foo != None
-    normalized = NormalizedPackages([foo], epv.ecosystem)
-    assert normalized != None
-    assert normalized.direct_dependencies != None
+    assert foo is not None
+    normalized = NormalizedPackages([foo], 'pypi')
+    assert normalized is not None
+    assert normalized.direct_dependencies is not None
     assert len(normalized.direct_dependencies) == 1
-    assert epv in normalized.direct_dependencies
+    assert pkg in normalized.direct_dependencies
 
     # transtives must be empty
     assert len(normalized.transitive_dependencies) == 0
 
     # all must be 1
-    assert normalized.all_dependencies != None
+    assert normalized.all_dependencies is not None
     assert len(normalized.all_dependencies) == 1
-    assert epv in normalized.all_dependencies
+    assert pkg in normalized.all_dependencies
+
+    # dependency_graph
+    assert len(normalized.dependency_graph) == 1
+    assert pkg in normalized.dependency_graph
+    assert len(normalized.dependency_graph[foo]) == 0
 
 def test_normalized_packages_basic_transitive():
-    flask = EPV('pypi', 'flask', '0.12')
-    six = EPV('pypi', 'six', '1.2.3')
+    """Test NormalizedPackages with transitives dependency"""
+    flask = Package(name='flask', version='0.12')
+    six = Package(name='six', version='1.2.3')
     foo = Package(**{
-        'name': flask.package,
+        'name': flask.name,
         'version': flask.version,
         'dependencies': [{
-            'name': six.package,
+            'name': six.name,
             'version': six.version
-            }
-         ]
+            }]
     })
-    assert foo != None
+    assert foo is not None
     normalized = NormalizedPackages([foo], 'pypi')
-    assert normalized != None
-    assert normalized.direct_dependencies != None
+    assert normalized is not None
+    assert normalized.direct_dependencies is not None
     assert len(normalized.direct_dependencies) == 1
     assert flask in normalized.direct_dependencies
 
@@ -97,50 +101,65 @@ def test_normalized_packages_basic_transitive():
     assert flask in normalized.all_dependencies
     assert six in normalized.all_dependencies
 
+    # dependency graph
+    assert len(normalized.dependency_graph) == 1
+    assert len(normalized.dependency_graph[flask]) == 1
+    assert flask in normalized.dependency_graph
+    assert six in normalized.dependency_graph[flask]
+    assert flask not in normalized.dependency_graph[flask]
+
 def test_normalized_packages_with_duplicates():
-    flask = EPV('pypi', 'flask', '0.12')
-    six = EPV('pypi', 'six', '1.2.3')
+    """Test NormalizedPackages with duplicates."""
+    flask = Package(name='flask', version='0.12')
+    six = Package(name='six', version='1.2')
+    pip = Package(name='pip', version='20.1')
     foo = Package(**{
-        'name': flask.package,
-        'version': flask.version,
-        'dependencies': [{
-                'name': six.package,
-                'version': six.version
+        'name': 'flask',
+        'version': '0.12',
+        'dependencies': [
+            {
+                'name': 'six',
+                'version': '1.2'
             },
             {
-                'name': six.package,
-                'version': six.version
+                'name': 'six',
+                'version': '1.2'
             },
             {
-                'name': flask.package,
-                'version': flask.version
-            }
-         ]
+                'name': 'flask',
+                'version': '0.12'
+            }]
     })
     bar = Package(**{
-        'name': flask.package,
-        'version': flask.version,
-        'dependencies': [{
-            'name': six.package,
-            'version': six.version
-            }
-         ]
+        'name': 'bar',
+        'version': '0.12',
+        'dependencies': [Package(**six.dict()), Package(**pip.dict())]
     })
-    assert foo != None
-    assert bar != None
     normalized = NormalizedPackages([foo, bar], 'pypi')
-    assert normalized != None
-    assert normalized.direct_dependencies != None
-    assert len(normalized.direct_dependencies) == 1
+    assert normalized.ecosystem == 'pypi'
+    assert normalized is not None
+    assert normalized.direct_dependencies is not None
+    assert len(normalized.direct_dependencies) == 2
     assert flask in normalized.direct_dependencies
     assert six not in normalized.direct_dependencies
 
     # transtive should have an entry
-    assert len(normalized.transitive_dependencies) == 2
+    assert len(normalized.transitive_dependencies) == 3
     assert six in normalized.transitive_dependencies
     assert flask in normalized.transitive_dependencies
 
-    # all must be 2
-    assert len(normalized.all_dependencies) == 2
+    assert len(normalized.all_dependencies) == 4
     assert flask in normalized.all_dependencies
     assert six in normalized.all_dependencies
+
+    # dependency graph test
+    assert foo in normalized.dependency_graph
+    assert bar in normalized.dependency_graph
+    assert flask in normalized.dependency_graph
+    assert six not in normalized.dependency_graph
+    assert six in normalized.dependency_graph[foo]
+    assert foo in normalized.dependency_graph[foo]
+    assert flask in normalized.dependency_graph[foo]
+    assert pip not in normalized.dependency_graph[foo]
+    assert pip in normalized.dependency_graph[bar]
+    assert six in normalized.dependency_graph[bar]

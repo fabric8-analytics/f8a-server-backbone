@@ -59,7 +59,15 @@ class PremiumVulnerabilityFields(BasicVulnerabilityFields):
 class Package(BaseModel):
     name: str
     version: str
-    dependencies: Optional[List['Package']] = []
+    dependencies: Optional[List['Package']] = None
+
+    def __eq__(self, other: "Package") -> bool:
+        """Compare current instance with given one and returns True is same."""
+        return other and self.name == other.name and self.version == other.version
+
+    def __hash__(self) -> str:
+        """Calculate hash value."""
+        return hash((self.name, self.version))
 
 
 class ComponentConflictItem(BaseModel):

@@ -81,7 +81,7 @@ from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails
                            Package, LicenseAnalysis, Audit,
                            StackAggregatorResultForFreeTier)
 from src.v2.stack_aggregator import extract_user_stack_package_licenses
-from src.v2.normalized_packages import EPV, NormalizedPackages
+from src.v2.normalized_packages import NormalizedPackages
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__file__)
@@ -379,7 +379,7 @@ class License:
             filtered_alt_packages_graph, filtered_companion_packages,
             filtered_comp_packages_graph, external_request_id):
         """Apply License Filters and log the messages."""
-        list_user_stack_comp = extract_user_stack_package_licenses(packages, ecosystem)
+        list_user_stack_comp = extract_user_stack_package_licenses(packages)
         license_filter_output = License.apply_license_filter(
             list_user_stack_comp,
             filtered_alt_packages_graph,
@@ -510,10 +510,10 @@ class RecommendationTask:
 
         insights_payload = {
             'ecosystem': request.ecosystem,
-            'transitive_stack': [epv.package for epv in normalized_packages.transitive_dependencies],
+            'transitive_stack': [epv.name for epv in normalized_packages.transitive_dependencies],
             'unknown_packages_ratio_threshold':
                 float(os.environ.get('UNKNOWN_PACKAGES_THRESHOLD', 0.3)),
-            'package_list': [epv.package for epv in normalized_packages.direct_dependencies],
+            'package_list': [epv.name for epv in normalized_packages.direct_dependencies],
             'comp_package_count_threshold': int(os.environ.get(
                 'MAX_COMPANION_PACKAGES', 5))
         }
@@ -566,7 +566,7 @@ class RecommendationTask:
                                                                     ecosystem)
 
             # Apply Version Filters
-            input_stack = {epv.package: epv.version for epv in normalized_packages.direct_dependencies}
+            input_stack = {epv.name: epv.version for epv in normalized_packages.direct_dependencies}
             filtered_comp_packages_graph, filtered_list = GraphDB().filter_versions(
                 comp_packages_graph, input_stack, external_request_id, rec_type="COMPANION")
 

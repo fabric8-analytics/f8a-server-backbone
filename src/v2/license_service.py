@@ -140,10 +140,10 @@ def get_distinct_licenses(normalized_package_details) -> Set[str]:
 
 def get_license_service_request_payload(normalized_package_details):
     license_score_list = []
-    for epv, package_detail in normalized_package_details.items():
+    for pkg, package_detail in normalized_package_details.items():
         license_score_list.append({
-            'package': epv.package,
-            'version': epv.version,
+            'package': pkg.name,
+            'version': pkg.version,
             'licenses': package_detail.licenses
             })
     return license_score_list
@@ -178,8 +178,8 @@ def calculate_stack_level_license(normalized_package_details): # pylint:disable=
         # Unused as of now
         # list_components = resp.get('packages', [])
         # for comp in list_components:  # output from license analysis
-        #     epv = EPV(ecosystem, comp['package'], comp['version'])
-        #     package_detail = normalized_package_details.get(epv)
+        #     pkg = Package(name=comp['package'], version=comp['version'])
+        #     package_detail = normalized_package_details.get(pkg)
         #     if package_detail:
         #         package_detail.license_analysis = comp.get('license_analysis', {})
 
