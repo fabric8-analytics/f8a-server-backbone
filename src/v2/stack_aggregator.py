@@ -25,12 +25,16 @@ from src.v2.license_service import (calculate_stack_level_license,
 
 logger = logging.getLogger(__file__) # pylint:disable=C0103
 
-def get_recommended_version(ecosystem, name, version):
+def get_recommended_version(epv: EPV) -> str:
     """Fetch the recommended version in case of CVEs."""
-    query = "g.V().has('ecosystem', '{eco}').has('name', '{pkg}')" \
-            ".out('has_version').not(out('has_snyk_cve')).values('version');"\
-        .format(eco=ecosystem, pkg=name)
-    payload = {'gremlin': query}
+    query = """
+            g.V().has('ecosystem', eco).has('name', name).
+            out('has_version').not(out('has_snyk_cve')).values('version');
+            """
+    payload = {
+        'gremlin': query,
+        'bindings': {'eco': epv.ecosystem, 'name': epv.package}
+    }
     result = post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
     if result:
         versions = result['result']['data']
@@ -38,13 +42,13 @@ def get_recommended_version(ecosystem, name, version):
             return None
     else:
         return None
-    rec_version = version
+    rec_version = epv.version
     for ver in versions:
         rec_version = select_latest_version(
             ver,
             rec_version
         )
-    if rec_version == version:
+    if rec_version == epv.version:
         return None
     return rec_version
 
@@ -154,9 +158,7 @@ def extract_component_details(component):
     if not recommended_latest_version:
         logger.warning('Fallback to graph query to retrive latest version for '
                        '%s %s %s', epv.ecosystem, epv.package, epv.version)
-        recommended_latest_version = get_recommended_version(epv.ecosystem,
-                                                             epv.package,
-                                                             epv.version)
+        recommended_latest_version = get_recommended_version(epv)
 
     licenses = component.get("version", {}).get("declared_licenses", [])
 
@@ -296,7 +298,7 @@ class StackAggregator:
     # def __init__(self, request=None, persist=None):
     #     self._request = request
     #     self._persist = persist
-    #     pass
+    #     self._normalized_packages = NormalizedPackages(request.packages, request.ecosystem)
 
     @staticmethod
     def execute(request, persist=True):
