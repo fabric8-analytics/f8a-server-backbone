@@ -228,9 +228,9 @@ class StackAggregatorRequest(BaseModel):
     manifest_file_path: str
     packages: List['Package']
 
-    @validator('ecosystem')
+    @validator('ecosystem', pre=True)
     def normalize_ecosystem(cls, ecosystem):
-        return ecosystem.value.lower()
+        return ecosystem.lower()
 
 
 class StackRecommendationResult(BaseModel):
