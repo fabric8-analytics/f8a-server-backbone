@@ -1,24 +1,37 @@
 """Various utility functions used across the repo."""
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
-import requests
-import os
 import datetime
-import semantic_version as sv
 import logging
-from flask import current_app
+import os
+import time
+import traceback
+
+import requests
+import semantic_version as sv
+
+from typing import Dict
+from f8a_utils.versions import get_versions_for_ep
 from f8a_worker.models import WorkerResult
 from f8a_worker.setup_celery import init_celery
-from selinon import run_flow
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.dialects.postgresql import insert
-import traceback
-from f8a_utils.versions import get_versions_for_ep
+from flask import current_app
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 from requests_futures.sessions import FuturesSession
-import time
+from selinon import run_flow
+from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import sessionmaker
+
+class DatabaseException(Exception):
+    """Exception related to RDBS operation failures"""
+    pass
+
+class GremlinExeception(Exception):
+    """Exception related to Gremlin server failures"""
+
+class RequestException(Exception):
+    """Exception related to request http library failures"""
 
 logger = logging.getLogger(__file__)
 GREMLIN_SERVER_URL_REST = "http://{host}:{port}".format(
@@ -304,11 +317,11 @@ def persist_data_in_db(external_request_id, task_result, worker, started_at=None
     except (SQLAlchemyError, Exception) as e:
         logger.error("Error %r." % e)
         session.rollback()
-        raise e
+        raise DatabaseException from e
 
 
 def post_http_request(url, payload):
-    """Execute the gremlin query and return the response."""
+    """Post the given payload to url"""
     try:
         response = get_session_retry().post(url=url, json=payload)
         if response.status_code == 200:
@@ -319,9 +332,24 @@ def post_http_request(url, payload):
                     code=response.status_code, url=url))
             return None
 
-    except Exception:
+    except Exception as e:
         logger.error(traceback.format_exc())
-        return None
+        raise RequestException from e
+
+
+def post_gremlin(query: str, bindings: Dict = None) -> Dict:
+    try:
+        payload = {
+            'gremlin': query,
+        }
+        if bindings:
+            payload['bindings'] = bindings
+        response = get_session_retry().post(url=GREMLIN_SERVER_URL_REST, json=payload)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        raise GremlinExeception from e
 
 
 def get_response_data(json_response, data_default):

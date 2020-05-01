@@ -7,7 +7,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 from src.recommender import RecommendationTask, GraphDB, License, set_valid_cooccurrence_probability
-from src.rest_api import app
 
 with open("tests/data/graph_response.json", "r") as f:
     graph_resp = json.load(f)
@@ -112,7 +111,7 @@ def mocked_response_license(*args, **_kwargs):
             """Get the mock json response."""
             return self.json_data
 
-    if '6162' in str(args[0]):
+    if args and '6162' in str(args[0]):
         return MockResponse(license_resp, 200)
     else:
         return MockResponse(dep_resp, 200)

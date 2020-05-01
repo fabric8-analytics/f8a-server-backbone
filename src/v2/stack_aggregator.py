@@ -13,8 +13,8 @@ import logging
 
 from typing import Dict, List, Tuple
 from src.utils import (select_latest_version, server_create_analysis,
-                       post_http_request, GREMLIN_SERVER_URL_REST, persist_data_in_db,
-                       GREMLIN_QUERY_SIZE, format_date)
+                       persist_data_in_db, post_gremlin, GREMLIN_QUERY_SIZE,
+                       format_date)
 from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails,
                            BasicVulnerabilityFields, PackageDetailsForFreeTier,
                            Package, LicenseAnalysis, Audit, Ecosystem,
@@ -32,11 +32,12 @@ def get_recommended_version(ecosystem: Ecosystem, pkg: Package) -> str:
             g.V().has('ecosystem', eco).has('name', name).
             out('has_version').not(out('has_snyk_cve')).values('version');
             """
-    payload = {
-        'gremlin': query,
-        'bindings': {'eco': ecosystem, 'name': pkg.name}
+    query = inspect.cleandoc(query)
+    bindings = {
+        'eco': ecosystem,
+        'name': pkg.name
     }
-    result = post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
+    result = post_gremlin(query, bindings)
     if result:
         versions = result['result']['data']
         if len(versions) == 0:
@@ -162,11 +163,13 @@ def create_package_details(component):
     ecosystem, pkg = get_pkg_from_graph_version_node(version_node)
     github_details = get_github_details(pkg_node)
     public_vulns, private_vulns = get_vulnerabilities(component.get("vuln", {}))
-    recommended_latest_version = pkg_node.get("latest_non_cve_version", [""])[0]
-    if not recommended_latest_version:
-        logger.warning('Fallback to graph query to retrive latest version for '
-                       '%s %s %s', ecosystem, pkg.name, pkg.version)
-        recommended_latest_version = get_recommended_version(ecosystem, pkg)
+    recommended_latest_version = None
+    if public_vulns or private_vulns:
+        recommended_latest_version = pkg_node.get("latest_non_cve_version", [""])[0]
+        if not recommended_latest_version:
+            logger.warning('Fallback to graph query to retrive latest version for '
+                           '%s %s %s', ecosystem, pkg.name, pkg.version)
+            recommended_latest_version = get_recommended_version(ecosystem, pkg)
 
     licenses = component.get("version", {}).get("declared_licenses", [])
 
@@ -249,7 +252,7 @@ def get_package_details_with_vulnerabilities(
                 g.V().has('pecosystem', ecosystem).
                 has('pname', it.name).
                 has('version', it.version).as('version', 'vuln').
-                select('version').in('has_version').as('package').
+                select('version').in('has_version').dedup().as('package').
                 select('package', 'version', 'vuln').
                 by(valueMap()).
                 by(valueMap()).
@@ -258,20 +261,17 @@ def get_package_details_with_vulnerabilities(
             }
             epv;
             """
-    # get rid of leading white space
+    # get rid of leading white spaces
     query = inspect.cleandoc(query)
-    payload = {
-        'gremlin': query,
-        'bindings': {
-            'ecosystem': packages.ecosystem,
-            'packages': []
-            }
+    bindings = {
+        'ecosystem': packages.ecosystem,
+        'packages': []
     }
     # call gremlin in batches of GREMLIN_QUERY_SIZE
     for pkgs in _get_packages_in_batch(packages.all_dependencies, GREMLIN_QUERY_SIZE):
         # convert Tuple[Package] into List[{name:.., version:..}]
-        payload['bindings']['packages'] = [pkg.dict(exclude={'dependencies'}) for pkg in pkgs]
-        result = post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
+        bindings['packages'] = [pkg.dict(exclude={'dependencies'}) for pkg in pkgs]
+        result = post_gremlin(query, bindings)
         if result:
             pkgs_with_vuln['result']['data'] += result['result']['data']
 
@@ -291,7 +291,7 @@ def get_package_details_map(
     return dict(package_details)
 
 
-def _can_include_transitive_detail(pkg: PackageDetails) -> bool:
+def _has_vulnerability(pkg: PackageDetails) -> bool:
     return pkg and (pkg.public_vulnerabilities or pkg.private_vulnerabilities)
 
 def _get_denormalized_package_details(packages, package_details_map) -> List[PackageDetails]:
@@ -306,7 +306,7 @@ def _get_denormalized_package_details(packages, package_details_map) -> List[Pac
         transitive_details = []
         for transitive in transitives:
             transitive_detail = package_details_map.get(transitive)
-            if _can_include_transitive_detail(transitive_detail):
+            if _has_vulnerability(transitive_detail):
                 transitive_detail = transitive_detail.copy()
             else:
                 continue
@@ -325,7 +325,6 @@ def get_package_details_from_graph(packages: NormalizedPackages) -> List[Package
 
 def initiate_unknown_package_ingestion(output: StackAggregatorResultForFreeTier):
     """Ingestion of Unknown dependencies"""
-    logger.info("Unknown ingestion flow process initiated.")
     try:
         for dep in output.unknown_dependencies:
             server_create_analysis(output.ecosystem, dep.name, dep.version, api_flow=True,
@@ -368,7 +367,7 @@ class StackAggregator:
             persist_data_in_db(external_request_id=output.external_request_id,
                                task_result=output_dict, worker='stack_aggregator_v2',
                                started_at=started_at, ended_at=ended_at)
-            logger.info("Aggregation process completed for %s."
+            logger.info("Aggregation process completed for %s. "
                         "Result persisted into RDS.", output.external_request_id)
         initiate_unknown_package_ingestion(output)
         # result attribute is added to keep a compatibility with v1
