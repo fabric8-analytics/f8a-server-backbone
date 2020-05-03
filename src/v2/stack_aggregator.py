@@ -57,7 +57,7 @@ def get_recommended_version(ecosystem: Ecosystem, pkg: Package) -> str:
 
 def is_private_vulnerability(vulnerability_node):
     """Check whether the given node contains private vulnerability."""
-    return vulnerability_node.get('snyk_pvt_vulnerability', [True])[0]
+    return vulnerability_node.get('snyk_pvt_vulnerability', [False])[0]
 
 
 def get_vuln_for_free_tier(vuln_node):

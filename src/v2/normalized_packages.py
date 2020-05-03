@@ -13,9 +13,12 @@ class NormalizedPackages:
         self._ecosystem = ecosystem
         self._dependency_graph: Dict[Package, Set[Package]] = defaultdict(set)
         for package in packages:
-            self._dependency_graph[package] = self._dependency_graph[package] or set()
+            # clone without dependencies field
+            package_clone = Package(name=package.name, version=package.version)
+            self._dependency_graph[package_clone] = self._dependency_graph[package_clone] or set()
             for trans_package in package.dependencies or []:
-                self._dependency_graph[package].add(trans_package)
+                trans_clone = Package(name=trans_package.name, version=trans_package.version)
+                self._dependency_graph[package].add(trans_clone)
         # unfold set of Package into flat set of Package
         self._transtives: Set[Package] = {d for dep in self._dependency_graph.values() for d in dep}
         self._directs = frozenset(self._dependency_graph.keys())
