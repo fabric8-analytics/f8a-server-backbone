@@ -74,18 +74,18 @@ def get_vuln_for_free_tier(vuln_node):
     }
 
 
-def get_vuln_for_registered_user(vuln_node):
-    """Get fields associated with registered users."""
-    info_free_tier = get_vuln_for_free_tier(vuln_node)
-    info_for_registered_user = {
-        'description': vuln_node.get('description')[0],
-        'exploit': vuln_node.get('exploit')[0],
-        'malicious': vuln_node.get('malicious', [False])[0],
-        'patch_exists': vuln_node.get('patch_exists', [False])[0],
-        'fixable': vuln_node.get('fixable', [False])[0],
-        'fixed_in': vuln_node.get('snyk_cvss_v3')[0],
-    }
-    return {**info_free_tier, **info_for_registered_user}
+# def get_vuln_for_registered_user(vuln_node):
+#     """Get fields associated with registered users."""
+#     info_free_tier = get_vuln_for_free_tier(vuln_node)
+#     info_for_registered_user = {
+#         'description': vuln_node.get('description')[0],
+#         'exploit': vuln_node.get('exploit')[0],
+#         'malicious': vuln_node.get('malicious', [False])[0],
+#         'patch_exists': vuln_node.get('patch_exists', [False])[0],
+#         'fixable': vuln_node.get('fixable', [False])[0],
+#         'fixed_in': vuln_node.get('snyk_cvss_v3')[0],
+#     }
+#     return {**info_free_tier, **info_for_registered_user}
 
 
 def get_github_details(package_node) -> GitHubDetails:
@@ -171,7 +171,7 @@ def create_package_details(component):
                            '%s %s %s', ecosystem, pkg.name, pkg.version)
             recommended_latest_version = get_recommended_version(ecosystem, pkg)
 
-    licenses = component.get("version", {}).get("declared_licenses", [])
+    licenses = version_node.get("declared_licenses", [])
 
     latest_version = select_latest_version(
         pkg.version,
@@ -191,6 +191,7 @@ def create_package_details(component):
                                           recommended_version=recommended_latest_version)
 
 
+# (fixme): This should be moved to v2/recommender
 def extract_user_stack_package_licenses(packages: NormalizedPackages):
     """Extract user stack package licenses."""
     normalized_package_details = get_package_details_from_graph(packages)
@@ -203,7 +204,7 @@ def get_unknown_packages(normalized_package_details, packages) -> List[Package]:
     analyzed_dependencies = set(normalized_package_details.keys())
     unknown_dependencies = list()
     for pkg in all_dependencies.difference(analyzed_dependencies):
-        unknown_dependencies.append(Package(name=pkg.name, version=pkg.version))
+        unknown_dependencies.append(pkg)
     return unknown_dependencies
 
 
@@ -218,10 +219,10 @@ def get_license_analysis_for_stack(normalized_package_details) -> LicenseAnalysi
                            **license_analysis)
 
 
-def aggregate_stack_data(request, packages, normalized_package_details):
+def aggregate_stack_data(request, packages, normalized_package_details) -> StackAggregatorResultForFreeTier:
     """Aggregate stack data."""
     # denormalize package details according to request.dependencies relations
-    package_details = _get_denormalized_package_details(packages, normalized_package_details)
+    package_details = get_denormalized_package_details(packages, normalized_package_details)
     unknown_dependencies = get_unknown_packages(normalized_package_details, packages)
     license_analysis = get_license_analysis_for_stack(normalized_package_details)
     return StackAggregatorResultForFreeTier(**request.dict(exclude={'packages'}),
@@ -294,7 +295,8 @@ def get_package_details_map(
 def _has_vulnerability(pkg: PackageDetails) -> bool:
     return pkg and (pkg.public_vulnerabilities or pkg.private_vulnerabilities)
 
-def _get_denormalized_package_details(packages, package_details_map) -> List[PackageDetails]:
+def get_denormalized_package_details(packages: NormalizedPackages,
+                                     package_details_map: Dict[Package, PackageDetails]) -> List[PackageDetails]:
     """Pack PackageDetails according to it's dependency graph structure."""
     package_details = []
     for package, transitives in packages.dependency_graph.items():
@@ -302,14 +304,14 @@ def _get_denormalized_package_details(packages, package_details_map) -> List[Pac
         if package_detail:
             package_detail = package_detail.copy()
         else:
-            continue
+            continue # pragma: no cover
         transitive_details = []
         for transitive in transitives:
             transitive_detail = package_details_map.get(transitive)
             if _has_vulnerability(transitive_detail):
                 transitive_detail = transitive_detail.copy()
             else:
-                continue
+                continue # pragma: no cover
             transitive_details.append(transitive_detail)
         package_detail.dependencies = list(transitives)
         package_detail.vulnerable_dependencies = transitive_details
@@ -317,7 +319,7 @@ def _get_denormalized_package_details(packages, package_details_map) -> List[Pac
     return package_details
 
 
-def get_package_details_from_graph(packages: NormalizedPackages) -> List[PackageDetails]:
+def get_package_details_from_graph(packages: NormalizedPackages) -> Dict[Package, PackageDetails]:
     """Get dependency data from graph."""
     graph_response = get_package_details_with_vulnerabilities(packages)
     return get_package_details_map(graph_response)
@@ -344,7 +346,7 @@ class StackAggregator:
     #     self._normalized_packages = NormalizedPackages(request.packages, request.ecosystem)
 
     @staticmethod
-    def process_request(request):
+    def process_request(request) -> StackAggregatorResultForFreeTier:
         """Task code."""
         request = StackAggregatorRequest(**request)
         normalized_packages = NormalizedPackages(request.packages, request.ecosystem)
