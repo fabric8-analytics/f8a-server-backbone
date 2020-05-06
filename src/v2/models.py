@@ -70,19 +70,24 @@ class Package(BaseModel):
         return hash((self.name, self.version))
 
 
-class ComponentConflictItem(BaseModel):
+class ComponentConflictLicensesItem(BaseModel):
     license1: Optional[str] = None
     license2: Optional[str] = None
 
 
-class ReallyUnknownItem(BaseModel):
+class ComponentConflictItem(BaseModel):
+    package: str
+    conflict_licenses: List[ComponentConflictLicensesItem]
+
+
+class UnknownItem(BaseModel):
     package: Optional[str] = None
     license: Optional[str] = None
 
 
 class UnknownLicenses(BaseModel):
     component_conflict: Optional[List['ComponentConflictItem']] = None
-    really_unknown: Optional[List['ReallyUnknownItem']] = None
+    unknown: Optional[List['UnknownItem']] = None
 
 
 class ConflictPackages(BaseModel):

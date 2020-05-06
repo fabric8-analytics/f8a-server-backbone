@@ -2,7 +2,7 @@
     "conflict_packages": [
         {
             "package1": "license1",
-            "package2": "license1"
+            "package2": "license2"
         }
     ],
     "distinct_licenses": [

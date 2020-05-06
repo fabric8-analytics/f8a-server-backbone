@@ -2,10 +2,8 @@
 
 Gathers component data from the graph database and aggregate the data to be presented
 by stack-analyses endpoint
-
-Output: TBD
-
 """
+
 import datetime
 import inspect
 import time
@@ -17,11 +15,10 @@ from src.utils import (select_latest_version, server_create_analysis,
                        format_date)
 from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails,
                            BasicVulnerabilityFields, PackageDetailsForFreeTier,
-                           Package, LicenseAnalysis, Audit, Ecosystem,
+                           Package, Audit, Ecosystem,
                            StackAggregatorResultForFreeTier)
 from src.v2.normalized_packages import NormalizedPackages
-from src.v2.license_service import (calculate_stack_level_license,
-                                    get_distinct_licenses,
+from src.v2.license_service import (get_license_analysis_for_stack,
                                     get_license_service_request_payload)
 
 logger = logging.getLogger(__file__) # pylint:disable=C0103
@@ -207,16 +204,6 @@ def get_unknown_packages(normalized_package_details, packages) -> List[Package]:
         unknown_dependencies.append(pkg)
     return unknown_dependencies
 
-
-def get_license_analysis_for_stack(normalized_package_details) -> LicenseAnalysis:
-    """Create LicenseAnalysis from license server."""
-    license_analysis = calculate_stack_level_license(normalized_package_details)
-    stack_distinct_licenses = list(get_distinct_licenses(normalized_package_details))
-    stack_license_conflict = len(license_analysis.get('f8a_stack_licenses', [])) == 0
-    return LicenseAnalysis(total_licenses=len(stack_distinct_licenses),
-                           distinct_licenses=stack_distinct_licenses,
-                           stack_license_conflict=stack_license_conflict,
-                           **license_analysis)
 
 
 def aggregate_stack_data(request, packages, normalized_package_details) -> StackAggregatorResultForFreeTier:

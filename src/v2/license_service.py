@@ -4,6 +4,7 @@ import logging
 import requests
 from typing import Set
 from src.utils import LICENSE_SCORING_URL_REST, post_http_request
+from src.v2.models import LicenseAnalysis
 
 logger = logging.getLogger(__file__) # pylint:disable=C0103
 
@@ -103,7 +104,7 @@ def _extract_unknown_licenses(license_service_output):
                 lic_conflict_licenses.append(dep)
 
     output = {
-        'really_unknown': really_unknown_licenses,
+        'unknown': really_unknown_licenses,
         'component_conflict': lic_conflict_licenses
     }
     return output
@@ -148,8 +149,8 @@ def get_license_service_request_payload(normalized_package_details):
             })
     return license_score_list
 
-def calculate_stack_level_license(normalized_package_details): # pylint:disable=R0914
-    """Pass given license_score_list to stack_license analysis and process response."""
+def get_license_analysis_for_stack(normalized_package_details) -> LicenseAnalysis: # pylint:disable=R0914
+    """Create LicenseAnalysis from license server."""
     license_url = LICENSE_SCORING_URL_REST + "/api/v1/stack_license"
 
     # form payload for license service request
@@ -168,9 +169,7 @@ def calculate_stack_level_license(normalized_package_details): # pylint:disable=
         logger.exception("Unexpected error happened while invoking license analysis!")
         flag_stack_license_exception = True
 
-    msg = None
     stack_license = []
-    stack_license_status = None
     unknown_licenses = []
     license_conflict_packages = []
     license_outliers = []
@@ -183,21 +182,19 @@ def calculate_stack_level_license(normalized_package_details): # pylint:disable=
         #     if package_detail:
         #         package_detail.license_analysis = comp.get('license_analysis', {})
 
-        msg = resp.get('message')
         _stack_license = resp.get('stack_license', None)
         if _stack_license is not None:
             stack_license = [_stack_license]
-        stack_license_status = resp.get('status', None)
         unknown_licenses = _extract_unknown_licenses(resp)
         license_conflict_packages = _extract_conflict_packages(resp)
         license_outliers = _extract_license_outliers(resp)
 
-    output = {
-        "reason": msg,
-        "status": stack_license_status,
-        "f8a_stack_licenses": stack_license,
-        "unknown_licenses": unknown_licenses,
-        "conflict_packages": license_conflict_packages,
-        "outlier_packages": license_outliers
-    }
-    return output
+    stack_distinct_licenses = list(get_distinct_licenses(normalized_package_details))
+    stack_license_conflict = (len(stack_license) == 0 and
+                                len(stack_distinct_licenses) > 0)
+    return LicenseAnalysis(total_licenses=len(stack_distinct_licenses),
+                           distinct_licenses=stack_distinct_licenses,
+                           stack_license_conflict=stack_license_conflict,
+                           unknown_licenses=unknown_licenses,
+                           conflict_packages=license_conflict_packages,
+                           outlier_packages=license_outliers)
