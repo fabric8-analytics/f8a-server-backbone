@@ -5,7 +5,8 @@ import json
 from unittest import mock
 
 from src.v2 import stack_aggregator as sa
-from src.v2.models import Package, PackageDetails, StackAggregatorRequest
+from src.v2.models import (Package, PackageDetails, StackAggregatorRequest,
+                           StackAggregatorResult)
 from src.v2.normalized_packages import NormalizedPackages
 
 # ref: https://stackoverflow.com/questions/29516339/how-to-mock-calls-to-function-that-receives-mutable-object-as-parameter
@@ -40,7 +41,7 @@ def test_create_package_details_without_vuln(_mock_get_recommended_version):
 @mock.patch('src.v2.stack_aggregator.get_recommended_version')
 def test_create_package_details_without_latest_non_cve_version(_mock_get_recommended_version):
     """Test the function validate_request_data."""
-    with open("tests/v2/graph_response_2_public_vuln.json", "r") as fin:
+    with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
         payload = json.load(fin)['result']['data'][0]
         # delete latest_non_cve_version to test fallback
         # call to identify latest_non_cve_version from graph
@@ -168,7 +169,7 @@ def test_get_package_details_with_vulnerabilities(_mock_gremlin):
 @mock.patch('src.v2.stack_aggregator.post_gremlin')
 def test_process_request_with_2_public_vulns(_mock_package_details):
     """Test the function validate_request_data."""
-    with open("tests/v2/graph_response_2_public_1_private_vuln.json", "r") as response:
+    with open("tests/v2/data/graph_response_2_public_1_private_vuln.json", "r") as response:
         _mock_package_details.return_value = json.load(response)
 
     six = Package(name='six', version='3.1.1')
@@ -206,7 +207,7 @@ def test_process_request_with_2_public_vulns(_mock_package_details):
 @mock.patch('src.v2.stack_aggregator.get_package_details_with_vulnerabilities')
 def test_get_unknown_packages(_mock_package_details):
     """Test unknown_dependencies"""
-    with open("tests/v2/graph_response_2_public_vuln.json", "r") as response:
+    with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as response:
         _mock_package_details.return_value = json.load(response)['result']['data']
 
     six = Package(name='six', version='3.1.1')
@@ -226,15 +227,15 @@ def test_get_unknown_packages(_mock_package_details):
     assert package_details_map is not None
     assert isinstance(package_details_map, dict)
     assert len(package_details_map) == 2
-    unknown_deps = sa.get_unknown_packages(package_details_map,
-                                           NormalizedPackages(packages, 'pypi'))
+    unknown_deps = sa.get_unknown_packages(NormalizedPackages(packages, 'pypi'),
+                                           package_details_map)
     assert len(unknown_deps) == 1
     assert unknown_deps[0] == six
 
 @mock.patch('src.v2.stack_aggregator.get_package_details_with_vulnerabilities')
 def test_get_denormalized_package_details(_mock_package_details):
     """Test get_denormalized_package_details."""
-    with open("tests/v2/graph_response_2_public_1_private_vuln.json", "r") as response:
+    with open("tests/v2/data/graph_response_2_public_1_private_vuln.json", "r") as response:
         _mock_package_details.return_value = json.load(response)['result']['data']
 
     six = Package(name='six', version='3.1.1')
@@ -272,3 +273,73 @@ def test_get_denormalized_package_details(_mock_package_details):
     assert foo in flask_details.dependencies
     # check six is also part of vulnerable_dependencies of flask
     assert six in flask_details.vulnerable_dependencies
+
+
+@mock.patch('src.v2.stack_aggregator.server_create_analysis')
+def test_initiate_unknown_package_ingestion_empty(_mock_analysis):
+    """Test initiate_unknown_package_ingestion with empty list."""
+    output = StackAggregatorResult(ecosystem='pypi',
+                                   unknown_dependencies=[])
+    sa.initiate_unknown_package_ingestion(output)
+    _mock_analysis.assert_not_called()
+
+
+@mock.patch('src.v2.stack_aggregator.server_create_analysis')
+def test_initiate_unknown_package_ingestion_one_unknown(_mock_analysis):
+    """Test initiate_unknown_package_ingestion with empty list."""
+    unknown_dependencies = [Package(name='foo', version='0.0.1'),
+                            Package(name='bar', version='b02')]
+    output = StackAggregatorResult(ecosystem='pypi',
+                                   unknown_dependencies=unknown_dependencies)
+    sa.initiate_unknown_package_ingestion(output)
+    _mock_analysis.call_count == len(unknown_dependencies)
+    for args, kwargs in _mock_analysis.call_args_list:
+        assert args[0] == 'pypi'
+        assert Package(name=args[1], version=args[2]) in unknown_dependencies
+
+    _mock_analysis.reset_mock()
+    _mock_analysis.side_effect = Exception('mocked exception')
+    output = StackAggregatorResult(ecosystem='pypi',
+                                   unknown_dependencies=unknown_dependencies)
+    sa.initiate_unknown_package_ingestion(output)
+    _mock_analysis.assert_called_once()
+
+@mock.patch('src.v2.stack_aggregator.aggregate_stack_data')
+@mock.patch('src.v2.stack_aggregator.get_package_details_from_graph')
+def test_sa_process_request(_mock_get_package_details, _mock_aggregate):
+    """ Test StackAggregator.process_request."""
+    sa.StackAggregator.process_request({
+        'ecosystem': 'pypi',
+        'external_request_id': 'xyz',
+        'manifest_file': 'rq',
+        'manifest_file_path': 'rq',
+        'packages': [
+            {
+                'name': 'foo',
+                'version': '1.0'
+            },
+            {
+                'name': 'bar',
+                'version': '2.0'
+            }
+        ]
+    })
+    _mock_get_package_details.assert_called_once()
+    _mock_aggregate.assert_called_once()
+
+
+@mock.patch('src.v2.stack_aggregator.initiate_unknown_package_ingestion')
+@mock.patch('src.v2.stack_aggregator.persist_data_in_db')
+@mock.patch('src.v2.stack_aggregator.StackAggregator.process_request')
+def test_sa_execute(_mock_process_request, _mock_persist, _mock_unknown):
+    """ Test StackAggregator.execute."""
+    _mock_process_request.return_value = StackAggregatorResult()
+    sa.StackAggregator.execute({})
+    _mock_persist.called_once()
+    _mock_unknown.called_once()
+
+    _mock_persist.reset_mock()
+    _mock_unknown.reset_mock()
+    sa.StackAggregator.execute({}, False)
+    _mock_persist.assert_not_called()
+    _mock_unknown.called_once()

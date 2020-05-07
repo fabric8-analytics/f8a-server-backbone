@@ -375,7 +375,7 @@ class License:
 
     @staticmethod
     def perform_license_analysis(
-            packages, ecosystem, filtered_alternate_packages,
+            packages, filtered_alternate_packages,
             filtered_alt_packages_graph, filtered_companion_packages,
             filtered_comp_packages_graph, external_request_id):
         """Apply License Filters and log the messages."""
@@ -507,13 +507,15 @@ class RecommendationTask:
             'usage_outliers': [],
             'manifest_file_path': request.manifest_file_path
         }
-
+        package_list = [epv.name for epv in normalized_packages.direct_dependencies]
+        if not package_list:
+            recommendations.append(recommendation)
         insights_payload = {
             'ecosystem': request.ecosystem,
             'transitive_stack': [epv.name for epv in normalized_packages.transitive_dependencies],
             'unknown_packages_ratio_threshold':
                 float(os.environ.get('UNKNOWN_PACKAGES_THRESHOLD', 0.3)),
-            'package_list': [epv.name for epv in normalized_packages.direct_dependencies],
+            'package_list': package_list,
             'comp_package_count_threshold': int(os.environ.get(
                 'MAX_COMPANION_PACKAGES', 5))
         }
@@ -602,7 +604,7 @@ class RecommendationTask:
                 # Apply License Filters
                 lic_filtered_alt_graph, lic_filtered_comp_graph = \
                     License.perform_license_analysis(
-                        packages=normalized_packages, ecosystem=ecosystem,
+                        packages=normalized_packages,
                         filtered_alt_packages_graph=filtered_alt_packages_graph,
                         filtered_comp_packages_graph=filtered_comp_packages_graph,
                         filtered_alternate_packages=filtered_alternate_packages,

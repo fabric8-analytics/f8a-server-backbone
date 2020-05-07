@@ -16,7 +16,8 @@ from src.utils import (select_latest_version, server_create_analysis,
 from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails,
                            BasicVulnerabilityFields, PackageDetailsForFreeTier,
                            Package, Audit, Ecosystem,
-                           StackAggregatorResultForFreeTier)
+                           StackAggregatorResultForFreeTier,
+                           StackAggregatorResult)
 from src.v2.normalized_packages import NormalizedPackages
 from src.v2.license_service import (get_license_analysis_for_stack,
                                     get_license_service_request_payload)
@@ -195,7 +196,7 @@ def extract_user_stack_package_licenses(packages: NormalizedPackages):
     return get_license_service_request_payload(normalized_package_details)
 
 
-def get_unknown_packages(normalized_package_details, packages) -> List[Package]:
+def get_unknown_packages(packages, normalized_package_details) -> List[Package]:
     """Get list of unknown packages from the normalized_package_details."""
     all_dependencies = set(packages.all_dependencies)
     analyzed_dependencies = set(normalized_package_details.keys())
@@ -210,7 +211,7 @@ def aggregate_stack_data(request, packages, normalized_package_details) -> Stack
     """Aggregate stack data."""
     # denormalize package details according to request.dependencies relations
     package_details = get_denormalized_package_details(packages, normalized_package_details)
-    unknown_dependencies = get_unknown_packages(normalized_package_details, packages)
+    unknown_dependencies = get_unknown_packages(packages, normalized_package_details)
     license_analysis = get_license_analysis_for_stack(normalized_package_details)
     return StackAggregatorResultForFreeTier(**request.dict(exclude={'packages'}),
                                             analyzed_dependencies=package_details,
@@ -312,7 +313,7 @@ def get_package_details_from_graph(packages: NormalizedPackages) -> Dict[Package
     return get_package_details_map(graph_response)
 
 
-def initiate_unknown_package_ingestion(output: StackAggregatorResultForFreeTier):
+def initiate_unknown_package_ingestion(output: StackAggregatorResult):
     """Ingestion of Unknown dependencies"""
     try:
         for dep in output.unknown_dependencies:
