@@ -14,12 +14,13 @@ from src.v2.recommender import RecommendationTask as RecommendationTaskV2
 from src.v2.stack_aggregator import StackAggregator as StackAggregatorV2
 from src.utils import push_data, total_time_elapsed, get_time_delta
 
+
 def setup_logging(flask_app):
     """Perform the setup of logging (file, log level) for this application."""
     if not flask_app.debug:
         handler = logging.StreamHandler()
         handler.setFormatter(logging.Formatter(
-            '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'))
+            '[%(asctime)s] %(levelname)s in %(module)s:%(lineno)d: %(message)s'))
         log_level = os.environ.get('FLASK_LOGGING_LEVEL', logging.getLevelName(logging.WARNING))
         handler.setLevel(log_level)
 

@@ -62,7 +62,6 @@ Output:
 
 """
 
-from __future__ import division
 import json
 import datetime
 import requests
@@ -72,10 +71,10 @@ import re
 import logging
 
 from src.utils import (create_package_dict, get_session_retry, select_latest_version,
-                   GREMLIN_SERVER_URL_REST, LICENSE_SCORING_URL_REST,
-                   convert_version_to_proper_semantic, get_response_data,
-                   version_info_tuple, persist_data_in_db,
-                   is_quickstart_majority, post_http_request)
+                       GREMLIN_SERVER_URL_REST, LICENSE_SCORING_URL_REST,
+                       convert_version_to_proper_semantic, get_response_data,
+                       version_info_tuple, persist_data_in_db,
+                       is_quickstart_majority, post_http_request)
 from src.stack_aggregator import extract_user_stack_package_licenses
 
 logging.basicConfig(level=logging.INFO)

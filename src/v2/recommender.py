@@ -2,67 +2,8 @@
 
 It also gives a list of packages that are not known to the recommendation engine for further crowd
 sourcing.
-
-Output:
-[
-    {
-        "alternate_packages": {},
-        "companion_packages": [
-            {
-                "cooccurrence_count": 219,
-                "cooccurrence_probability": 83.26996197718631,
-                "package_name": "org.slf4j:slf4j-api",
-                "topic_list": [
-                    "logging",
-                    "dependency-injection",
-                    "api"
-                ]
-            },
-            {
-                "cooccurrence_count": 205,
-                "cooccurrence_probability": 77.9467680608365,
-                "package_name": "org.apache.logging.log4j:log4j-core",
-                "topic_list": [
-                    "logging",
-                    "java"
-                ]
-            },
-            {
-                "cooccurrence_count": 208,
-                "cooccurrence_probability": 79.08745247148289,
-                "package_name": "io.vertx:vertx-web-client",
-                "topic_list": [
-                    "http",
-                    "http-request",
-                    "vertx-web-client",
-                    "http-response"
-                ]
-            }
-        ],
-        "ecosystem": "maven",
-        "missing_packages": [],
-        "outlier_package_list": [],
-        "package_to_topic_dict": {
-            "io.vertx:vertx-core": [
-                "http",
-                "socket",
-                "tcp",
-                "reactive"
-            ],
-            "io.vertx:vertx-web": [
-                "vertx-web",
-                "webapp",
-                "auth",
-                "routing"
-            ]
-        },
-        "user_persona": "1"
-    }
-]
-
 """
 
-from __future__ import division
 import json
 import datetime
 import requests

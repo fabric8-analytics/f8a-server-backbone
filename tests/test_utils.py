@@ -235,11 +235,13 @@ def test_get_time_delta_with_no_param():
     """Check the Push Data Method."""
     assert get_time_delta({}) is None
 
+
 @mock.patch('requests.Session.post', return_value=None)
 def test_post_gremlin_exception(_mock_post):
     """Test error response for gremlin."""
     with raises(GremlinExeception):
         post_gremlin(query='gremlin_quey', bindings={'val': 123})
+
 
 @mock.patch('requests.Session.post', side_effect=mock_get_osio_user_count)
 def test_post_gremlin_normal(_mock_post):
@@ -249,6 +251,7 @@ def test_post_gremlin_normal(_mock_post):
     kwargs = _mock_post.call_args_list[0][1]['json']
     assert kwargs['gremlin'] == 'gremlin_query'
     assert kwargs['bindings'] == {'val': 123}
+
 
 if __name__ == '__main__':
     test_semantic_versioning()

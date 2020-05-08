@@ -96,6 +96,10 @@ def mocked_response_graph(*args, **_kwargs):
             """Get the mock json response."""
             return self.json_data
 
+        def raise_for_status(self):
+            if self.status_code != 200:
+                raise Exception('not 200')
+
     return MockResponse(graph_resp, 200)
 
 

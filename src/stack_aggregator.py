@@ -13,8 +13,8 @@ import requests
 import copy
 from collections import defaultdict
 from src.utils import (select_latest_version, server_create_analysis, LICENSE_SCORING_URL_REST,
-                   post_http_request, GREMLIN_SERVER_URL_REST, persist_data_in_db,
-                   GREMLIN_QUERY_SIZE, format_date)
+                       post_http_request, GREMLIN_SERVER_URL_REST, persist_data_in_db,
+                       GREMLIN_QUERY_SIZE, format_date)
 import logging
 
 logger = logging.getLogger(__file__)

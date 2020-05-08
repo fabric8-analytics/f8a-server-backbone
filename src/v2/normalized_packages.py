@@ -4,6 +4,7 @@ from collections import defaultdict
 from typing import List, Tuple, Dict, Set
 from src.v2.models import Package, Ecosystem
 
+
 class NormalizedPackages:
     """Duplicate free Package List."""
 

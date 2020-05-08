@@ -23,15 +23,18 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
+
 class DatabaseException(Exception):
     """Exception related to RDBS operation failures"""
-    pass
+
 
 class GremlinExeception(Exception):
     """Exception related to Gremlin server failures"""
 
+
 class RequestException(Exception):
     """Exception related to request http library failures"""
+
 
 logger = logging.getLogger(__file__)
 GREMLIN_SERVER_URL_REST = "http://{host}:{port}".format(

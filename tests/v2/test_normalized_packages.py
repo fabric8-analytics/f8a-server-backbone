@@ -3,6 +3,7 @@
 from src.v2.models import Package
 from src.v2.normalized_packages import NormalizedPackages
 
+
 def test_normalized_packages_basic_direct():
     """Test NormalizedPackages with basic dependency."""
     pkg = Package(name='flask', version='0.12')
@@ -30,6 +31,7 @@ def test_normalized_packages_basic_direct():
     assert pkg in normalized.dependency_graph
     assert len(normalized.dependency_graph[foo]) == 0
 
+
 def test_normalized_packages_basic_transitive():
     """Test NormalizedPackages with transitives dependency"""
     flask = Package(name='flask', version='0.12')
@@ -40,7 +42,7 @@ def test_normalized_packages_basic_transitive():
         'dependencies': [{
             'name': six.name,
             'version': six.version
-            }]
+        }]
     })
     assert foo is not None
     normalized = NormalizedPackages([foo], 'pypi')
@@ -64,6 +66,7 @@ def test_normalized_packages_basic_transitive():
     assert flask in normalized.dependency_graph
     assert six in normalized.dependency_graph[flask]
     assert flask not in normalized.dependency_graph[flask]
+
 
 def test_normalized_packages_with_duplicates():
     """Test NormalizedPackages with duplicates."""

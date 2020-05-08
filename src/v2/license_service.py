@@ -1,12 +1,16 @@
 """ Abstracts license service related functionalities """
 
 import logging
-import requests
+
 from typing import Set
+
+import requests
 from src.utils import LICENSE_SCORING_URL_REST, post_http_request
 from src.v2.models import LicenseAnalysis
 
-logger = logging.getLogger(__file__) # pylint:disable=C0103
+
+logger = logging.getLogger(__file__)  # pylint:disable=C0103
+
 
 def _extract_conflict_packages(license_service_output):
     """Extract conflict licenses.
@@ -134,22 +138,27 @@ def _extract_license_outliers(license_service_output):
 
 
 def get_distinct_licenses(normalized_package_details) -> Set[str]:
+    """Return list of unique license in the given PackageDetails."""
     licenses = list()
     for _, package_detail in normalized_package_details.items():
         licenses.extend(package_detail.licenses)
     return set(licenses)
 
+
 def get_license_service_request_payload(normalized_package_details):
+    """Prepare payload for license server."""
     license_score_list = []
     for pkg, package_detail in normalized_package_details.items():
         license_score_list.append({
             'package': pkg.name,
             'version': pkg.version,
             'licenses': package_detail.licenses
-            })
+        })
     return license_score_list
 
-def get_license_analysis_for_stack(normalized_package_details) -> LicenseAnalysis: # pylint:disable=R0914
+
+def get_license_analysis_for_stack(
+        normalized_package_details) -> LicenseAnalysis:  # pylint:disable=R0914
     """Create LicenseAnalysis from license server."""
     license_url = LICENSE_SCORING_URL_REST + "/api/v1/stack_license"
 
@@ -191,7 +200,7 @@ def get_license_analysis_for_stack(normalized_package_details) -> LicenseAnalysi
 
     stack_distinct_licenses = list(get_distinct_licenses(normalized_package_details))
     stack_license_conflict = (len(stack_license) == 0 and
-                                len(stack_distinct_licenses) > 0)
+                              len(stack_distinct_licenses) > 0)
     return LicenseAnalysis(total_licenses=len(stack_distinct_licenses),
                            distinct_licenses=stack_distinct_licenses,
                            stack_license_conflict=stack_license_conflict,

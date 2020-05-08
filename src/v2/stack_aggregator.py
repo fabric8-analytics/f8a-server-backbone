@@ -22,7 +22,8 @@ from src.v2.normalized_packages import NormalizedPackages
 from src.v2.license_service import (get_license_analysis_for_stack,
                                     get_license_service_request_payload)
 
-logger = logging.getLogger(__file__) # pylint:disable=C0103
+logger = logging.getLogger(__file__)  # pylint:disable=C0103
+
 
 def get_recommended_version(ecosystem: Ecosystem, pkg: Package) -> str:
     """Fetch the recommended version in case of CVEs."""
@@ -206,8 +207,8 @@ def get_unknown_packages(packages, normalized_package_details) -> List[Package]:
     return unknown_dependencies
 
 
-
-def aggregate_stack_data(request, packages, normalized_package_details) -> StackAggregatorResultForFreeTier:
+def aggregate_stack_data(request, packages,
+                         normalized_package_details) -> StackAggregatorResultForFreeTier:
     """Aggregate stack data."""
     # denormalize package details according to request.dependencies relations
     package_details = get_denormalized_package_details(packages, normalized_package_details)
@@ -283,8 +284,10 @@ def get_package_details_map(
 def _has_vulnerability(pkg: PackageDetails) -> bool:
     return pkg and (pkg.public_vulnerabilities or pkg.private_vulnerabilities)
 
-def get_denormalized_package_details(packages: NormalizedPackages,
-                                     package_details_map: Dict[Package, PackageDetails]) -> List[PackageDetails]:
+
+def get_denormalized_package_details(
+        packages: NormalizedPackages,
+        package_details_map: Dict[Package, PackageDetails]) -> List[PackageDetails]:
     """Pack PackageDetails according to it's dependency graph structure."""
     package_details = []
     for package, transitives in packages.dependency_graph.items():
@@ -292,14 +295,14 @@ def get_denormalized_package_details(packages: NormalizedPackages,
         if package_detail:
             package_detail = package_detail.copy()
         else:
-            continue # pragma: no cover
+            continue  # pragma: no cover
         transitive_details = []
         for transitive in transitives:
             transitive_detail = package_details_map.get(transitive)
             if _has_vulnerability(transitive_detail):
                 transitive_detail = transitive_detail.copy()
             else:
-                continue # pragma: no cover
+                continue  # pragma: no cover
             transitive_details.append(transitive_detail)
         package_detail.dependencies = list(transitives)
         package_detail.vulnerable_dependencies = transitive_details
@@ -319,7 +322,7 @@ def initiate_unknown_package_ingestion(output: StackAggregatorResult):
         for dep in output.unknown_dependencies:
             server_create_analysis(output.ecosystem, dep.name, dep.version, api_flow=True,
                                    force=False, force_graph_sync=True)
-    except Exception as e: # pylint:disable=W0703,C0103
+    except Exception as e:  # pylint:disable=W0703,C0103
         logger.error('Ingestion has been failed for {%s, %s, %s}',
                      output.ecosystem, dep.name, dep.version)
         logger.error(e)
@@ -342,7 +345,6 @@ class StackAggregator:
 
         return aggregate_stack_data(request, normalized_packages,
                                     normalized_package_details)
-
 
     @staticmethod
     def execute(request, persist=True):

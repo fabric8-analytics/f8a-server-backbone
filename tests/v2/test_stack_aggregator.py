@@ -9,11 +9,14 @@ from src.v2.models import (Package, PackageDetails, StackAggregatorRequest,
                            StackAggregatorResult)
 from src.v2.normalized_packages import NormalizedPackages
 
-# ref: https://stackoverflow.com/questions/29516339/how-to-mock-calls-to-function-that-receives-mutable-object-as-parameter
+
+# ref: https://stackoverflow.com/a/29525603/1942688
 # ref: https://docs.python.org/dev/library/unittest.mock-examples.html#coping-with-mutable-arguments
 class ModifiedMagicMock(mock.MagicMock):
     def _mock_call(_mock_self, *args, **kwargs):
-        return super(ModifiedMagicMock, _mock_self)._mock_call(*copy.deepcopy(args), **copy.deepcopy(kwargs))
+        return super(ModifiedMagicMock, _mock_self)._mock_call(*copy.deepcopy(args),
+                                                               **copy.deepcopy(kwargs))
+
 
 @mock.patch('src.v2.stack_aggregator.get_recommended_version')
 def test_create_package_details_without_vuln(_mock_get_recommended_version):
@@ -61,7 +64,7 @@ def test_get_recommended_version_empty_gremlin(_mock_gremlin):
     ver = sa.get_recommended_version('pypi', Package(name='flask', version='0.12'))
     assert ver is None
 
-    _mock_gremlin.return_value = {'result': {'data': ['1.0','1.1','1.2']}}
+    _mock_gremlin.return_value = {'result': {'data': ['1.0', '1.1', '1.2']}}
     ver = sa.get_recommended_version('pypi', Package(name='flask', version='0.12'))
     assert ver is not None
     assert ver == '1.2'
@@ -74,11 +77,13 @@ def test_get_recommended_version_empty_gremlin(_mock_gremlin):
     ver = sa.get_recommended_version('pypi', Package(name='flask', version='0.12'))
     assert ver is None
 
+
 def test_is_private_vulnerability():
     """Test is_private_vulnerability"""
     assert sa.is_private_vulnerability({'snyk_pvt_vulnerability': [True]})
     assert not sa.is_private_vulnerability({'snyk_pvt_vulnerability': [False]})
     assert not sa.is_private_vulnerability({})
+
 
 @mock.patch('src.v2.stack_aggregator.post_gremlin', new_callable=ModifiedMagicMock)
 def test_get_package_details_with_vulnerabilities(_mock_gremlin):
@@ -109,11 +114,7 @@ def test_get_package_details_with_vulnerabilities(_mock_gremlin):
     })
     packages = NormalizedPackages([flask, bar], 'pypi')
 
-    mock_args_list = []
-    def side_effect(*args, **kwargs):
-        pass
     _mock_gremlin.return_value = None
-    _mock_gremlin.side_effect = side_effect
     with mock.patch('src.v2.stack_aggregator.GREMLIN_QUERY_SIZE', 100):
         _mock_gremlin.reset_mock()
         result = sa.get_package_details_with_vulnerabilities(packages)
@@ -232,6 +233,7 @@ def test_get_unknown_packages(_mock_package_details):
     assert len(unknown_deps) == 1
     assert unknown_deps[0] == six
 
+
 @mock.patch('src.v2.stack_aggregator.get_package_details_with_vulnerabilities')
 def test_get_denormalized_package_details(_mock_package_details):
     """Test get_denormalized_package_details."""
@@ -303,6 +305,7 @@ def test_initiate_unknown_package_ingestion_one_unknown(_mock_analysis):
                                    unknown_dependencies=unknown_dependencies)
     sa.initiate_unknown_package_ingestion(output)
     _mock_analysis.assert_called_once()
+
 
 @mock.patch('src.v2.stack_aggregator.aggregate_stack_data')
 @mock.patch('src.v2.stack_aggregator.get_package_details_from_graph')

@@ -5,6 +5,7 @@ import pytest
 from pydantic import ValidationError
 from src.v2.models import Ecosystem, Package, StackAggregatorRequest
 
+
 def test_pkg_basic():
     """Test basic package properties."""
     pkg = Package(name='flask', version='0.12')
@@ -12,12 +13,14 @@ def test_pkg_basic():
     assert pkg.name == 'flask'
     assert pkg.version == '0.12'
 
+
 def test_pkg_equvality():
     """Test package equvality."""
     pkg_0 = Package(name='flask', version='0.12')
     pkg_1 = Package(name='flask', version='0.12')
 
     assert pkg_0 == pkg_1
+
 
 def test_pkg_non_equvality():
     """Test not equvality."""
@@ -30,6 +33,7 @@ def test_pkg_non_equvality():
     pkg_1 = Package(name='django', version='0.12')
 
     assert pkg_0 != pkg_1
+
 
 def test_pkg_hashing():
     """Test hashing functionality of Package."""
@@ -47,6 +51,7 @@ def test_pkg_hashing():
     assert pkg_3 in set_of_pkgs
     assert pkg_4 in set_of_pkgs
     assert Package(name='bar', version='0.0') not in set_of_pkgs
+
 
 def test_ecosystem_case_insensitivity():
     request = StackAggregatorRequest(external_request_id='foo',

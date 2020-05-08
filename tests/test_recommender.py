@@ -56,7 +56,7 @@ class TestRecommendationTask(TestCase):
                 'PGM_SERVICE_HOST': 'pgm',
                 'PGM_SERVICE_PORT': '6006',
                 'HPF_SERVICE_HOST': 'hpf-insights',
-            }):
+             }):
             # Test whether the correct service is called for NPM.
             called_url_json = RecommendationTask.call_insights_recommender([{"ecosystem": "npm"}])
             self.assertTrue('npm-insights' in called_url_json['url'])
