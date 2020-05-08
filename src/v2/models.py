@@ -235,7 +235,7 @@ class StackAggregatorRequest(BaseModel):  # noqa: D101
     packages: List['Package']
 
     @validator('ecosystem', pre=True)
-    def _normalize_ecosystem(cls, ecosystem):
+    def _normalize_ecosystem(ecosystem):
         return ecosystem.lower()
 
 
