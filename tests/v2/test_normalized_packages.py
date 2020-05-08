@@ -33,7 +33,7 @@ def test_normalized_packages_basic_direct():
 
 
 def test_normalized_packages_basic_transitive():
-    """Test NormalizedPackages with transitives dependency"""
+    """Test NormalizedPackages with transitives dependency."""
     flask = Package(name='flask', version='0.12')
     six = Package(name='six', version='1.2.3')
     foo = Package(**{

@@ -46,7 +46,8 @@ def mocked_requests_get(*args, **_kwargs):
 
 
 class TestRecommendationTask(TestCase):
-    """Tests for the recommendation task class."""
+    """Test for the recommendation task class."""
+
     @mock.patch('requests.get', side_effect=mocked_requests_get)
     @mock.patch('requests.Session.post', side_effect=mocked_requests_get)
     def test_call_insights_recommender_npm(self, _mock_get, _mock_post):

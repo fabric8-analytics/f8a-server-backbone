@@ -12,10 +12,10 @@ from src.v2.normalized_packages import NormalizedPackages
 
 # ref: https://stackoverflow.com/a/29525603/1942688
 # ref: https://docs.python.org/dev/library/unittest.mock-examples.html#coping-with-mutable-arguments
-class ModifiedMagicMock(mock.MagicMock):
+class _ModifiedMagicMock(mock.MagicMock):
     def _mock_call(_mock_self, *args, **kwargs):
-        return super(ModifiedMagicMock, _mock_self)._mock_call(*copy.deepcopy(args),
-                                                               **copy.deepcopy(kwargs))
+        return super(_ModifiedMagicMock, _mock_self)._mock_call(*copy.deepcopy(args),
+                                                                **copy.deepcopy(kwargs))
 
 
 @mock.patch('src.v2.stack_aggregator.get_recommended_version')
@@ -79,13 +79,13 @@ def test_get_recommended_version_empty_gremlin(_mock_gremlin):
 
 
 def test_is_private_vulnerability():
-    """Test is_private_vulnerability"""
+    """Test is_private_vulnerability."""
     assert sa.is_private_vulnerability({'snyk_pvt_vulnerability': [True]})
     assert not sa.is_private_vulnerability({'snyk_pvt_vulnerability': [False]})
     assert not sa.is_private_vulnerability({})
 
 
-@mock.patch('src.v2.stack_aggregator.post_gremlin', new_callable=ModifiedMagicMock)
+@mock.patch('src.v2.stack_aggregator.post_gremlin', new_callable=_ModifiedMagicMock)
 def test_get_package_details_with_vulnerabilities(_mock_gremlin):
     """Test post_gremlin call according to batch size."""
     # empty
@@ -207,7 +207,7 @@ def test_process_request_with_2_public_vulns(_mock_package_details):
 
 @mock.patch('src.v2.stack_aggregator.get_package_details_with_vulnerabilities')
 def test_get_unknown_packages(_mock_package_details):
-    """Test unknown_dependencies"""
+    """Test unknown_dependencies."""
     with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as response:
         _mock_package_details.return_value = json.load(response)['result']['data']
 
@@ -310,7 +310,7 @@ def test_initiate_unknown_package_ingestion_one_unknown(_mock_analysis):
 @mock.patch('src.v2.stack_aggregator.aggregate_stack_data')
 @mock.patch('src.v2.stack_aggregator.get_package_details_from_graph')
 def test_sa_process_request(_mock_get_package_details, _mock_aggregate):
-    """ Test StackAggregator.process_request."""
+    """Test StackAggregator.process_request."""
     sa.StackAggregator.process_request({
         'ecosystem': 'pypi',
         'external_request_id': 'xyz',
@@ -335,7 +335,7 @@ def test_sa_process_request(_mock_get_package_details, _mock_aggregate):
 @mock.patch('src.v2.stack_aggregator.persist_data_in_db')
 @mock.patch('src.v2.stack_aggregator.StackAggregator.process_request')
 def test_sa_execute(_mock_process_request, _mock_persist, _mock_unknown):
-    """ Test StackAggregator.execute."""
+    """Test StackAggregator.execute."""
     _mock_process_request.return_value = StackAggregatorResult()
     sa.StackAggregator.execute({})
     _mock_persist.called_once()

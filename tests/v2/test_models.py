@@ -54,6 +54,7 @@ def test_pkg_hashing():
 
 
 def test_ecosystem_case_insensitivity():
+    """Test ecosystem case insensitivity."""
     request = StackAggregatorRequest(external_request_id='foo',
                                      ecosystem='PyPI',
                                      manifest_file='requests.txt',

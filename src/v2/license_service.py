@@ -1,4 +1,4 @@
-""" Abstracts license service related functionalities """
+"""Abstracts license service related functionalities."""
 
 import logging
 

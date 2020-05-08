@@ -42,7 +42,7 @@ class NormalizedPackages:
 
     @property
     def dependency_graph(self) -> Dict[Package, Set[Package]]:
-        """Package with it's transtive without duplicates."""
+        """Return Package with it's transtive without duplicates."""
         return self._dependency_graph
 
     @property

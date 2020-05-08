@@ -25,15 +25,15 @@ from sqlalchemy.orm import sessionmaker
 
 
 class DatabaseException(Exception):
-    """Exception related to RDBS operation failures"""
+    """Exception related to RDBS operation failures."""
 
 
 class GremlinExeception(Exception):
-    """Exception related to Gremlin server failures"""
+    """Exception related to Gremlin server failures."""
 
 
 class RequestException(Exception):
-    """Exception related to request http library failures"""
+    """Exception related to request http library failures."""
 
 
 logger = logging.getLogger(__file__)
@@ -324,7 +324,7 @@ def persist_data_in_db(external_request_id, task_result, worker, started_at=None
 
 
 def post_http_request(url, payload):
-    """Post the given payload to url"""
+    """Post the given payload to url."""
     try:
         response = get_session_retry().post(url=url, json=payload)
         if response.status_code == 200:
@@ -341,6 +341,7 @@ def post_http_request(url, payload):
 
 
 def post_gremlin(query: str, bindings: Dict = None) -> Dict:
+    """Post the given query and bindings to gremlin endpoint."""
     try:
         payload = {
             'gremlin': query,

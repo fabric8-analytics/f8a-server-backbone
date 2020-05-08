@@ -222,7 +222,7 @@ def aggregate_stack_data(request, packages,
 
 
 def _get_packages_in_batch(dependencies: Tuple[Package], size) -> Tuple[Package]:
-    """Takes Package Tuple and slices it according to size."""
+    """Take Package Tuple and slices it according to size."""
     for i in range(0, len(dependencies), size):
         yield dependencies[i:i + size]
 
@@ -317,7 +317,7 @@ def get_package_details_from_graph(packages: NormalizedPackages) -> Dict[Package
 
 
 def initiate_unknown_package_ingestion(output: StackAggregatorResult):
-    """Ingestion of Unknown dependencies"""
+    """Ingestion of Unknown dependencies."""
     try:
         for dep in output.unknown_dependencies:
             server_create_analysis(output.ecosystem, dep.name, dep.version, api_flow=True,
