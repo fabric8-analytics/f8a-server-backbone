@@ -68,9 +68,7 @@ def test_normalized_packages_basic_transitive():
     assert flask not in normalized.dependency_graph[flask]
 
 
-def test_normalized_packages_with_duplicates():
-    """Test NormalizedPackages with duplicates."""
-    flask = Package(name='flask', version='0.12')
+def _get_normalized_packages():
     six = Package(name='six', version='1.2')
     pip = Package(name='pip', version='20.1')
     foo = Package(**{
@@ -95,7 +93,14 @@ def test_normalized_packages_with_duplicates():
         'version': '0.12',
         'dependencies': [Package(**six.dict()), Package(**pip.dict())]
     })
-    normalized = NormalizedPackages([foo, bar], 'pypi')
+    return NormalizedPackages([foo, bar], 'pypi')
+
+
+def test_normalized_packages_with_duplicates():
+    """Test NormalizedPackages with duplicates."""
+    flask = Package(name='flask', version='0.12')
+    six = Package(name='six', version='1.2')
+    normalized = _get_normalized_packages()
     assert normalized.ecosystem == 'pypi'
     assert normalized is not None
     assert normalized.direct_dependencies is not None
@@ -112,7 +117,22 @@ def test_normalized_packages_with_duplicates():
     assert flask in normalized.all_dependencies
     assert six in normalized.all_dependencies
 
-    # dependency graph test
+
+def test_normalized_packages_dependency_graph():
+    """Test NormalizedPackages dependency_graph."""
+    flask = Package(name='flask', version='0.12')
+    six = Package(name='six', version='1.2')
+    pip = Package(name='pip', version='20.1')
+    foo = Package(**{
+        'name': 'flask',
+        'version': '0.12',
+    })
+    bar = Package(**{
+        'name': 'bar',
+        'version': '0.12',
+        'dependencies': [Package(**six.dict()), Package(**pip.dict())]
+    })
+    normalized = _get_normalized_packages()
     assert foo in normalized.dependency_graph
     assert bar in normalized.dependency_graph
     assert flask in normalized.dependency_graph

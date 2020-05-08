@@ -85,17 +85,7 @@ def test_is_private_vulnerability():
     assert not sa.is_private_vulnerability({})
 
 
-@mock.patch('src.v2.stack_aggregator.post_gremlin', new_callable=_ModifiedMagicMock)
-def test_get_package_details_with_vulnerabilities(_mock_gremlin):
-    """Test post_gremlin call according to batch size."""
-    # empty
-    _mock_gremlin.return_value = None
-    packages = NormalizedPackages([], 'pypi')
-    result = sa.get_package_details_with_vulnerabilities(packages)
-    assert result is not None
-    assert isinstance(result, list)
-    _mock_gremlin.assert_not_called()
-
+def _get_normalized_packages():
     six = Package(name='six', version='1.2')
     pip = Package(name='pip', version='20.1')
     flask = Package(**{
@@ -112,12 +102,29 @@ def test_get_package_details_with_vulnerabilities(_mock_gremlin):
         'version': '0.12',
         'dependencies': [flask, six, pip]
     })
-    packages = NormalizedPackages([flask, bar], 'pypi')
+    return NormalizedPackages([flask, bar], 'pypi')
 
+
+@mock.patch('src.v2.stack_aggregator.post_gremlin', new_callable=_ModifiedMagicMock)
+def test_get_package_details_with_vulnerabilities(_mock_gremlin):
+    """Test post_gremlin call according to batch size."""
+    # empty
+    _mock_gremlin.return_value = None
+    packages = NormalizedPackages([], 'pypi')
+    result = sa.get_package_details_with_vulnerabilities(packages)
+    assert result is not None
+    assert isinstance(result, list)
+    _mock_gremlin.assert_not_called()
+
+
+@mock.patch('src.v2.stack_aggregator.post_gremlin', new_callable=_ModifiedMagicMock)
+def test_get_package_details_with_vulnerabilities_big_query_batch(_mock_gremlin):
+    """Test post_gremlin call according to batch size."""
+    packages = _get_normalized_packages()
     _mock_gremlin.return_value = None
     with mock.patch('src.v2.stack_aggregator.GREMLIN_QUERY_SIZE', 100):
         _mock_gremlin.reset_mock()
-        result = sa.get_package_details_with_vulnerabilities(packages)
+        sa.get_package_details_with_vulnerabilities(packages)
         assert _mock_gremlin.call_count == 1
         for call in _mock_gremlin.call_args_list:
             args, kwargs = call
@@ -126,9 +133,15 @@ def test_get_package_details_with_vulnerabilities(_mock_gremlin):
             assert isinstance(args[1], dict)
             assert len(args[1]['packages']) == 5
 
+
+@mock.patch('src.v2.stack_aggregator.post_gremlin', new_callable=_ModifiedMagicMock)
+def test_get_package_details_with_vulnerabilities_batch_size_min(_mock_gremlin):
+    """Test post_gremlin call according to batch size."""
+    packages = _get_normalized_packages()
+    _mock_gremlin.return_value = None
     with mock.patch('src.v2.stack_aggregator.GREMLIN_QUERY_SIZE', 1):
         _mock_gremlin.reset_mock()
-        result = sa.get_package_details_with_vulnerabilities(packages)
+        sa.get_package_details_with_vulnerabilities(packages)
         assert _mock_gremlin.call_count == 5
         for call in _mock_gremlin.call_args_list:
             args, kwargs = call
@@ -137,10 +150,15 @@ def test_get_package_details_with_vulnerabilities(_mock_gremlin):
             assert isinstance(args[1], dict)
             assert len(args[1]['packages']) == 1
 
+
+@mock.patch('src.v2.stack_aggregator.post_gremlin', new_callable=_ModifiedMagicMock)
+def test_get_package_details_with_vulnerabilities_batch_size_2(_mock_gremlin):
+    """Test post_gremlin call according to batch size."""
+    packages = _get_normalized_packages()
     _mock_gremlin.return_value = None
     with mock.patch('src.v2.stack_aggregator.GREMLIN_QUERY_SIZE', 2):
         _mock_gremlin.reset_mock()
-        result = sa.get_package_details_with_vulnerabilities(packages)
+        sa.get_package_details_with_vulnerabilities(packages)
         assert _mock_gremlin.call_count == 3
         for i, call in enumerate(_mock_gremlin.call_args_list, 1):
             args, kwargs = call
@@ -152,9 +170,14 @@ def test_get_package_details_with_vulnerabilities(_mock_gremlin):
             else:
                 assert len(args[1]['packages']) == 2
 
+
+@mock.patch('src.v2.stack_aggregator.post_gremlin', new_callable=_ModifiedMagicMock)
+def test_get_package_details_with_vulnerabilities_batch_size_3(_mock_gremlin):
+    """Test post_gremlin call according to batch size."""
+    packages = _get_normalized_packages()
     with mock.patch('src.v2.stack_aggregator.GREMLIN_QUERY_SIZE', 3):
         _mock_gremlin.reset_mock()
-        result = sa.get_package_details_with_vulnerabilities(packages)
+        sa.get_package_details_with_vulnerabilities(packages)
         assert _mock_gremlin.call_count == 2
         for i, call in enumerate(_mock_gremlin.call_args_list, 1):
             args, kwargs = call
