@@ -1,5 +1,4 @@
 """Tests for the REST API of the backbone service."""
-import os
 import json
 from unittest import mock
 

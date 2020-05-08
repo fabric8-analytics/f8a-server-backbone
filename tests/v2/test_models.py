@@ -3,7 +3,7 @@
 import pytest
 
 from pydantic import ValidationError
-from src.v2.models import Ecosystem, Package, StackAggregatorRequest
+from src.v2.models import Package, StackAggregatorRequest
 
 
 def test_pkg_basic():

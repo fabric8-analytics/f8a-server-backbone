@@ -246,7 +246,7 @@ def test_post_gremlin_exception(_mock_post):
 @mock.patch('requests.Session.post', side_effect=mock_get_osio_user_count)
 def test_post_gremlin_normal(_mock_post):
     """Test error response for gremlin."""
-    response = post_gremlin(query='gremlin_query', bindings={'val': 123})
+    post_gremlin(query='gremlin_query', bindings={'val': 123})
     _mock_post.assert_called_once()
     kwargs = _mock_post.call_args_list[0][1]['json']
     assert kwargs['gremlin'] == 'gremlin_query'

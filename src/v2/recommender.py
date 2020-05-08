@@ -15,11 +15,8 @@ import logging
 from src.utils import (create_package_dict, get_session_retry, select_latest_version,
                        LICENSE_SCORING_URL_REST, convert_version_to_proper_semantic,
                        get_response_data, version_info_tuple, persist_data_in_db,
-                       is_quickstart_majority, post_http_request, post_gremlin)
-from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails,
-                           BasicVulnerabilityFields, PackageDetailsForFreeTier,
-                           Package, LicenseAnalysis, Audit,
-                           StackAggregatorResultForFreeTier)
+                       is_quickstart_majority, post_gremlin)
+from src.v2.models import RecommenderRequest
 from src.v2.stack_aggregator import extract_user_stack_package_licenses
 from src.v2.normalized_packages import NormalizedPackages
 
@@ -364,7 +361,7 @@ class RecommendationTask:
     def execute(self, arguments=None, persist=True, check_license=False):
         """Execute task."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
-        request = StackAggregatorRequest(**arguments)
+        request = RecommenderRequest(**arguments)
         external_request_id = request.external_request_id
 
         recommendations = []

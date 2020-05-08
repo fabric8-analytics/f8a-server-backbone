@@ -84,7 +84,7 @@ def recommender(version):
     try:
         metrics_payload['value'] = get_time_delta(audit_data=r['result']['_audit'])
         push_data(metrics_payload)
-    except KeyError as e:
+    except KeyError:
         pass
 
     return flask.jsonify(r), metrics_payload['status_code']
@@ -131,7 +131,7 @@ def stack_aggregator(version):
             metrics_payload['value'] = get_time_delta(audit_data=s['result']['_audit'])
             metrics_payload['endpoint'] = request.endpoint
             push_data(metrics_payload)
-        except KeyError as e:
+        except KeyError:
             pass
 
     return flask.jsonify(s)
