@@ -6,7 +6,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 from src.v2.normalized_packages import NormalizedPackages
-from src.v2.recommender import RecommendationTask, GraphDB, License, set_valid_cooccurrence_probability
+from src.v2.recommender import (RecommendationTask, GraphDB, License,
+                                set_valid_cooccurrence_probability)
 from src.v2.models import RecommenderRequest
 
 with open("tests/data/graph_response.json", "r") as f:
@@ -57,7 +58,7 @@ class TestRecommendationTask(TestCase):
                 'PGM_SERVICE_HOST': 'pgm',
                 'PGM_SERVICE_PORT': '6006',
                 'HPF_SERVICE_HOST': 'hpf-insights',
-            }):
+             }):
             # Test whether the correct service is called for NPM.
             called_url_json = RecommendationTask.call_insights_recommender([{"ecosystem": "npm"}])
             self.assertTrue('npm-insights' in called_url_json['url'])
@@ -165,7 +166,6 @@ def test_execute_empty_resolved(_mock_call_insights, _mock_db):
 
     assert out['recommendation'] == "success"
     assert not out["result"]["recommendations"][0]["companion"]
-    assert not out["result"]["recommendations"][0]["alternate"]
     assert not out["result"]["recommendations"][0]["usage_outliers"]
 
     r = RecommendationTask()
@@ -232,27 +232,11 @@ def test_get_version_information(_mock1):
 
 def test_get_topics():
     """Test the function get topics."""
-    alt_list = GraphDB.get_topics_for_alt(graph_resp['result']['data'],
-                                          insights_resp[0]['alternate_packages'])
     comp_list = GraphDB.get_topics_for_comp(graph_resp['result']['data'],
                                             insights_resp[0]['companion_packages'])
 
-    assert alt_list is not None
-    assert isinstance(alt_list, list)
-
     assert comp_list is not None
     assert isinstance(comp_list, list)
-
-
-def test_get_topmost_alternate():
-    """Test the function get topmost alternate recommendation."""
-    input_stack = {"io.vertx:vertx-core": "3.4.1"}
-    alternate_packages, final_dict = GraphDB.get_topmost_alternate(insights_resp[0], input_stack)
-
-    assert alternate_packages is not None
-    assert isinstance(alternate_packages, list)
-    assert final_dict is not None
-    assert isinstance(final_dict, dict)
 
 
 @mock.patch('src.v2.recommender.extract_user_stack_package_licenses', return_value=[])
@@ -262,15 +246,12 @@ def test_perform_license_analysis(_mock1, _mock2):
     with open("tests/v2/data/license_analysis.json", "r") as f:
         payload = json.load(f)
     request = RecommenderRequest(**payload)
-    alt_graph, comp_graph = License.perform_license_analysis(
+    comp_graph = License.perform_license_analysis(
         packages=NormalizedPackages(request.packages, 'maven'),
-        filtered_alt_packages_graph=payload['filtered_alt_packages_graph'],
         filtered_comp_packages_graph=payload['filtered_comp_packages_graph'],
-        filtered_alternate_packages=payload['filtered_alternate_packages'],
         filtered_companion_packages=payload['filtered_companion_packages'],
         external_request_id=payload['external_request_id'])
 
-    assert alt_graph is not None
     assert comp_graph is not None
 
 
@@ -281,7 +262,7 @@ def test_apply_license_filter(_mock1):
     with open('tests/data/epv_list.json', 'r') as f:
         resp = json.load(f)
 
-    out = License.apply_license_filter(None, resp, resp)
+    out = License.apply_license_filter(None, resp)
     assert isinstance(out, dict)
 
 
@@ -301,6 +282,5 @@ if __name__ == '__main__':
     test_get_version_information()
     test_apply_license_filter()
     test_perform_license_analysis()
-    test_get_topmost_alternate()
     test_get_topics()
     test_prepare_final_filtered_list()
