@@ -77,16 +77,16 @@ def api_route_for(route):
 
 
 def test_readiness_endpoint(client):
-    """Test the /api/v1/readiness endpoint."""
-    response = client.get(api_route_for("readiness"))
+    """Test the /api/readiness endpoint."""
+    response = client.get("/api/readiness")
     assert response.status_code == 200
     json_data = get_json_from_response(response)
     assert json_data == {}, "Empty JSON response expected"
 
 
 def test_liveness_endpoint(client):
-    """Test the /api/v1/liveness endpoint."""
-    response = client.get(api_route_for("liveness"))
+    """Test the /api/liveness endpoint."""
+    response = client.get("/api/liveness")
     assert response.status_code == 200
     json_data = get_json_from_response(response)
     assert json_data == {}, "Empty JSON response expected"

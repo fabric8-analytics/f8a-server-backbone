@@ -112,16 +112,16 @@ objects:
             timeoutSeconds: 30
             failureThreshold: 3
             successThreshold: 1
-            tcpSocket:
-              port: ${{API_BACKBONE_SERVICE_PORT}}
+            httpGet:
+              path: /liveness
           readinessProbe:
-            tcpSocket:
-              port: ${{API_BACKBONE_SERVICE_PORT}}
-            failureThreshold: 3
-            successThreshold: 1
             initialDelaySeconds: 20
             periodSeconds: 60
             timeoutSeconds: 30
+            failureThreshold: 3
+            successThreshold: 1
+            httpGet:
+              path: /readiness
           resources:
             requests:
               cpu: ${CPU_REQUEST}

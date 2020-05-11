@@ -38,21 +38,19 @@ sentry = Sentry(app, dsn=SENTRY_DSN, logging=True, level=logging.ERROR)
 init_selinon()
 
 
-@app.route('/api/v1/readiness')
+@app.route('/api/readiness')
 def readiness():
-    """Handle GET requests that are sent to /api/v1/readiness REST API endpoint."""
+    """Handle GET requests that are sent to /api/readiness REST API endpoint."""
     return flask.jsonify({}), 200
 
 
-@app.route('/api/v1/liveness')
+@app.route('/api/liveness')
 def liveness():
-    """Handle GET requests that are sent to /api/v1/liveness REST API endpoint."""
+    """Handle GET requests that are sent to /api/liveness REST API endpoint."""
     return flask.jsonify({}), 200
 
 
-@app.route('/api/<version>/recommender', methods=['POST'])
-def recommender(version):
-    """Handle POST requests that are sent to /api/v1/recommender REST API endpoint."""
+def _recommender(handler):
     r = {'recommendation': 'failure', 'external_request_id': None}
     metrics_payload = {
         'pid': os.getpid(),
@@ -69,9 +67,8 @@ def recommender(version):
         try:
             check_license = request.args.get('check_license', 'false') == 'true'
             persist = request.args.get('persist', 'true') == 'true'
-            RecommendationTask = RecommendationTaskV1 if version == 'v1' else RecommendationTaskV2
-            r = RecommendationTask().execute(input_json, persist=persist,
-                                             check_license=check_license)
+            r = handler.execute(input_json, persist=persist,
+                                check_license=check_license)
         except Exception as e:
             r = {
                 'recommendation': 'unexpected error',
@@ -79,7 +76,6 @@ def recommender(version):
                 'message': '%s' % e
             }
             metrics_payload['status_code'] = 400
-            raise e
 
     try:
         metrics_payload['value'] = get_time_delta(audit_data=r['result']['_audit'])
@@ -90,9 +86,8 @@ def recommender(version):
     return flask.jsonify(r), metrics_payload['status_code']
 
 
-@app.route('/api/<version>/stack_aggregator', methods=['POST'])
-def stack_aggregator(version):
-    """Handle POST requests that are sent to /api/v1/stack_aggregator REST API endpoint."""
+def _stack_aggregator(handler):
+    assert handler
     s = {'stack_aggregator': 'failure', 'external_request_id': None}
     input_json = request.get_json()
     metrics_payload = {
@@ -108,8 +103,7 @@ def stack_aggregator(version):
 
         try:
             persist = request.args.get('persist', 'true') == 'true'
-            StackAggregator = StackAggregatorV1 if version == 'v1' else StackAggregatorV2
-            s = StackAggregator().execute(input_json, persist=persist)
+            s = handler.execute(input_json, persist=persist)
             if s is not None and s.get('result') and s.get('result').get('_audit'):
                 # Creating and Pushing Total Metrics Data to Accumulator
                 metrics_payload['value'] = total_time_elapsed(
@@ -124,7 +118,6 @@ def stack_aggregator(version):
                 'message': '%s' % e
             }
             metrics_payload['status_code'] = 400
-            raise e
 
         try:
             # Pushing Individual Metrics Data to Accumulator
@@ -135,6 +128,30 @@ def stack_aggregator(version):
             pass
 
     return flask.jsonify(s)
+
+
+@app.route('/api/v1/recommender', methods=['POST'])
+def recommender_v1():
+    """Handle POST requests that are sent to /api/v1/recommender REST API endpoint."""
+    return _recommender(RecommendationTaskV1())
+
+
+@app.route('/api/v1/stack_aggregator', methods=['POST'])
+def stack_aggregator_v1():
+    """Handle POST requests that are sent to /api/v1/stack_aggregator REST API endpoint."""
+    return _stack_aggregator(StackAggregatorV1())
+
+
+@app.route('/api/v2/recommender', methods=['POST'])
+def recommender_v2():
+    """Handle POST requests that are sent to /api/v2/recommender REST API endpoint."""
+    return _recommender(RecommendationTaskV2())
+
+
+@app.route('/api/v2/stack_aggregator', methods=['POST'])
+def stack_aggregator_v2():
+    """Handle POST requests that are sent to /api/v2/stack_aggregator REST API endpoint."""
+    return _stack_aggregator(StackAggregatorV2())
 
 
 if __name__ == "__main__":
