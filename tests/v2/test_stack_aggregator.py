@@ -49,7 +49,7 @@ def test_with_2_public_vuln(_mock_license, _mock_gremlin):
 
     resp = StackAggregator().execute(_request_body(), persist=False)
     _mock_license.assert_called_once()
-    _mock_gremlin.assert_called_once()
+    _mock_gremlin.assert_called()
     assert resp['aggregation'] == 'success'
     assert resp['result'] is not None
     result = resp['result']
@@ -94,7 +94,7 @@ def test_with_1_public_1_pvt_vuln(_mock_license, _mock_gremlin):
 
     resp = StackAggregator().execute(_request_body(), persist=False)
     _mock_license.assert_called_once()
-    _mock_gremlin.assert_called_once()
+    _mock_gremlin.assert_called()
     assert resp['aggregation'] == 'success'
     assert resp['result'] is not None
     result = resp['result']
@@ -135,7 +135,7 @@ def test_with_2_public_vuln_for_registered(_mock_license, _mock_gremlin):
     payload['registration_status'] = 'registered'
     resp = StackAggregator().execute(payload, persist=False)
     _mock_license.assert_called_once()
-    _mock_gremlin.assert_called_once()
+    _mock_gremlin.assert_called()
     assert resp['aggregation'] == 'success'
     assert resp['result'] is not None
     result = resp['result']
@@ -178,7 +178,7 @@ def test_unknown_flow(_mock_license, _mock_gremlin, _mock_unknown):
     payload['packages'].append(_SIX.dict())
     resp = StackAggregator().execute(payload, persist=False)
     _mock_license.assert_called_once()
-    _mock_gremlin.assert_called_once()
+    _mock_gremlin.assert_called()
     _mock_unknown.assert_called_once()
     assert resp['aggregation'] == 'success'
     assert resp['result'] is not None
@@ -209,7 +209,7 @@ def test_db_store(_mock_license, _mock_gremlin, _mock_store):
     payload = _request_body()
     resp = StackAggregator().execute(payload, persist=True)
     _mock_license.assert_called_once()
-    _mock_gremlin.assert_called_once()
+    _mock_gremlin.assert_called()
     _mock_store.assert_called_once()
     assert resp['aggregation'] == 'success'
     assert resp['result'] is not None
@@ -237,7 +237,7 @@ def test_get_recommended_version_fallback_empty(_mock_license, _mock_gremlin):
     resp = StackAggregator().execute(_request_body(), persist=False)
     _mock_license.assert_called_once()
     # fallback call to get latest_non_cve_version
-    assert _mock_gremlin.call_count > 1
+    _mock_gremlin.assert_called()
     assert resp['aggregation'] == 'success'
     # check analyzed_dependencies
     result = resp['result']
@@ -254,7 +254,7 @@ def test_get_recommended_version_fallback_result_none(_mock_license, _mock_greml
     resp = StackAggregator().execute(_request_body(), persist=False)
     _mock_license.assert_called_once()
     # fallback call to get latest_non_cve_version
-    assert _mock_gremlin.call_count > 1
+    _mock_gremlin.assert_called()
     assert resp['aggregation'] == 'success'
     # check analyzed_dependencies
     result = resp['result']
@@ -271,7 +271,7 @@ def test_get_recommended_version_fallback_result_valid_latest(_mock_license, _mo
     resp = StackAggregator().execute(_request_body(), persist=False)
     _mock_license.assert_called_once()
     # fallback call to get latest_non_cve_version
-    assert _mock_gremlin.call_count > 1
+    _mock_gremlin.assert_called()
     assert resp['aggregation'] == 'success'
     # check analyzed_dependencies
     result = resp['result']
@@ -289,7 +289,7 @@ def test_get_recommended_version_fallback_result_multiple_latest(_mock_license, 
     resp = StackAggregator().execute(_request_body(), persist=False)
     _mock_license.assert_called_once()
     # fallback call to get latest_non_cve_version
-    assert _mock_gremlin.call_count > 1
+    _mock_gremlin.assert_called()
     assert resp['aggregation'] == 'success'
     # check analyzed_dependencies
     result = resp['result']
@@ -306,7 +306,7 @@ def test_get_recommended_version_fallback_result_affected_as_latest(_mock_licens
     resp = StackAggregator().execute(_request_body(), persist=False)
     _mock_license.assert_called_once()
     # fallback call to get latest_non_cve_version
-    assert _mock_gremlin.call_count > 1
+    _mock_gremlin.assert_called()
     assert resp['aggregation'] == 'success'
     # check analyzed_dependencies
     result = resp['result']
