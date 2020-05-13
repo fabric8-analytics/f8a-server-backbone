@@ -11,6 +11,7 @@ import logging
 
 from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple, Union
+from src.settings import Settings
 from src.utils import (select_latest_version, server_create_analysis,
                        persist_data_in_db, post_gremlin, GREMLIN_QUERY_SIZE,
                        format_date)
@@ -166,6 +167,13 @@ def _has_vulnerability(pkg: PackageDetails) -> bool:
     return pkg and (pkg.public_vulnerabilities or pkg.private_vulnerabilities)
 
 
+# (fixme) link to snyk package should be identified during ingestion.
+def _get_snyk_package_link(ecosystem, package):
+    ecosystem = Settings().snyk_ecosystem_map.get(ecosystem, ecosystem)
+    return Settings().snyk_package_url_format.format(ecosystem=ecosystem,
+                                                     package=package)
+
+
 def initiate_unknown_package_ingestion(output: StackAggregatorResult):
     """Ingestion of Unknown dependencies."""
     try:
@@ -237,9 +245,8 @@ class Aggregator(ABC):
                                                 latest_version=latest_version,
                                                 github=github_details, licenses=licenses,
                                                 # (fixme) this is incorrect
-                                                url=(
-                                                    'http://snyk.io/{eco}:{pkg}'
-                                                    .format(eco=ecosystem, pkg=pkg.name)),
+                                                url=_get_snyk_package_link(ecosystem,
+                                                                           pkg.name),
                                                 private_vulnerabilities=private_vulns,
                                                 public_vulnerabilities=public_vulns,
                                                 recommended_version=recommended_latest_version)
@@ -375,7 +382,7 @@ class Freetier(Aggregator):
     def create_result(self, **kwargs) -> StackAggregatorResultForFreeTier:
         """Get StackAggregatorResultForFreeTier."""
         return StackAggregatorResultForFreeTier(**kwargs,
-                                                registration_link="https://snyk.io/login")
+                                                registration_link=Settings().snyk_signin_url)
 
 
 class Registered(Aggregator):

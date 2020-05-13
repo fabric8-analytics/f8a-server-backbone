@@ -42,11 +42,13 @@ def _request_body():
 
 @mock.patch('src.v2.stack_aggregator.post_gremlin')
 @mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
-def test_with_2_public_vuln(_mock_license, _mock_gremlin):
+def test_with_2_public_vuln(_mock_license, _mock_gremlin, monkeypatch):
     """Test basic request and response."""
     with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
         _mock_gremlin.return_value = json.load(fin)
 
+    monkeypatch.setenv('SNYK_PACKAGE_URL_FORMAT', 'https://abc.io/vuln/{ecosystem}:{package}')
+    monkeypatch.setenv('SNYK_SIGNIN_URL', 'https://abc.io/login')
     resp = StackAggregator().execute(_request_body(), persist=False)
     _mock_license.assert_called_once()
     _mock_gremlin.assert_called()
@@ -61,7 +63,7 @@ def test_with_2_public_vuln(_mock_license, _mock_gremlin):
 
     # check analyzed_dependencies
     result = StackAggregatorResultForFreeTier(**result)
-    assert 'registration_link' in result.dict()
+    assert result.registration_link == 'https://abc.io/login'
     assert len(result.analyzed_dependencies) == 2
     assert _FLASK in result.analyzed_dependencies
     assert _DJANGO in result.analyzed_dependencies
@@ -69,6 +71,7 @@ def test_with_2_public_vuln(_mock_license, _mock_gremlin):
 
     # check vuln
     django_index = result.analyzed_dependencies.index(_DJANGO)
+    assert result.analyzed_dependencies[django_index].url == 'https://abc.io/vuln/pip:django'
     assert len(result.analyzed_dependencies[django_index].public_vulnerabilities) == 2
     assert len(result.analyzed_dependencies[django_index].private_vulnerabilities) == 0
     assert isinstance(result.analyzed_dependencies[django_index].public_vulnerabilities[0],
