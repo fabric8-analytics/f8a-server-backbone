@@ -3,11 +3,316 @@
 import copy
 import json
 from unittest import mock
+from functools import partial
 
 from src.v2 import stack_aggregator as sa
-from src.v2.models import (Package, PackageDetails, StackAggregatorRequest,
-                           StackAggregatorResult)
+from src.v2.stack_aggregator import StackAggregator
+from src.v2.models import (Package, BasicVulnerabilityFields,
+                           PremiumVulnerabilityFields,
+                           StackAggregatorResultForFreeTier,
+                           StackAggregatorResultForRegisteredUser)
 from src.v2.normalized_packages import NormalizedPackages
+
+
+_DJANGO = Package(name='django', version='1.2.1')
+_FLASK = Package(name='flask', version='0.12')
+_SIX = Package(name='six', version='3.2.1')
+
+
+def _request_body():
+    return {
+        "manifest_file": "requirements.txt",
+        "manifest_file_path": "/foo/bar",
+        "external_request_id": "test_id",
+        "ecosystem": "pypi",
+        "packages": [
+            {
+                "name": "flask",
+                "version": "0.12",
+                "dependencies": [
+                    {'name': 'django', 'version': '1.2.1'}
+                ]
+            }, {
+                "name": "django",
+                "version": "1.2.1"
+            }
+         ]
+    }
+
+
+@mock.patch('src.v2.stack_aggregator.post_gremlin')
+@mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
+def test_with_2_public_vuln(_mock_license, _mock_gremlin):
+    """Test basic request and response."""
+    with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
+        _mock_gremlin.return_value = json.load(fin)
+
+    resp = StackAggregator().execute(_request_body(), persist=False)
+    _mock_license.assert_called_once()
+    _mock_gremlin.assert_called_once()
+    assert resp['aggregation'] == 'success'
+    assert resp['result'] is not None
+    result = resp['result']
+    assert result['external_request_id'] == 'test_id'
+
+    # check _audit
+    assert result['_audit'] is not None
+    assert result['_audit']['version'] == 'v2'
+
+    # check analyzed_dependencies
+    result = StackAggregatorResultForFreeTier(**result)
+    assert 'registration_link' in result.dict()
+    assert len(result.analyzed_dependencies) == 2
+    assert _FLASK in result.analyzed_dependencies
+    assert _DJANGO in result.analyzed_dependencies
+    assert _SIX not in result.analyzed_dependencies
+
+    # check vuln
+    django_index = result.analyzed_dependencies.index(_DJANGO)
+    assert len(result.analyzed_dependencies[django_index].public_vulnerabilities) == 2
+    assert len(result.analyzed_dependencies[django_index].private_vulnerabilities) == 0
+    assert isinstance(result.analyzed_dependencies[django_index].public_vulnerabilities[0],
+                      BasicVulnerabilityFields)
+    flask_index = result.analyzed_dependencies.index(_FLASK)
+    assert len(result.analyzed_dependencies[flask_index].public_vulnerabilities) == 0
+    # check transitive vuln
+    assert len(result.analyzed_dependencies[flask_index].vulnerable_dependencies) == 1
+    assert _DJANGO in result.analyzed_dependencies[flask_index].vulnerable_dependencies
+    assert len(result.analyzed_dependencies[flask_index].
+               vulnerable_dependencies[0].public_vulnerabilities) == 2
+
+
+@mock.patch('src.v2.stack_aggregator.post_gremlin')
+@mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
+def test_with_1_public_1_pvt_vuln(_mock_license, _mock_gremlin):
+    """Test with 1 public and 1 private vulnerability."""
+    with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
+        resp = json.load(fin)
+        # make one vulnerability private
+        resp['result']['data'][0]['vuln'][1]['snyk_pvt_vulnerability'] = [True]
+        _mock_gremlin.return_value = resp
+
+    resp = StackAggregator().execute(_request_body(), persist=False)
+    _mock_license.assert_called_once()
+    _mock_gremlin.assert_called_once()
+    assert resp['aggregation'] == 'success'
+    assert resp['result'] is not None
+    result = resp['result']
+    assert result['external_request_id'] == 'test_id'
+
+    # check analyzed_dependencies
+    result = StackAggregatorResultForFreeTier(**result)
+    assert 'registration_link' in result.dict()
+    assert len(result.analyzed_dependencies) == 2
+    assert _FLASK in result.analyzed_dependencies
+    assert _DJANGO in result.analyzed_dependencies
+    assert _SIX not in result.analyzed_dependencies
+
+    # check vuln
+    django_index = result.analyzed_dependencies.index(_DJANGO)
+    assert len(result.analyzed_dependencies[django_index].public_vulnerabilities) == 1
+    assert len(result.analyzed_dependencies[django_index].private_vulnerabilities) == 1
+    assert isinstance(result.analyzed_dependencies[django_index].public_vulnerabilities[0],
+                      BasicVulnerabilityFields)
+    flask_index = result.analyzed_dependencies.index(_FLASK)
+    assert len(result.analyzed_dependencies[flask_index].public_vulnerabilities) == 0
+    assert len(result.analyzed_dependencies[flask_index].private_vulnerabilities) == 0
+    # check transitive vuln
+    assert len(result.analyzed_dependencies[flask_index].vulnerable_dependencies) == 1
+    assert _DJANGO in result.analyzed_dependencies[flask_index].vulnerable_dependencies
+    assert len(result.analyzed_dependencies[flask_index].
+               vulnerable_dependencies[0].public_vulnerabilities) == 1
+
+
+@mock.patch('src.v2.stack_aggregator.post_gremlin')
+@mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
+def test_with_2_public_vuln_for_registered(_mock_license, _mock_gremlin):
+    """Test basic request and response for registered user."""
+    with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
+        _mock_gremlin.return_value = json.load(fin)
+
+    payload = _request_body()
+    payload['registration_status'] = 'registered'
+    resp = StackAggregator().execute(payload, persist=False)
+    _mock_license.assert_called_once()
+    _mock_gremlin.assert_called_once()
+    assert resp['aggregation'] == 'success'
+    assert resp['result'] is not None
+    result = resp['result']
+    assert result['external_request_id'] == 'test_id'
+    assert result['_audit'] is not None
+    assert result['_audit']['version'] == 'v2'
+
+    # check analyzed_dependencies
+    result = StackAggregatorResultForRegisteredUser(**result)
+    assert 'registration_link' not in result.dict()
+    assert len(result.analyzed_dependencies) == 2
+    assert _FLASK in result.analyzed_dependencies
+    assert _DJANGO in result.analyzed_dependencies
+    assert _SIX not in result.analyzed_dependencies
+
+    # check vuln
+    django_index = result.analyzed_dependencies.index(_DJANGO)
+    assert len(result.analyzed_dependencies[django_index].public_vulnerabilities) == 2
+    assert isinstance(result.analyzed_dependencies[django_index].public_vulnerabilities[0],
+                      PremiumVulnerabilityFields)
+    flask_index = result.analyzed_dependencies.index(_FLASK)
+    assert len(result.analyzed_dependencies[flask_index].public_vulnerabilities) == 0
+    # check transitive vuln
+    assert len(result.analyzed_dependencies[flask_index].vulnerable_dependencies) == 1
+    assert _DJANGO in result.analyzed_dependencies[flask_index].vulnerable_dependencies
+    assert len(result.analyzed_dependencies[flask_index].
+               vulnerable_dependencies[0].public_vulnerabilities) == 2
+
+
+@mock.patch('src.v2.stack_aggregator.server_create_analysis')
+@mock.patch('src.v2.stack_aggregator.post_gremlin')
+@mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
+def test_unknown_flow(_mock_license, _mock_gremlin, _mock_unknown):
+    """Test unknown flow."""
+    with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
+        _mock_gremlin.return_value = json.load(fin)
+
+    payload = _request_body()
+    # add unknown package
+    payload['packages'].append(_SIX.dict())
+    resp = StackAggregator().execute(payload, persist=False)
+    _mock_license.assert_called_once()
+    _mock_gremlin.assert_called_once()
+    _mock_unknown.assert_called_once()
+    assert resp['aggregation'] == 'success'
+    assert resp['result'] is not None
+    result = resp['result']
+    assert result['external_request_id'] == 'test_id'
+
+    # check analyzed_dependencies
+    result = StackAggregatorResultForFreeTier(**result)
+    assert len(result.analyzed_dependencies) == 2
+    assert len(result.unknown_dependencies) == 1
+    assert _SIX in result.unknown_dependencies
+
+    _mock_unknown.reset_mock()
+    _mock_unknown.side_effect = Exception('mocked exception')
+    resp = StackAggregator().execute(payload, persist=False)
+    # unknown ingestion failure is fine.
+    assert resp['aggregation'] == 'success'
+
+
+@mock.patch('src.v2.stack_aggregator.persist_data_in_db')
+@mock.patch('src.v2.stack_aggregator.post_gremlin')
+@mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
+def test_db_store(_mock_license, _mock_gremlin, _mock_store):
+    """Test call to RDS."""
+    with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
+        _mock_gremlin.return_value = json.load(fin)
+
+    payload = _request_body()
+    resp = StackAggregator().execute(payload, persist=True)
+    _mock_license.assert_called_once()
+    _mock_gremlin.assert_called_once()
+    _mock_store.assert_called_once()
+    assert resp['aggregation'] == 'success'
+    assert resp['result'] is not None
+    result = resp['result']
+    assert result['external_request_id'] == 'test_id'
+
+
+def _recommended_version_fallback(body, *args, **kwargs):
+    """Handle post_gremlin according to the caller."""
+    if args[1].get('eco'):
+        return body
+    with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
+        resp = json.load(fin)
+        # remove latest_non_cve_version attribute to test fallback.
+        del resp['result']['data'][0]['package']['latest_non_cve_version']
+        del resp['result']['data'][1]['package']['latest_non_cve_version']
+        return resp
+
+
+@mock.patch('src.v2.stack_aggregator.post_gremlin',
+            side_effect=partial(_recommended_version_fallback, {}))
+@mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
+def test_get_recommended_version_fallback_empty(_mock_license, _mock_gremlin):
+    """Test recommended_latest_version fallback call."""
+    resp = StackAggregator().execute(_request_body(), persist=False)
+    _mock_license.assert_called_once()
+    # fallback call to get latest_non_cve_version
+    assert _mock_gremlin.call_count > 1
+    assert resp['aggregation'] == 'success'
+    # check analyzed_dependencies
+    result = resp['result']
+    result = StackAggregatorResultForFreeTier(**result)
+    django_index = result.analyzed_dependencies.index(_DJANGO)
+    assert result.analyzed_dependencies[django_index].recommended_version is None
+
+
+@mock.patch('src.v2.stack_aggregator.post_gremlin',
+            side_effect=partial(_recommended_version_fallback, {'result': {'data': []}}))
+@mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
+def test_get_recommended_version_fallback_result_none(_mock_license, _mock_gremlin):
+    """Test recommended_latest_version fallback call."""
+    resp = StackAggregator().execute(_request_body(), persist=False)
+    _mock_license.assert_called_once()
+    # fallback call to get latest_non_cve_version
+    assert _mock_gremlin.call_count > 1
+    assert resp['aggregation'] == 'success'
+    # check analyzed_dependencies
+    result = resp['result']
+    result = StackAggregatorResultForFreeTier(**result)
+    django_index = result.analyzed_dependencies.index(_DJANGO)
+    assert result.analyzed_dependencies[django_index].recommended_version is None
+
+
+@mock.patch('src.v2.stack_aggregator.post_gremlin',
+            side_effect=partial(_recommended_version_fallback, {'result': {'data': ['10.1']}}))
+@mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
+def test_get_recommended_version_fallback_result_valid_latest(_mock_license, _mock_gremlin):
+    """Test recommended_latest_version fallback call."""
+    resp = StackAggregator().execute(_request_body(), persist=False)
+    _mock_license.assert_called_once()
+    # fallback call to get latest_non_cve_version
+    assert _mock_gremlin.call_count > 1
+    assert resp['aggregation'] == 'success'
+    # check analyzed_dependencies
+    result = resp['result']
+    result = StackAggregatorResultForFreeTier(**result)
+    django_index = result.analyzed_dependencies.index(_DJANGO)
+    assert result.analyzed_dependencies[django_index].recommended_version == '10.1'
+
+
+@mock.patch('src.v2.stack_aggregator.post_gremlin',
+            side_effect=partial(_recommended_version_fallback,
+                                {'result': {'data': ['10.1', '11.2']}}))
+@mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
+def test_get_recommended_version_fallback_result_multiple_latest(_mock_license, _mock_gremlin):
+    """Test recommended_latest_version fallback call."""
+    resp = StackAggregator().execute(_request_body(), persist=False)
+    _mock_license.assert_called_once()
+    # fallback call to get latest_non_cve_version
+    assert _mock_gremlin.call_count > 1
+    assert resp['aggregation'] == 'success'
+    # check analyzed_dependencies
+    result = resp['result']
+    result = StackAggregatorResultForFreeTier(**result)
+    django_index = result.analyzed_dependencies.index(_DJANGO)
+    assert result.analyzed_dependencies[django_index].recommended_version == '11.2'
+
+
+@mock.patch('src.v2.stack_aggregator.post_gremlin',
+            side_effect=partial(_recommended_version_fallback, {'result': {'data': ['1.2.1']}}))
+@mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
+def test_get_recommended_version_fallback_result_affected_as_latest(_mock_license, _mock_gremlin):
+    """Test recommended_latest_version fallback call."""
+    resp = StackAggregator().execute(_request_body(), persist=False)
+    _mock_license.assert_called_once()
+    # fallback call to get latest_non_cve_version
+    assert _mock_gremlin.call_count > 1
+    assert resp['aggregation'] == 'success'
+    # check analyzed_dependencies
+    result = resp['result']
+    result = StackAggregatorResultForFreeTier(**result)
+    django_index = result.analyzed_dependencies.index(_DJANGO)
+    assert result.analyzed_dependencies[django_index].recommended_version is None
 
 
 # ref: https://stackoverflow.com/a/29525603/1942688
@@ -16,73 +321,6 @@ class _ModifiedMagicMock(mock.MagicMock):
     def _mock_call(_mock_self, *args, **kwargs):
         return super(_ModifiedMagicMock, _mock_self)._mock_call(*copy.deepcopy(args),
                                                                 **copy.deepcopy(kwargs))
-
-
-@mock.patch('src.v2.stack_aggregator.get_recommended_version')
-def test_create_package_details_without_vuln(_mock_get_recommended_version):
-    """Test the function validate_request_data."""
-    with open("tests/data/component_sequence.json", "r") as fin:
-        payload = json.load(fin)
-    pkg, component = sa.create_package_details(payload)
-    assert isinstance(pkg, Package)
-    assert isinstance(component, PackageDetails)
-    _mock_get_recommended_version.assert_not_called()
-    expected_keys = (
-        "ecosystem",
-        "name",
-        "version",
-        "licenses",
-        "public_vulnerabilities",
-        "private_vulnerabilities",
-        "latest_version",
-        "github")
-    for key in expected_keys:
-        assert key in component.dict(), (
-               "Can't found the key '{key}' in result data structure".format(key=key))
-
-
-@mock.patch('src.v2.stack_aggregator.get_recommended_version')
-def test_create_package_details_without_latest_non_cve_version(_mock_get_recommended_version):
-    """Test the function validate_request_data."""
-    with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
-        payload = json.load(fin)['result']['data'][0]
-        # delete latest_non_cve_version to test fallback
-        # call to identify latest_non_cve_version from graph
-        del payload['package']['latest_non_cve_version']
-    _mock_get_recommended_version.return_value = '1.0.0-mocked'
-
-    pkg, component = sa.create_package_details(payload)
-    assert isinstance(pkg, Package)
-    assert isinstance(component, PackageDetails)
-    _mock_get_recommended_version.assert_called_once()
-
-
-@mock.patch('src.v2.stack_aggregator.post_gremlin')
-def test_get_recommended_version_empty_gremlin(_mock_gremlin):
-    """Test get_recommended_version."""
-    _mock_gremlin.return_value = {'result': {'data': []}}
-    ver = sa.get_recommended_version('pypi', Package(name='flask', version='0.12'))
-    assert ver is None
-
-    _mock_gremlin.return_value = {'result': {'data': ['1.0', '1.1', '1.2']}}
-    ver = sa.get_recommended_version('pypi', Package(name='flask', version='0.12'))
-    assert ver is not None
-    assert ver == '1.2'
-
-    _mock_gremlin.return_value = {'result': {'data': ['0.12']}}
-    ver = sa.get_recommended_version('pypi', Package(name='flask', version='0.12'))
-    assert ver is None
-
-    _mock_gremlin.return_value = None
-    ver = sa.get_recommended_version('pypi', Package(name='flask', version='0.12'))
-    assert ver is None
-
-
-def test_is_private_vulnerability():
-    """Test is_private_vulnerability."""
-    assert sa.is_private_vulnerability({'snyk_pvt_vulnerability': [True]})
-    assert not sa.is_private_vulnerability({'snyk_pvt_vulnerability': [False]})
-    assert not sa.is_private_vulnerability({})
 
 
 def _get_normalized_packages():
@@ -105,267 +343,39 @@ def _get_normalized_packages():
     return NormalizedPackages([flask, bar], 'pypi')
 
 
+def _gremlin_batch_test(_mock_gremlin, size: int):
+    packages = _get_normalized_packages()
+    _mock_gremlin.return_value = None
+    with mock.patch('src.v2.stack_aggregator.GREMLIN_QUERY_SIZE', size):
+        _mock_gremlin.reset_mock()
+        sa.Freetier(normalized_packages=packages).get_package_details_from_graph()
+        ith = 0
+        last = 0
+        for i, call in enumerate(_mock_gremlin.call_args_list, start=1):
+            args, kwargs = call
+            assert len(args) == 2
+            assert args[0].startswith('epv')
+            assert isinstance(args[1], dict)
+            if i == len(_mock_gremlin.call_args_list):
+                last = len(args[1]['packages'])
+            else:
+                ith = len(args[1]['packages'])
+        return _mock_gremlin.call_count, ith, last
+
+
 @mock.patch('src.v2.stack_aggregator.post_gremlin', new_callable=_ModifiedMagicMock)
-def test_get_package_details_with_vulnerabilities(_mock_gremlin):
+def test_gremlin_batch_call(_mock_gremlin):
     """Test post_gremlin call according to batch size."""
     # empty
     _mock_gremlin.return_value = None
     packages = NormalizedPackages([], 'pypi')
-    result = sa.get_package_details_with_vulnerabilities(packages)
+    result = sa.Freetier(normalized_packages=packages).get_package_details_from_graph()
     assert result is not None
-    assert isinstance(result, list)
+    assert isinstance(result, dict)
     _mock_gremlin.assert_not_called()
-
-
-@mock.patch('src.v2.stack_aggregator.post_gremlin', new_callable=_ModifiedMagicMock)
-def test_get_package_details_with_vulnerabilities_big_query_batch(_mock_gremlin):
-    """Test post_gremlin call according to batch size."""
-    packages = _get_normalized_packages()
-    _mock_gremlin.return_value = None
-    with mock.patch('src.v2.stack_aggregator.GREMLIN_QUERY_SIZE', 100):
-        _mock_gremlin.reset_mock()
-        sa.get_package_details_with_vulnerabilities(packages)
-        assert _mock_gremlin.call_count == 1
-        for call in _mock_gremlin.call_args_list:
-            args, kwargs = call
-            assert len(args) == 2
-            assert args[0].startswith('epv')
-            assert isinstance(args[1], dict)
-            assert len(args[1]['packages']) == 5
-
-
-@mock.patch('src.v2.stack_aggregator.post_gremlin', new_callable=_ModifiedMagicMock)
-def test_get_package_details_with_vulnerabilities_batch_size_min(_mock_gremlin):
-    """Test post_gremlin call according to batch size."""
-    packages = _get_normalized_packages()
-    _mock_gremlin.return_value = None
-    with mock.patch('src.v2.stack_aggregator.GREMLIN_QUERY_SIZE', 1):
-        _mock_gremlin.reset_mock()
-        sa.get_package_details_with_vulnerabilities(packages)
-        assert _mock_gremlin.call_count == 5
-        for call in _mock_gremlin.call_args_list:
-            args, kwargs = call
-            assert len(args) == 2
-            assert args[0].startswith('epv')
-            assert isinstance(args[1], dict)
-            assert len(args[1]['packages']) == 1
-
-
-@mock.patch('src.v2.stack_aggregator.post_gremlin', new_callable=_ModifiedMagicMock)
-def test_get_package_details_with_vulnerabilities_batch_size_2(_mock_gremlin):
-    """Test post_gremlin call according to batch size."""
-    packages = _get_normalized_packages()
-    _mock_gremlin.return_value = None
-    with mock.patch('src.v2.stack_aggregator.GREMLIN_QUERY_SIZE', 2):
-        _mock_gremlin.reset_mock()
-        sa.get_package_details_with_vulnerabilities(packages)
-        assert _mock_gremlin.call_count == 3
-        for i, call in enumerate(_mock_gremlin.call_args_list, 1):
-            args, kwargs = call
-            assert len(args) == 2
-            assert args[0].startswith('epv')
-            assert isinstance(args[1], dict)
-            if i == len(_mock_gremlin.call_args_list):
-                assert len(args[1]['packages']) == 1
-            else:
-                assert len(args[1]['packages']) == 2
-
-
-@mock.patch('src.v2.stack_aggregator.post_gremlin', new_callable=_ModifiedMagicMock)
-def test_get_package_details_with_vulnerabilities_batch_size_3(_mock_gremlin):
-    """Test post_gremlin call according to batch size."""
-    packages = _get_normalized_packages()
-    with mock.patch('src.v2.stack_aggregator.GREMLIN_QUERY_SIZE', 3):
-        _mock_gremlin.reset_mock()
-        sa.get_package_details_with_vulnerabilities(packages)
-        assert _mock_gremlin.call_count == 2
-        for i, call in enumerate(_mock_gremlin.call_args_list, 1):
-            args, kwargs = call
-            assert len(args) == 2
-            assert args[0].startswith('epv')
-            assert isinstance(args[1], dict)
-            if i == len(_mock_gremlin.call_args_list):
-                assert len(args[1]['packages']) == 2
-            else:
-                assert len(args[1]['packages']) == 3
-
-
-@mock.patch('src.v2.stack_aggregator.post_gremlin')
-def test_process_request_with_2_public_vulns(_mock_package_details):
-    """Test the function validate_request_data."""
-    with open("tests/v2/data/graph_response_2_public_1_private_vuln.json", "r") as response:
-        _mock_package_details.return_value = json.load(response)
-
-    six = Package(name='six', version='3.1.1')
-    django = Package(name='django', version='1.2.1')
-    flask = Package(**{
-        'name': 'flask',
-        'version': '0.12',
-        'dependencies': [six]
-    })
-    packages = [flask, django]
-    package_details_map = sa.get_package_details_from_graph(
-            NormalizedPackages(packages, 'pypi'))
-
-    assert package_details_map is not None
-    assert isinstance(package_details_map, dict)
-    assert len(package_details_map) == 3
-
-    flask_details = package_details_map[flask]
-    assert flask_details
-    assert flask_details.name == 'flask'
-    assert flask_details.version == '0.12'
-    assert flask_details.public_vulnerabilities == []
-    assert len(flask_details.private_vulnerabilities) == 1
-
-    django_details = package_details_map[django]
-    assert django_details
-    assert django_details.version == '1.2.1'
-    assert django_details.github is not None
-    assert len(django_details.public_vulnerabilities) == 2
-    assert django_details.private_vulnerabilities == []
-
-    assert package_details_map.get(six) is not None
-
-
-@mock.patch('src.v2.stack_aggregator.get_package_details_with_vulnerabilities')
-def test_get_unknown_packages(_mock_package_details):
-    """Test unknown_dependencies."""
-    with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as response:
-        _mock_package_details.return_value = json.load(response)['result']['data']
-
-    six = Package(name='six', version='3.1.1')
-    django = Package(name='django', version='1.2.1')
-    flask = Package(**{
-        'name': 'flask',
-        'version': '0.12',
-        'dependencies': [six]
-    })
-    packages = [flask, django]
-    package_details_map = sa.get_package_details_from_graph(
-                            StackAggregatorRequest(external_request_id='foo',
-                                                   ecosystem='pypi',
-                                                   manifest_file='req.txt',
-                                                   manifest_file_path='r.txt',
-                                                   packages=packages).dict())
-    assert package_details_map is not None
-    assert isinstance(package_details_map, dict)
-    assert len(package_details_map) == 2
-    unknown_deps = sa.get_unknown_packages(NormalizedPackages(packages, 'pypi'),
-                                           package_details_map)
-    assert len(unknown_deps) == 1
-    assert unknown_deps[0] == six
-
-
-@mock.patch('src.v2.stack_aggregator.get_package_details_with_vulnerabilities')
-def test_get_denormalized_package_details(_mock_package_details):
-    """Test get_denormalized_package_details."""
-    with open("tests/v2/data/graph_response_2_public_1_private_vuln.json", "r") as response:
-        _mock_package_details.return_value = json.load(response)['result']['data']
-
-    six = Package(name='six', version='3.1.1')
-    foo = Package(name='foo', version='1.0.0-foo')
-    django = Package(name='django', version='1.2.1')
-    flask = Package(**{
-        'name': 'flask',
-        'version': '0.12',
-        'dependencies': [six, foo]
-    })
-    packages = [foo, flask, django]
-    package_details_map = sa.get_package_details_from_graph(
-            NormalizedPackages(packages, 'pypi'))
-    assert package_details_map is not None
-    assert isinstance(package_details_map, dict)
-    assert len(package_details_map) == 3
-
-    flask_details = package_details_map[flask]
-    assert flask_details
-
-    denormalized_package_details = sa.get_denormalized_package_details(
-                                        NormalizedPackages(packages, 'pypi'),
-                                        package_details_map)
-
-    # transtive details are nested, foo should be excluded as it is unknown
-    assert len(denormalized_package_details) == 2
-    assert flask in denormalized_package_details
-    assert django in denormalized_package_details
-    assert six not in denormalized_package_details
-
-    flask_details = denormalized_package_details[denormalized_package_details.index(flask)]
-    # check six is transtive of flask
-    assert six in flask_details.dependencies
-    # check foo is transtive of flask
-    assert foo in flask_details.dependencies
-    # check six is also part of vulnerable_dependencies of flask
-    assert six in flask_details.vulnerable_dependencies
-
-
-@mock.patch('src.v2.stack_aggregator.server_create_analysis')
-def test_initiate_unknown_package_ingestion_empty(_mock_analysis):
-    """Test initiate_unknown_package_ingestion with empty list."""
-    output = StackAggregatorResult(ecosystem='pypi',
-                                   unknown_dependencies=[])
-    sa.initiate_unknown_package_ingestion(output)
-    _mock_analysis.assert_not_called()
-
-
-@mock.patch('src.v2.stack_aggregator.server_create_analysis')
-def test_initiate_unknown_package_ingestion_one_unknown(_mock_analysis):
-    """Test initiate_unknown_package_ingestion with empty list."""
-    unknown_dependencies = [Package(name='foo', version='0.0.1'),
-                            Package(name='bar', version='b02')]
-    output = StackAggregatorResult(ecosystem='pypi',
-                                   unknown_dependencies=unknown_dependencies)
-    sa.initiate_unknown_package_ingestion(output)
-    _mock_analysis.call_count == len(unknown_dependencies)
-    for args, kwargs in _mock_analysis.call_args_list:
-        assert args[0] == 'pypi'
-        assert Package(name=args[1], version=args[2]) in unknown_dependencies
-
-    _mock_analysis.reset_mock()
-    _mock_analysis.side_effect = Exception('mocked exception')
-    output = StackAggregatorResult(ecosystem='pypi',
-                                   unknown_dependencies=unknown_dependencies)
-    sa.initiate_unknown_package_ingestion(output)
-    _mock_analysis.assert_called_once()
-
-
-@mock.patch('src.v2.stack_aggregator.aggregate_stack_data')
-@mock.patch('src.v2.stack_aggregator.get_package_details_from_graph')
-def test_sa_process_request(_mock_get_package_details, _mock_aggregate):
-    """Test StackAggregator.process_request."""
-    sa.StackAggregator.process_request({
-        'ecosystem': 'pypi',
-        'external_request_id': 'xyz',
-        'manifest_file': 'rq',
-        'manifest_file_path': 'rq',
-        'packages': [
-            {
-                'name': 'foo',
-                'version': '1.0'
-            },
-            {
-                'name': 'bar',
-                'version': '2.0'
-            }
-        ]
-    })
-    _mock_get_package_details.assert_called_once()
-    _mock_aggregate.assert_called_once()
-
-
-@mock.patch('src.v2.stack_aggregator.initiate_unknown_package_ingestion')
-@mock.patch('src.v2.stack_aggregator.persist_data_in_db')
-@mock.patch('src.v2.stack_aggregator.StackAggregator.process_request')
-def test_sa_execute(_mock_process_request, _mock_persist, _mock_unknown):
-    """Test StackAggregator.execute."""
-    _mock_process_request.return_value = StackAggregatorResult()
-    sa.StackAggregator.execute({})
-    _mock_persist.called_once()
-    _mock_unknown.called_once()
-
-    _mock_persist.reset_mock()
-    _mock_unknown.reset_mock()
-    sa.StackAggregator.execute({}, False)
-    _mock_persist.assert_not_called()
-    _mock_unknown.called_once()
+    assert (1, 0, 5) == _gremlin_batch_test(_mock_gremlin, 100)
+    assert (5, 1, 1) == _gremlin_batch_test(_mock_gremlin, 1)
+    assert (3, 2, 1) == _gremlin_batch_test(_mock_gremlin, 2)
+    assert (2, 3, 2) == _gremlin_batch_test(_mock_gremlin, 3)
+    assert (2, 4, 1) == _gremlin_batch_test(_mock_gremlin, 4)
+    assert (1, 0, 5) == _gremlin_batch_test(_mock_gremlin, 5)

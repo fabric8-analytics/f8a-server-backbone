@@ -25,25 +25,6 @@ check_python_version() {
 
 check_python_version
 
-gc() {
-  retval=$?
-  docker-compose -f docker-compose.yml down -v || :
-  exit $retval
-}
-# trap gc EXIT SIGINT
-
-# Enter local-setup/ directory
-# Run local instances for: dynamodb, gremlin-websocket, gremlin-http
-function start_backbone_service {
-    #pushd local-setup/
-    echo "Invoke Docker Compose services"
-    docker-compose -f docker-compose.yml up  --force-recreate -d
-    #popd
-}
-
-start_backbone_service
-
-
 PYTHONPATH=$(pwd)/src
 export PYTHONPATH
 

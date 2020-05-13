@@ -9,7 +9,6 @@ import datetime
 import requests
 import os
 from collections import defaultdict
-import re
 import logging
 
 from src.utils import (create_package_dict, get_session_retry, select_latest_version,
@@ -22,13 +21,6 @@ from src.v2.normalized_packages import NormalizedPackages
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__file__)
-
-
-danger_word_list = [r"drop\(\)", r"V\(\)", r"count\(\)"]
-remove = '|'.join(danger_word_list)
-pattern = re.compile(r'(' + remove + ')', re.IGNORECASE)
-pattern_to_save = r'[^\w\*\.Xx\-\>\=\<\~\^\|\/\:]'
-pattern_n2_remove = re.compile(pattern_to_save)
 
 
 class GraphDB:
@@ -480,11 +472,11 @@ class RecommendationTask:
         }
 
         if persist:
-            logger.info("Recommendation process completed for %s."
-                        " Writing to RDS.", external_request_id)
             persist_data_in_db(external_request_id=external_request_id,
                                task_result=task_result, worker='recommendation_v2',
                                started_at=started_at, ended_at=ended_at)
+            logger.info("Recommendation process completed for %s. "
+                        "Result persisted into RDS.", external_request_id)
         return {'recommendation': 'success',
                 'external_request_id': external_request_id,
                 'result': task_result}
