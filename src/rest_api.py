@@ -52,6 +52,7 @@ def liveness():
 
 def _recommender(handler):
     r = {'recommendation': 'failure', 'external_request_id': None}
+    # (fixme) Create decorator for metrics handling.
     metrics_payload = {
         'pid': os.getpid(),
         'hostname': os.environ.get("HOSTNAME"),
@@ -61,7 +62,7 @@ def _recommender(handler):
     }
 
     input_json = request.get_json()
-    current_app.logger.debug('recommender/ request with payload: {p}'.format(p=input_json))
+    current_app.logger.info('recommender/ request with payload: %s', input_json)
 
     if input_json and 'external_request_id' in input_json and input_json['external_request_id']:
         try:
@@ -76,6 +77,7 @@ def _recommender(handler):
                 'message': '%s' % e
             }
             metrics_payload['status_code'] = 400
+            current_app.logger.error('failed %s', r)
 
     try:
         metrics_payload['value'] = get_time_delta(audit_data=r['result']['_audit'])
@@ -90,14 +92,16 @@ def _stack_aggregator(handler):
     assert handler
     s = {'stack_aggregator': 'failure', 'external_request_id': None}
     input_json = request.get_json()
+    # (fixme) Create decorator for metrics handling.
     metrics_payload = {
         'pid': os.getpid(),
         'hostname': os.environ.get("HOSTNAME"),
-        'endpoint': 'api_v1.get_stack_analyses',
+        'endpoint': request.endpoint,
         'request_method': request.method,
         'status_code': 200
     }
 
+    current_app.logger.info('recommender/ request with payload: %s', input_json)
     if input_json and 'external_request_id' in input_json \
             and input_json['external_request_id']:
 
@@ -118,6 +122,7 @@ def _stack_aggregator(handler):
                 'message': '%s' % e
             }
             metrics_payload['status_code'] = 400
+            current_app.logger.error('failed %s', s)
 
         try:
             # Pushing Individual Metrics Data to Accumulator
