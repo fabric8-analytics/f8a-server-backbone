@@ -11,6 +11,7 @@ error.log
 derby.log
 metastore_db/
 .coverage
+coverage.xml
 .pytest_cache/
 html/
 latex/
