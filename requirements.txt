@@ -27,4 +27,4 @@ semantic-version==2.6.0   # via -r requirements.in
 six==1.11.0               # via flask-cors
 sqlalchemy==1.2.6         # via -r requirements.in
 urllib3==1.22             # via requests
-werkzeug==0.14.1          # via flask
+werkzeug==0.15.3          # via flask
