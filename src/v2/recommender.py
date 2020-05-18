@@ -367,7 +367,8 @@ class RecommendationTask:
         if package_list:
             insights_payload = {
                 'ecosystem': request.ecosystem,
-                'transitive_stack': [epv.name for epv in normalized_packages.transitive_dependencies],
+                'transitive_stack': [
+                    epv.name for epv in normalized_packages.transitive_dependencies],
                 'unknown_packages_ratio_threshold':
                     float(os.environ.get('UNKNOWN_PACKAGES_THRESHOLD', 0.3)),
                 'package_list': package_list,
@@ -422,7 +423,8 @@ class RecommendationTask:
                                                                         ecosystem)
 
                 # Apply Version Filters
-                input_stack = {epv.name: epv.version for epv in normalized_packages.direct_dependencies}
+                input_stack = {
+                    epv.name: epv.version for epv in normalized_packages.direct_dependencies}
                 filtered_comp_packages_graph, filtered_list = GraphDB().filter_versions(
                     comp_packages_graph, input_stack, external_request_id, rec_type="COMPANION")
 
