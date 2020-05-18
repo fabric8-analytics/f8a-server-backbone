@@ -356,8 +356,6 @@ class RecommendationTask:
         request = RecommenderRequest(**arguments)
         external_request_id = request.external_request_id
 
-        recommendations = []
-
         normalized_packages = NormalizedPackages(request.packages, request.ecosystem)
 
         recommendation = {
@@ -366,117 +364,110 @@ class RecommendationTask:
             'manifest_file_path': request.manifest_file_path
         }
         package_list = [epv.name for epv in normalized_packages.direct_dependencies]
-        if not package_list:
-            recommendations.append(recommendation)
-        insights_payload = {
-            'ecosystem': request.ecosystem,
-            'transitive_stack': [epv.name for epv in normalized_packages.transitive_dependencies],
-            'unknown_packages_ratio_threshold':
-                float(os.environ.get('UNKNOWN_PACKAGES_THRESHOLD', 0.3)),
-            'package_list': package_list,
-            'comp_package_count_threshold': int(os.environ.get(
-                'MAX_COMPANION_PACKAGES', 5))
-        }
-        if request.ecosystem in self.kronos_ecosystems:
-            insights_payload.update({
-                'outlier_probability_threshold': float(os.environ.get('OUTLIER_THRESHOLD',
-                                                                      0.6)),
-                'user_persona': "1",  # TODO - remove janus hardcoded value
-            })
-        input_task_for_insights_recommender = [insights_payload]
-
-        # Call PGM and get the response
-        start = datetime.datetime.utcnow()
-        insights_response = self.call_insights_recommender(input_task_for_insights_recommender)
-        elapsed_seconds = (datetime.datetime.utcnow() -
-                           start).total_seconds()
-        logger.info("It took %f seconds to get insight's response"
-                    "for external request %s", elapsed_seconds, external_request_id)
-        # From PGM response process companion and alternate packages and
-        # then get Data from Graph
-        # TODO - implement multiple manifest file support for below loop
-
-        if insights_response is None:
-            return {
-                'recommendation': 'pgm_error',
-                'external_request_id': external_request_id,
-                'message': 'PGM Fetching error'
+        if package_list:
+            insights_payload = {
+                'ecosystem': request.ecosystem,
+                'transitive_stack': [epv.name for epv in normalized_packages.transitive_dependencies],
+                'unknown_packages_ratio_threshold':
+                    float(os.environ.get('UNKNOWN_PACKAGES_THRESHOLD', 0.3)),
+                'package_list': package_list,
+                'comp_package_count_threshold': int(os.environ.get(
+                    'MAX_COMPANION_PACKAGES', 5))
             }
+            if request.ecosystem in self.kronos_ecosystems:
+                insights_payload.update({
+                    'outlier_probability_threshold': float(os.environ.get('OUTLIER_THRESHOLD',
+                                                                          0.6)),
+                    'user_persona': "1",  # TODO - remove janus hardcoded value
+                })
+            input_task_for_insights_recommender = [insights_payload]
 
-        for insights_result in insights_response:
-            companion_packages = []
-            ecosystem = insights_result['ecosystem']
+            # Call PGM and get the response
+            start = datetime.datetime.utcnow()
+            insights_response = self.call_insights_recommender(input_task_for_insights_recommender)
+            elapsed_seconds = (datetime.datetime.utcnow() -
+                               start).total_seconds()
+            logger.info("It took %f seconds to get insight's response"
+                        "for external request %s", elapsed_seconds, external_request_id)
+            # From PGM response process companion and alternate packages and
+            # then get Data from Graph
+            # TODO - implement multiple manifest file support for below loop
 
-            # Get usage based outliers
-            recommendation['usage_outliers'] = \
-                insights_result.get('outlier_package_list', [])
+            if insights_response is None:
+                return {
+                    'recommendation': 'pgm_error',
+                    'external_request_id': external_request_id,
+                    'message': 'PGM Fetching error'
+                }
 
-            # Append Topics for User Stack
-            recommendation['input_stack_topics'] = insights_result.get(
-                    'package_to_topic_dict', {})
-            # Add missing packages unknown to PGM
-            recommendation['missing_packages_pgm'] = insights_result.get(
-                'missing_packages', [])
-            for pkg in insights_result['companion_packages']:
-                companion_packages.append(pkg['package_name'])
+            for insights_result in insights_response:
+                companion_packages = []
+                ecosystem = insights_result['ecosystem']
 
-            # Get Companion Packages from Graph
-            comp_packages_graph = GraphDB().get_version_information(companion_packages,
-                                                                    ecosystem)
+                # Get usage based outliers
+                recommendation['usage_outliers'] = \
+                    insights_result.get('outlier_package_list', [])
 
-            # Apply Version Filters
-            input_stack = {epv.name: epv.version for epv in normalized_packages.direct_dependencies}
-            filtered_comp_packages_graph, filtered_list = GraphDB().filter_versions(
-                comp_packages_graph, input_stack, external_request_id, rec_type="COMPANION")
+                # Append Topics for User Stack
+                recommendation['input_stack_topics'] = insights_result.get(
+                        'package_to_topic_dict', {})
+                # Add missing packages unknown to PGM
+                recommendation['missing_packages_pgm'] = insights_result.get(
+                    'missing_packages', [])
+                for pkg in insights_result['companion_packages']:
+                    companion_packages.append(pkg['package_name'])
 
-            filtered_companion_packages = \
-                set(companion_packages).difference(set(filtered_list))
-            logger.info(
-                "Companion Packages Filtered for external_request_id %s %s",
-                external_request_id, filtered_companion_packages
-            )
+                # Get Companion Packages from Graph
+                comp_packages_graph = GraphDB().get_version_information(companion_packages,
+                                                                        ecosystem)
 
-            if check_license:
-                # Apply License Filters
-                lic_filtered_comp_graph = \
-                    License.perform_license_analysis(
-                        packages=normalized_packages,
-                        filtered_comp_packages_graph=filtered_comp_packages_graph,
-                        filtered_companion_packages=filtered_companion_packages,
-                        external_request_id=external_request_id
-                    )
-            else:
-                lic_filtered_comp_graph = filtered_comp_packages_graph
+                # Apply Version Filters
+                input_stack = {epv.name: epv.version for epv in normalized_packages.direct_dependencies}
+                filtered_comp_packages_graph, filtered_list = GraphDB().filter_versions(
+                    comp_packages_graph, input_stack, external_request_id, rec_type="COMPANION")
 
-            # Get Topics Added to Filtered Packages
-            topics_comp_packages_graph = GraphDB(). \
-                get_topics_for_comp(lic_filtered_comp_graph,
-                                    insights_result.get('companion_packages', []))
+                filtered_companion_packages = \
+                    set(companion_packages).difference(set(filtered_list))
+                logger.info(
+                    "Companion Packages Filtered for external_request_id %s %s",
+                    external_request_id, filtered_companion_packages
+                )
 
-            # Create Companion Block
-            comp_packages = create_package_dict(topics_comp_packages_graph)
-            final_comp_packages = \
-                set_valid_cooccurrence_probability(comp_packages)
+                if check_license:
+                    # Apply License Filters
+                    lic_filtered_comp_graph = \
+                        License.perform_license_analysis(
+                            packages=normalized_packages,
+                            filtered_comp_packages_graph=filtered_comp_packages_graph,
+                            filtered_companion_packages=filtered_companion_packages,
+                            external_request_id=external_request_id
+                        )
+                else:
+                    lic_filtered_comp_graph = filtered_comp_packages_graph
 
-            recommendation['companion'] = final_comp_packages
+                # Get Topics Added to Filtered Packages
+                topics_comp_packages_graph = GraphDB(). \
+                    get_topics_for_comp(lic_filtered_comp_graph,
+                                        insights_result.get('companion_packages', []))
 
-            recommendations.append(recommendation)
+                # Create Companion Block
+                comp_packages = create_package_dict(topics_comp_packages_graph)
+                final_comp_packages = \
+                    set_valid_cooccurrence_probability(comp_packages)
+
+                recommendation['companion'] = final_comp_packages
 
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
-        audit = {'started_at': started_at, 'ended_at': ended_at, 'version': 'v1'}
+        audit = {'started_at': started_at, 'ended_at': ended_at, 'version': 'v2'}
 
-        task_result = {
-            'recommendations': recommendations,
-            '_audit': audit,
-            '_release': 'None:None:None'
-        }
+        recommendation['_audit'] = audit
 
         if persist:
             persist_data_in_db(external_request_id=external_request_id,
-                               task_result=task_result, worker='recommendation_v2',
+                               task_result=recommendation, worker='recommendation_v2',
                                started_at=started_at, ended_at=ended_at)
             logger.info("Recommendation process completed for %s. "
                         "Result persisted into RDS.", external_request_id)
         return {'recommendation': 'success',
                 'external_request_id': external_request_id,
-                'result': task_result}
+                'result': recommendation}

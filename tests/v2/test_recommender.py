@@ -170,8 +170,8 @@ def test_execute_empty_resolved(_mock_call_insights, _mock_db):
     out = r.execute(arguments=payload, persist=False)
 
     assert out['recommendation'] == "success"
-    assert not out["result"]["recommendations"][0]["companion"]
-    assert not out["result"]["recommendations"][0]["usage_outliers"]
+    assert not out["result"]["companion"]
+    assert not out["result"]["usage_outliers"]
 
     r = RecommendationTask()
     out = r.execute(arguments=payload, check_license=True, persist=False)
