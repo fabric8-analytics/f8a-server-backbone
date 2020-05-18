@@ -4,7 +4,7 @@
 #   timestamp: 2020-04-25T19:10:47+00:00
 
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 from uuid import UUID
 
 from pydantic import BaseModel, Field, validator
@@ -119,7 +119,7 @@ class GitHubDetails(BaseModel):  # noqa: D101
     total_releases: Optional[int] = None
     issues: Optional[Dict[str, Any]] = None
     pull_requests: Optional[Dict[str, Any]] = None
-    dependent_repos: Optional[int] = None
+    dependent_repos: Optional[Union[int, str]] = None
     open_issues_count: Optional[int] = None
     latest_release_duration: Optional[str] = None
     forks_count: Optional[int] = None
