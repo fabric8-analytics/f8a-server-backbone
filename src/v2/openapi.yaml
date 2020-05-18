@@ -279,7 +279,7 @@ components:
                 example: General Public License V3(GPL)
           description: |
             List of conflicting licenses
-        unknowns:
+        unknown:
           type: array
           items:
             type: object
