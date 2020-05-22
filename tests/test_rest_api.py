@@ -1,5 +1,4 @@
 """Tests for the REST API of the backbone service."""
-import os
 import json
 from unittest import mock
 
@@ -33,8 +32,6 @@ payload = {
         "status": "success"
     }]
 }
-port = os.getenv("API_BACKBONE_SERVICE_PORT", "5000")
-url = "http://localhost:{port}/api/v1".format(port=port)
 
 response = {
     "recommendation": "success",
@@ -80,38 +77,40 @@ def api_route_for(route):
 
 
 def test_readiness_endpoint(client):
-    """Test the /api/v1/readiness endpoint."""
-    response = client.get(api_route_for("readiness"))
+    """Test the /api/readiness endpoint."""
+    response = client.get("/api/readiness")
     assert response.status_code == 200
     json_data = get_json_from_response(response)
     assert json_data == {}, "Empty JSON response expected"
 
 
 def test_liveness_endpoint(client):
-    """Test the /api/v1/liveness endpoint."""
-    response = client.get(api_route_for("liveness"))
+    """Test the /api/liveness endpoint."""
+    response = client.get("/api/liveness")
     assert response.status_code == 200
     json_data = get_json_from_response(response)
     assert json_data == {}, "Empty JSON response expected"
 
 
-@mock.patch('requests.Session.post', return_value=Response2)
+@mock.patch('src.stack_aggregator.StackAggregator.execute', return_value=response)
 def test_stack_api_endpoint(_mock, client):
     """Check the /stack_aggregator REST API endpoint."""
     stack_resp = client.post(api_route_for("stack_aggregator"),
                              data=json.dumps(payload),
                              content_type='application/json')
+    _mock.assert_called_once()
     jsn = get_json_from_response(stack_resp)
-    assert jsn['external_request_id'] == payload['external_request_id']
+    assert jsn['external_request_id'] is not None
 
 
-@mock.patch('src.recommender.RecommendationTask.execute', side_effect=response)
+@mock.patch('src.recommender.RecommendationTask.execute', return_value=response)
 def test_recommendation_api_endpoint(_mock_object, client):
     """Check the /recommender REST API endpoint."""
     rec_resp = client.post(api_route_for("recommender"),
                            data=json.dumps(payload), content_type='application/json')
+    _mock_object.assert_called_once()
     jsn = get_json_from_response(rec_resp)
-    assert jsn['recommendation'] == 'pgm_error'
+    assert jsn['recommendation'] == 'success'
     assert jsn['external_request_id'] is not None
 
 
@@ -121,7 +120,7 @@ def test_recommendation_api_endpoint_exception(_mock_object, client):
     rec_resp = client.post(api_route_for("recommender"),
                            data=json.dumps(payload), content_type='application/json')
     jsn = get_json_from_response(rec_resp)
-    assert jsn['recommendation'] == 'unexpected error'
+    assert jsn['recommendation'] == 'pgm_error'
     assert jsn['external_request_id'] == payload['external_request_id']
 
 

@@ -1,14 +1,17 @@
 """Implementation of the REST API for the backbone service."""
 
 import os
-import flask
 import logging
+import flask
 from f8a_worker.setup_celery import init_selinon
 from flask import Flask, request, current_app
 from flask_cors import CORS
-from recommender import RecommendationTask
-from stack_aggregator import StackAggregator
 from raven.contrib.flask import Sentry
+
+from src.recommender import RecommendationTask as RecommendationTaskV1
+from src.stack_aggregator import StackAggregator as StackAggregatorV1
+from src.v2.recommender import RecommendationTask as RecommendationTaskV2
+from src.v2.stack_aggregator import StackAggregator as StackAggregatorV2
 from src.utils import push_data, total_time_elapsed, get_time_delta
 
 
@@ -17,7 +20,7 @@ def setup_logging(flask_app):
     if not flask_app.debug:
         handler = logging.StreamHandler()
         handler.setFormatter(logging.Formatter(
-            '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'))
+            '[%(asctime)s] %(levelname)s in %(module)s:%(lineno)d: %(message)s'))
         log_level = os.environ.get('FLASK_LOGGING_LEVEL', logging.getLevelName(logging.WARNING))
         handler.setLevel(log_level)
 
@@ -35,22 +38,21 @@ sentry = Sentry(app, dsn=SENTRY_DSN, logging=True, level=logging.ERROR)
 init_selinon()
 
 
-@app.route('/api/v1/readiness')
+@app.route('/api/readiness')
 def readiness():
-    """Handle GET requests that are sent to /api/v1/readiness REST API endpoint."""
+    """Handle GET requests that are sent to /api/readiness REST API endpoint."""
     return flask.jsonify({}), 200
 
 
-@app.route('/api/v1/liveness')
+@app.route('/api/liveness')
 def liveness():
-    """Handle GET requests that are sent to /api/v1/liveness REST API endpoint."""
+    """Handle GET requests that are sent to /api/liveness REST API endpoint."""
     return flask.jsonify({}), 200
 
 
-@app.route('/api/v1/recommender', methods=['POST'])
-def recommender():
-    """Handle POST requests that are sent to /api/v1/recommender REST API endpoint."""
+def _recommender(handler):
     r = {'recommendation': 'failure', 'external_request_id': None}
+    # (fixme) Create decorator for metrics handling.
     metrics_payload = {
         'pid': os.getpid(),
         'hostname': os.environ.get("HOSTNAME"),
@@ -60,14 +62,14 @@ def recommender():
     }
 
     input_json = request.get_json()
-    current_app.logger.debug('recommender/ request with payload: {p}'.format(p=input_json))
+    current_app.logger.info('recommender/ request with payload: %s', input_json)
 
     if input_json and 'external_request_id' in input_json and input_json['external_request_id']:
         try:
             check_license = request.args.get('check_license', 'false') == 'true'
             persist = request.args.get('persist', 'true') == 'true'
-            r = RecommendationTask().execute(input_json, persist=persist,
-                                             check_license=check_license)
+            r = handler.execute(input_json, persist=persist,
+                                check_license=check_license)
         except Exception as e:
             r = {
                 'recommendation': 'unexpected error',
@@ -75,6 +77,7 @@ def recommender():
                 'message': '%s' % e
             }
             metrics_payload['status_code'] = 400
+            current_app.logger.error('failed %s', r)
 
     try:
         metrics_payload['value'] = get_time_delta(audit_data=r['result']['_audit'])
@@ -85,25 +88,26 @@ def recommender():
     return flask.jsonify(r), metrics_payload['status_code']
 
 
-@app.route('/api/v1/stack_aggregator', methods=['POST'])
-def stack_aggregator():
-    """Handle POST requests that are sent to /api/v1/stack_aggregator REST API endpoint."""
+def _stack_aggregator(handler):
+    assert handler
     s = {'stack_aggregator': 'failure', 'external_request_id': None}
     input_json = request.get_json()
+    # (fixme) Create decorator for metrics handling.
     metrics_payload = {
         'pid': os.getpid(),
         'hostname': os.environ.get("HOSTNAME"),
-        'endpoint': 'api_v1.get_stack_analyses',
+        'endpoint': request.endpoint,
         'request_method': request.method,
         'status_code': 200
     }
 
+    current_app.logger.info('recommender/ request with payload: %s', input_json)
     if input_json and 'external_request_id' in input_json \
             and input_json['external_request_id']:
 
         try:
             persist = request.args.get('persist', 'true') == 'true'
-            s = StackAggregator().execute(input_json, persist=persist)
+            s = handler.execute(input_json, persist=persist)
             if s is not None and s.get('result') and s.get('result').get('_audit'):
                 # Creating and Pushing Total Metrics Data to Accumulator
                 metrics_payload['value'] = total_time_elapsed(
@@ -118,6 +122,7 @@ def stack_aggregator():
                 'message': '%s' % e
             }
             metrics_payload['status_code'] = 400
+            current_app.logger.error('failed %s', s)
 
         try:
             # Pushing Individual Metrics Data to Accumulator
@@ -128,6 +133,30 @@ def stack_aggregator():
             pass
 
     return flask.jsonify(s)
+
+
+@app.route('/api/v1/recommender', methods=['POST'])
+def recommender_v1():
+    """Handle POST requests that are sent to /api/v1/recommender REST API endpoint."""
+    return _recommender(RecommendationTaskV1())
+
+
+@app.route('/api/v1/stack_aggregator', methods=['POST'])
+def stack_aggregator_v1():
+    """Handle POST requests that are sent to /api/v1/stack_aggregator REST API endpoint."""
+    return _stack_aggregator(StackAggregatorV1())
+
+
+@app.route('/api/v2/recommender', methods=['POST'])
+def recommender_v2():
+    """Handle POST requests that are sent to /api/v2/recommender REST API endpoint."""
+    return _recommender(RecommendationTaskV2())
+
+
+@app.route('/api/v2/stack_aggregator', methods=['POST'])
+def stack_aggregator_v2():
+    """Handle POST requests that are sent to /api/v2/stack_aggregator REST API endpoint."""
+    return _stack_aggregator(StackAggregatorV2())
 
 
 if __name__ == "__main__":

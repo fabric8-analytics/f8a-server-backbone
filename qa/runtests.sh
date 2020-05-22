@@ -7,9 +7,6 @@ pushd "${SCRIPT_DIR}/.." > /dev/null
 # test coverage threshold
 COVERAGE_THRESHOLD=85
 
-# gremlin batch query size
-export GREMLIN_QUERY_SIZE="1"
-
 export TERM=xterm
 TERM=${TERM:-xterm}
 
@@ -24,25 +21,6 @@ check_python_version() {
 }
 
 check_python_version
-
-gc() {
-  retval=$?
-  docker-compose -f docker-compose.yml down -v || :
-  exit $retval
-}
-# trap gc EXIT SIGINT
-
-# Enter local-setup/ directory
-# Run local instances for: dynamodb, gremlin-websocket, gremlin-http
-function start_backbone_service {
-    #pushd local-setup/
-    echo "Invoke Docker Compose services"
-    docker-compose -f docker-compose.yml up  --force-recreate -d
-    #popd
-}
-
-start_backbone_service
-
 
 PYTHONPATH=$(pwd)/src
 export PYTHONPATH
@@ -90,7 +68,7 @@ export PGBOUNCER_SERVICE_HOST="bayesian-pgbouncer"
 echo "*****************************************"
 echo "*** Unit tests ***"
 echo "*****************************************"
-PYTHONDONTWRITEBYTECODE=1 GOLANG_SERVICE_HOST='golang-insights' PYPI_SERVICE_HOST='pypi-insights' CHESTER_SERVICE_HOST='npm-insights' PGM_SERVICE_HOST='pgm' HPF_SERVICE_HOST='hpf-insights' PGM_SERVICE_PORT='6006' python3 "$(which pytest)" --cov=src/ --cov-report term-missing --cov-fail-under=$COVERAGE_THRESHOLD -vv tests/
+PYTHONDONTWRITEBYTECODE=1 python3 "$(which pytest)" --cov=src/ --cov-report term-missing --cov-fail-under=$COVERAGE_THRESHOLD -vv tests/
 printf "%stests passed%s\n\n" "${GREEN}" "${NORMAL}"
 
 codecov --token=74b5a608-da00-4b26-aec8-8f7f47489f86

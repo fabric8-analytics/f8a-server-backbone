@@ -1,12 +1,14 @@
 """Tests for the recommender module."""
-from unittest import TestCase
-from unittest import mock
+from unittest import TestCase, mock
 import json
 import logging
 
 logger = logging.getLogger(__name__)
 
-from src.recommender import RecommendationTask, GraphDB, License, set_valid_cooccurrence_probability
+from src.v2.normalized_packages import NormalizedPackages
+from src.v2.recommender import (RecommendationTask, GraphDB, License,
+                                set_valid_cooccurrence_probability)
+from src.v2.models import RecommenderRequest
 
 with open("tests/data/graph_response.json", "r") as f:
     graph_resp = json.load(f)
@@ -50,7 +52,7 @@ class TestRecommendationTask(TestCase):
     @mock.patch('requests.Session.post', side_effect=mocked_requests_get)
     def test_call_insights_recommender_npm(self, _mock_get, _mock_post):
         """Test if the correct service is called for the correct ecosystem."""
-        with mock.patch.dict('src.recommender.os.environ', {
+        with mock.patch.dict('src.v2.recommender.os.environ', {
                 'GOLANG_SERVICE_HOST': 'golang-insights',
                 'CHESTER_SERVICE_HOST': 'npm-insights',
                 'PYPI_SERVICE_HOST': 'pypi-insights',
@@ -95,6 +97,10 @@ def mocked_response_graph(*args, **_kwargs):
             """Get the mock json response."""
             return self.json_data
 
+        def raise_for_status(self):
+            if self.status_code != 200:
+                raise Exception('not 200')
+
     return MockResponse(graph_resp, 200)
 
 
@@ -118,11 +124,11 @@ def mocked_response_license(*args, **_kwargs):
         return MockResponse(dep_resp, 200)
 
 
-@mock.patch('src.recommender.persist_data_in_db')
-@mock.patch('src.recommender.RecommendationTask.call_insights_recommender', return_value=[])
+@mock.patch('src.v2.recommender.persist_data_in_db')
+@mock.patch('src.v2.recommender.RecommendationTask.call_insights_recommender', return_value=[])
 def test_execute(_mock_call_insights, _mock_db):
     """Test the function execute."""
-    with open("tests/data/stack_aggregator_execute_input.json", "r") as f:
+    with open("tests/v2/data/stack_aggregator_execute_input.json", "r") as f:
         payload = json.load(f)
 
     r = RecommendationTask()
@@ -136,15 +142,15 @@ def test_execute(_mock_call_insights, _mock_db):
     _mock_db.assert_called_once()
 
 
-@mock.patch('src.recommender.RecommendationTask.call_insights_recommender',
+@mock.patch('src.v2.recommender.RecommendationTask.call_insights_recommender',
             side_effect=[insights_comp_resp])
-@mock.patch('src.recommender.GraphDB.get_version_information',
+@mock.patch('src.v2.recommender.GraphDB.get_version_information',
             side_effect=[graph_resp['result']['data']])
-@mock.patch('src.recommender.License.perform_license_analysis',
+@mock.patch('src.v2.recommender.License.perform_license_analysis',
             side_effect=license_resp)
 def test_execute_with_insights(_mock1, _mock2, _mock3):
     """Test the function execute."""
-    with open("tests/data/stack_aggregator_execute_input.json", "r") as f:
+    with open("tests/v2/data/stack_aggregator_execute_input.json", "r") as f:
         payload = json.load(f)
 
     r = RecommendationTask()
@@ -153,20 +159,19 @@ def test_execute_with_insights(_mock1, _mock2, _mock3):
     assert out['recommendation'] == "success"
 
 
-@mock.patch('src.recommender.persist_data_in_db')
-@mock.patch('src.recommender.RecommendationTask.call_insights_recommender', return_value=[])
+@mock.patch('src.v2.recommender.persist_data_in_db')
+@mock.patch('src.v2.recommender.RecommendationTask.call_insights_recommender', return_value=[])
 def test_execute_empty_resolved(_mock_call_insights, _mock_db):
     """Test the function execute."""
-    with open("tests/data/stack_aggregator_empty_resolved.json", "r") as f:
+    with open("tests/v2/data/stack_aggregator_empty_resolved.json", "r") as f:
         payload = json.load(f)
 
     r = RecommendationTask()
     out = r.execute(arguments=payload, persist=False)
 
     assert out['recommendation'] == "success"
-    assert not out["result"]["recommendations"][0]["companion"]
-    assert not out["result"]["recommendations"][0]["alternate"]
-    assert not out["result"]["recommendations"][0]["usage_outliers"]
+    assert not out["result"]["companion"]
+    assert not out["result"]["usage_outliers"]
 
     r = RecommendationTask()
     out = r.execute(arguments=payload, check_license=True, persist=False)
@@ -176,20 +181,16 @@ def test_execute_empty_resolved(_mock_call_insights, _mock_db):
     _mock_db.assert_called_once()
 
 
-@mock.patch('src.recommender.persist_data_in_db')
-@mock.patch('src.recommender.RecommendationTask.call_insights_recommender', return_value=[])
+@mock.patch('src.v2.recommender.persist_data_in_db')
+@mock.patch('src.v2.recommender.RecommendationTask.call_insights_recommender', return_value=[])
 def test_execute_both_resolved_type(_mock_call_insights, _mock_db):
     """Test the function execute."""
-    with open("tests/data/stack_aggregator_combined_input.json", "r") as f:
+    with open("tests/v2/data/stack_aggregator_combined_input.json", "r") as f:
         payload = json.load(f)
 
     r = RecommendationTask()
     out = r.execute(arguments=payload, persist=False)
     assert out['recommendation'] == "success"
-    assert len(out['result']['recommendations']) == 3
-    file_names_expecetd = ["/home/JohnDoe1", "/home/JohnDoe2", "/home/JohnDoe3"]
-    file_names_received = [reco["manifest_file_path"] for reco in out['result']['recommendations']]
-    assert file_names_received == file_names_expecetd
     r = RecommendationTask()
     out = r.execute(arguments=payload, check_license=True, persist=False)
     assert out['recommendation'] == "success"
@@ -236,55 +237,37 @@ def test_get_version_information(_mock1):
 
 def test_get_topics():
     """Test the function get topics."""
-    alt_list = GraphDB.get_topics_for_alt(graph_resp['result']['data'],
-                                          insights_resp[0]['alternate_packages'])
     comp_list = GraphDB.get_topics_for_comp(graph_resp['result']['data'],
                                             insights_resp[0]['companion_packages'])
-
-    assert alt_list is not None
-    assert isinstance(alt_list, list)
 
     assert comp_list is not None
     assert isinstance(comp_list, list)
 
 
-def test_get_topmost_alternate():
-    """Test the function get topmost alternate recommendation."""
-    input_stack = {"io.vertx:vertx-core": "3.4.1"}
-    alternate_packages, final_dict = GraphDB.get_topmost_alternate(insights_resp[0], input_stack)
-
-    assert alternate_packages is not None
-    assert isinstance(alternate_packages, list)
-    assert final_dict is not None
-    assert isinstance(final_dict, dict)
-
-
+@mock.patch('src.v2.recommender.extract_user_stack_package_licenses', return_value=[])
 @mock.patch('requests.Session.post', side_effect=mocked_response_license)
-def test_perform_license_analysis(_mock1):
+def test_perform_license_analysis(_mock1, _mock2):
     """Test license analysis function."""
-    with open("tests/data/license_analysis.json", "r") as f:
+    with open("tests/v2/data/license_analysis.json", "r") as f:
         payload = json.load(f)
-    alt_graph, comp_graph = License.perform_license_analysis(
-        resolved=payload['resolved'],
-        ecosystem=payload['ecosystem'],
-        filtered_alt_packages_graph=payload['filtered_alt_packages_graph'],
+    request = RecommenderRequest(**payload)
+    comp_graph = License.perform_license_analysis(
+        packages=NormalizedPackages(request.packages, 'maven'),
         filtered_comp_packages_graph=payload['filtered_comp_packages_graph'],
-        filtered_alternate_packages=payload['filtered_alternate_packages'],
         filtered_companion_packages=payload['filtered_companion_packages'],
         external_request_id=payload['external_request_id'])
 
-    assert alt_graph is not None
     assert comp_graph is not None
 
 
-@mock.patch('src.recommender.License.invoke_license_analysis_service',
+@mock.patch('src.v2.recommender.License.invoke_license_analysis_service',
             return_value={'status': 'successful', 'license_filter': {}})
 def test_apply_license_filter(_mock1):
     """Test the function apply_license_filter."""
     with open('tests/data/epv_list.json', 'r') as f:
         resp = json.load(f)
 
-    out = License.apply_license_filter(None, resp, resp)
+    out = License.apply_license_filter(None, resp)
     assert isinstance(out, dict)
 
 
@@ -304,6 +287,5 @@ if __name__ == '__main__':
     test_get_version_information()
     test_apply_license_filter()
     test_perform_license_analysis()
-    test_get_topmost_alternate()
     test_get_topics()
     test_prepare_final_filtered_list()

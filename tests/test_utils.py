@@ -1,15 +1,17 @@
 """Tests for the 'utils' module."""
+import os
+import json
+import semantic_version as sv
+from unittest import mock
+from pytest import raises
+from tests.test_rest_api import response
+from src.utils import push_data, get_time_delta
 from src.utils import (
     convert_version_to_proper_semantic as cvs, GREMLIN_SERVER_URL_REST, format_date,
     version_info_tuple as vt, select_latest_version as slv,
-    get_osio_user_count, create_package_dict, is_quickstart_majority, execute_gremlin_dsl,
-    server_create_analysis, select_from_db, total_time_elapsed)
-import semantic_version as sv
-import json
-from unittest import mock
-from tests.test_rest_api import response
-import os
-from src.utils import push_data, get_time_delta
+    get_osio_user_count, create_package_dict, is_quickstart_majority, post_http_request,
+    server_create_analysis, select_from_db, total_time_elapsed, post_gremlin,
+    GremlinExeception)
 
 METRICS_COLLECTION_URL = "http://{base_url}:{port}/api/v1/prometheus".format(
     base_url='metrics-accumulator-deepak1725-fabric8-analytics.devtools-dev.ext.devshift.net',
@@ -46,6 +48,10 @@ def mock_get_osio_user_count(*_args, **_kwargs):
         def json(self):
             """Get the mock json response."""
             return self.json_data
+
+        def raise_for_status(self):
+            if self.status_code != 200:
+                raise Exception('not 200')
 
     # return the URL to check whether we are calling the correct service.
     resp = {
@@ -166,10 +172,10 @@ def test_is_quickstart_majority():
 
 
 @mock.patch('requests.Session.post', side_effect=mock_error_response)
-def test_execute_gremlin_dsl(_mock1):
+def test_post_http_request(_mock1):
     """Test error response for gremlin."""
     payload = {'gremlin': ''}
-    result = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
+    result = post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
     assert result is None
 
 
@@ -230,12 +236,29 @@ def test_get_time_delta_with_no_param():
     assert get_time_delta({}) is None
 
 
+@mock.patch('requests.Session.post', return_value=None)
+def test_post_gremlin_exception(_mock_post):
+    """Test error response for gremlin."""
+    with raises(GremlinExeception):
+        post_gremlin(query='gremlin_quey', bindings={'val': 123})
+
+
+@mock.patch('requests.Session.post', side_effect=mock_get_osio_user_count)
+def test_post_gremlin_normal(_mock_post):
+    """Test error response for gremlin."""
+    post_gremlin(query='gremlin_query', bindings={'val': 123})
+    _mock_post.assert_called_once()
+    kwargs = _mock_post.call_args_list[0][1]['json']
+    assert kwargs['gremlin'] == 'gremlin_query'
+    assert kwargs['bindings'] == {'val': 123}
+
+
 if __name__ == '__main__':
     test_semantic_versioning()
     test_version_info_tuple()
     test_select_latest_version()
     test_get_osio_user_count()
     test_is_quickstart_majority()
-    test_execute_gremlin_dsl()
+    test_post_http_request()
     test_create_package_dict()
     test_server_create_analysis()

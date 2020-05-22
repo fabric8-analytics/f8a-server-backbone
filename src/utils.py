@@ -1,24 +1,40 @@
 """Various utility functions used across the repo."""
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
-import requests
-import os
 import datetime
-import semantic_version as sv
 import logging
-from flask import current_app
+import os
+import time
+import traceback
+
+import requests
+import semantic_version as sv
+
+from typing import Dict
+from f8a_utils.versions import get_versions_for_ep
 from f8a_worker.models import WorkerResult
 from f8a_worker.setup_celery import init_celery
-from selinon import run_flow
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.dialects.postgresql import insert
-import traceback
-from f8a_utils.versions import get_versions_for_ep
+from flask import current_app
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 from requests_futures.sessions import FuturesSession
-import time
+from selinon import run_flow
+from sqlalchemy import create_engine
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import sessionmaker
+
+
+class DatabaseException(Exception):
+    """Exception related to RDBS operation failures."""
+
+
+class GremlinExeception(Exception):
+    """Exception related to Gremlin server failures."""
+
+
+class RequestException(Exception):
+    """Exception related to request http library failures."""
+
 
 logger = logging.getLogger(__file__)
 GREMLIN_SERVER_URL_REST = "http://{host}:{port}".format(
@@ -89,7 +105,7 @@ def get_osio_user_count(ecosystem, name, version):
         'gremlin': str_gremlin
     }
 
-    json_response = execute_gremlin_dsl(url=GREMLIN_SERVER_URL_REST, payload=payload)
+    json_response = post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
     return json_response.get('result').get('data', ['-1'])[0]
 
 
@@ -301,17 +317,14 @@ def persist_data_in_db(external_request_id, task_result, worker, started_at=None
             set_=dict(task_result=task_result))
         session.execute(do_update_stmt)
         session.commit()
-        return {'recommendation': 'success', 'external_request_id': external_request_id,
-                'result': task_result}
     except (SQLAlchemyError, Exception) as e:
         logger.error("Error %r." % e)
         session.rollback()
-        return {'recommendation': 'database error', 'external_request_id': external_request_id,
-                'message': '%s' % e}
+        raise DatabaseException from e
 
 
-def execute_gremlin_dsl(url, payload):
-    """Execute the gremlin query and return the response."""
+def post_http_request(url, payload):
+    """Post the given payload to url."""
     try:
         response = get_session_retry().post(url=url, json=payload)
         if response.status_code == 200:
@@ -322,9 +335,25 @@ def execute_gremlin_dsl(url, payload):
                     code=response.status_code, url=url))
             return None
 
-    except Exception:
+    except Exception as e:
         logger.error(traceback.format_exc())
-        return None
+        raise RequestException from e
+
+
+def post_gremlin(query: str, bindings: Dict = None) -> Dict:
+    """Post the given query and bindings to gremlin endpoint."""
+    try:
+        payload = {
+            'gremlin': query,
+        }
+        if bindings:
+            payload['bindings'] = bindings
+        response = get_session_retry().post(url=GREMLIN_SERVER_URL_REST, json=payload)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        raise GremlinExeception from e
 
 
 def get_response_data(json_response, data_default):
