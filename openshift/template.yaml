@@ -113,7 +113,8 @@ objects:
             failureThreshold: 3
             successThreshold: 1
             httpGet:
-              path: /liveness
+              path: /api/liveness
+              port: ${{API_BACKBONE_SERVICE_PORT}}
           readinessProbe:
             initialDelaySeconds: 20
             periodSeconds: 60
@@ -121,7 +122,8 @@ objects:
             failureThreshold: 3
             successThreshold: 1
             httpGet:
-              path: /readiness
+              path: /api/readiness
+              port: ${{API_BACKBONE_SERVICE_PORT}}
           resources:
             requests:
               cpu: ${CPU_REQUEST}
