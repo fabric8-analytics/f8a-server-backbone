@@ -4,7 +4,7 @@
 #   timestamp: 2020-04-25T19:10:47+00:00
 
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field, validator
