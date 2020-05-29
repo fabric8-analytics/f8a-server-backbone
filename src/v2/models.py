@@ -110,24 +110,24 @@ class LicenseAnalysis(BaseModel):  # noqa: D101
 
 class UsedByItem(BaseModel):  # noqa: D101
     name: Optional[str] = None
-    stars: Optional[int] = None
+    stars: Optional[str] = None
 
 
 class GitHubDetails(BaseModel):  # noqa: D101
-    watchers: Optional[int] = None
+    watchers: Optional[str] = None
     first_release_date: Optional[str] = None
-    total_releases: Optional[int] = None
+    total_releases: Optional[str] = None
     issues: Optional[Dict[str, Any]] = None
     pull_requests: Optional[Dict[str, Any]] = None
-    dependent_repos: Optional[Union[int, str]] = None
-    open_issues_count: Optional[int] = None
+    dependent_repos: Optional[str] = None
+    open_issues_count: Optional[str] = None
     latest_release_duration: Optional[str] = None
-    forks_count: Optional[int] = None
-    contributors: Optional[int] = None
+    forks_count: Optional[str] = None
+    contributors: Optional[str] = None
     size: Optional[str] = None
-    stargazers_count: Optional[int] = None
+    stargazers_count: Optional[str] = None
     used_by: Optional[List[UsedByItem]] = None
-    dependent_projects: Optional[int] = None
+    dependent_projects: Optional[str] = None
 
 
 class PackageDetails(Package):  # noqa: D101
