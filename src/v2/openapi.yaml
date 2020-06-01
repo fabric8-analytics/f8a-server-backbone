@@ -364,7 +364,7 @@ components:
           type: string
           example: "12"
         issues:
-          type: string
+          type: object
           properties: {}
         pull_requests:
           type: object
