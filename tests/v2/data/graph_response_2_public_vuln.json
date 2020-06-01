@@ -55,25 +55,25 @@
                         -1
                     ],
                     "package_dependents_count": [
-                        -1
+                      "100K"
                     ],
                     "gh_prs_last_month_opened": [
-                        -1
+                      "1K"
                     ],
                     "gh_issues_last_year_closed": [
-                        -1
+                      "1K"
                     ],
                     "last_updated": [
                         1.5852810389354534E9
                     ],
                     "gh_prs_last_month_closed": [
-                        -1
+                      "100K"
                     ],
                     "libio_total_releases": [
                         "196"
                     ],
                     "gh_prs_last_year_opened": [
-                        -1
+                      "100K"
                     ],
                     "name": [
                         "django"
