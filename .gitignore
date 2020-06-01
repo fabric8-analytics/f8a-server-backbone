@@ -19,3 +19,4 @@ latex/
 .DS_Store
 *.log
 *.err
+.env

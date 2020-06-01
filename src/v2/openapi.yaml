@@ -348,7 +348,7 @@ components:
           type: boolean
         total_licenses:
           type: integer
-          example: 15          
+          example: 15
       description: License analyses data
 
     GitHubDetails:
@@ -356,13 +356,13 @@ components:
       type: object
       properties:
         watchers:
-          type: integer
-          example: 1002
+          type: string
+          example: "100K"
         first_release_date:
           type: string
         total_releases:
-          type: integer
-          example: 12
+          type: string
+          example: "12"
         issues:
           type: object
           properties: {}
@@ -370,29 +370,29 @@ components:
           type: object
           properties: {}
         dependent_repos:
-          type: integer
+          type: string
         open_issues_count:
-          type: integer
+          type: string
         latest_release_duration:
           type: string
         forks_count:
-          type: integer
-          example: 123
+          type: string
+          example: "123"
         contributors:
-          type: integer
-          example: 12
+          type: string
+          example: "12"
         size:
           type: string
         stargazers_count:
-          type: integer
-          example: 50000
+          type: string
+          example: "50K"
         used_by:
           type: array
           items:
             type: string
         dependent_projects:
-          type: integer
-          example: 1534
+          type: string
+          example: "11K"
       description: Github details
 
     PackageDetails:
