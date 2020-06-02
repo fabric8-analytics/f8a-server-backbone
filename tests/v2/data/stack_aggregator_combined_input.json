@@ -2,7 +2,7 @@
     "external_request_id": "some_external_request_id",
     "packages": [],
     "manifest_file_path": "/home/JohnDoe1",
-    "manifest_file": "pom.xml",
+    "manifest_name": "pom.xml",
     "ecosystem": "maven",
     "result": {
         "summary": [],

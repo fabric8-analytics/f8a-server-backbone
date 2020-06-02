@@ -10,7 +10,7 @@
   }],
   "ecosystem": "maven",
   "manifest_file_path": "/home/JohnDoe",
-  "manifest_file": "pom.xml",
+  "manifest_name": "pom.xml",
 	"result": [{
     "ecosystem": "maven",
 		"summary": [],

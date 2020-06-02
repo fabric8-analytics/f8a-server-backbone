@@ -21,7 +21,7 @@ _SIX = Package(name='six', version='3.2.1')
 
 def _request_body():
     return {
-        "manifest_file": "requirements.txt",
+        "manifest_name": "requirements.txt",
         "manifest_file_path": "/foo/bar",
         "external_request_id": "test_id",
         "ecosystem": "pypi",
@@ -60,6 +60,10 @@ def test_with_2_public_vuln(_mock_license, _mock_gremlin, monkeypatch):
     # check _audit
     assert result['_audit'] is not None
     assert result['_audit']['version'] == 'v2'
+
+    # check manifest_name and manifest_file_path
+    assert result['manifest_name'] == 'requirements.txt'
+    assert result['manifest_file_path'] == '/foo/bar'
 
     # check analyzed_dependencies
     result = StackAggregatorResultForFreeTier(**result)

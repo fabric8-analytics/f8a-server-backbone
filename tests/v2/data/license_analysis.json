@@ -11,7 +11,7 @@
     }
   ],
   "ecosystem": "maven",
-  "manifest_file": "foo",
+  "manifest_name": "foo",
   "manifest_file_path": "bar",
   "filtered_alternate_packages": [],
   "filtered_companion_packages": [],
