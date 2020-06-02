@@ -70,7 +70,6 @@ def test_with_2_public_vuln(_mock_license, _mock_gremlin, monkeypatch):
     assert result.registration_link == 'https://abc.io/login'
     assert len(result.analyzed_dependencies) == 2
     assert _FLASK in result.analyzed_dependencies
-    assert _DJANGO in result.analyzed_dependencies
     assert _SIX not in result.analyzed_dependencies
 
     # check vuln
