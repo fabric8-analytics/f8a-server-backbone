@@ -240,13 +240,14 @@ class StackAggregatorRequest(BaseModel):  # noqa: D101
 
 
 class StackRecommendationResult(BaseModel):  # noqa: D101
-    _audit: 'Audit'
-    uuid: UUID
+    _audit: 'Audit' = None
+    uuid: UUID = None
     external_request_id: str
+    manifest_file_path: str = None
+    manifest_name: str = None
     registration_status: 'RegistrationStatus'
-    recommendation_status: 'RecommendationStatus'
+    recommendation_status: 'RecommendationStatus' = 'success'
     companion: List['RecommendedPackageData']
-    manifest_file_path: str
     usage_outliers: List[Dict[str, Any]]
 
 
@@ -257,3 +258,4 @@ class RecommenderRequest(StackAggregatorRequest):  # noqa: D101
 Package.update_forward_refs()
 PackageDetailsForRegisteredUser.update_forward_refs()
 PackageDetailsForFreeTier.update_forward_refs()
+RecommendedPackageData.update_forward_refs()
