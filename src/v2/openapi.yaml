@@ -95,7 +95,7 @@ components:
         - external_request_id
         - ecosystem
         - packages
-        - manifest_file
+        - manifest_name
         - manifest_file_path
       properties:
         registration_status:
@@ -113,7 +113,7 @@ components:
             This is required to enable or disable the transitive support
         ecosystem:
           $ref: '#/components/schemas/Ecosystem'
-        manifest_file:
+        manifest_name:
           type: string
         manifest_file_path:
           type: string
