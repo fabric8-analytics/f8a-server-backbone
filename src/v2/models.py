@@ -230,7 +230,7 @@ class StackAggregatorRequest(BaseModel):  # noqa: D101
         description='This is required to enable or disable the transitive support\n',
     )
     ecosystem: 'Ecosystem'
-    manifest_file: str
+    manifest_name: Optional[str] = None
     manifest_file_path: str
     packages: List['Package']
 
