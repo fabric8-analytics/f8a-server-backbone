@@ -173,8 +173,8 @@ class PackageDetailsForFreeTier(PackageDetails):  # noqa: D101
 
 
 class RecommendedPackageData(PackageDetails):  # noqa: D101
-    confidence_reason: Optional[float] = None
-    reason: Optional[str] = None
+    cooccurrence_probability: Optional[float] = 0
+    cooccurrence_count: int = 0
     topic_list: Optional[List[str]] = None
 
 
