@@ -493,11 +493,11 @@ components:
       - $ref: '#/components/schemas/PackageDetails'
       - type: object
         properties:
-          confidence_reason:
+          cooccurrence_probability:
             type: number
             format: float
             example: 83.16431
-          reason:
+          cooccurrence_count:
             type: string
           topic_list:
             type: array
@@ -540,7 +540,7 @@ components:
           enum:
             - success
             - pgm_error
-          example: success
+          default: success
         companion:
           type: array
           items:

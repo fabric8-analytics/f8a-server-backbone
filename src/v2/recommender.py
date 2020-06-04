@@ -15,7 +15,7 @@ from src.utils import (create_package_dict, get_session_retry, select_latest_ver
                        LICENSE_SCORING_URL_REST, convert_version_to_proper_semantic,
                        get_response_data, version_info_tuple, persist_data_in_db,
                        is_quickstart_majority, post_gremlin)
-from src.v2.models import RecommenderRequest
+from src.v2.models import RecommenderRequest, StackRecommendationResult
 from src.v2.stack_aggregator import extract_user_stack_package_licenses
 from src.v2.normalized_packages import NormalizedPackages
 
@@ -169,7 +169,7 @@ class GraphDB:
             if name:
                 for pgm_epv in pgm_list:
                     if name == pgm_epv.get('package_name', ''):
-                        epv['package']['pgm_topics'] = pgm_epv.get('topic_list', [])
+                        epv['package']['topic_list'] = pgm_epv.get('topic_list', [])
                         epv['package']['cooccurrence_probability'] = pgm_epv.get(
                             'cooccurrence_probability', 0)
                         epv['package']['cooccurrence_count'] = pgm_epv.get(
@@ -361,7 +361,6 @@ class RecommendationTask:
         recommendation = {
             'companion': [],
             'usage_outliers': [],
-            'manifest_file_path': request.manifest_file_path
         }
         package_list = [epv.name for epv in normalized_packages.direct_dependencies]
         if package_list:
@@ -462,6 +461,8 @@ class RecommendationTask:
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         audit = {'started_at': started_at, 'ended_at': ended_at, 'version': 'v2'}
 
+        recommendation = StackRecommendationResult(**recommendation,
+                                                   **request.dict()).dict()
         recommendation['_audit'] = audit
 
         if persist:
