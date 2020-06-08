@@ -343,7 +343,8 @@ def post_gremlin(query: str, bindings: Dict = None) -> Dict:
         payload = {
             'gremlin': query,
         }
-        payload['bindings'] = bindings
+        if bindings:
+            payload['bindings'] = bindings
         response = get_session_retry().post(url=GREMLIN_SERVER_URL_REST, json=payload)
         response.raise_for_status()
         return response.json()
