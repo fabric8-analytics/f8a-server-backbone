@@ -23,6 +23,14 @@ class Severity(str, Enum):  # noqa: D101  # noqa: D101
     critical = 'critical'
 
 
+class LicenseAnalysisStatus(str, Enum):  # noqa: D101  # noqa: D101
+    ComponentConflict = 'ComponentConflict'
+    StackConflict = 'StackConflict'
+    Successful = 'Successful'
+    Unknown = 'Unknown'
+    Failure = 'Failure'
+
+
 class BasicVulnerabilityFields(BaseModel):  # noqa: D101
     cve_ids: Optional[List[str]] = None
     cvss: float
@@ -99,13 +107,14 @@ class ConflictPackages(BaseModel):  # noqa: D101
 
 
 class LicenseAnalysis(BaseModel):  # noqa: D101
+    reason: Optional[str] = None
+    status: Optional[LicenseAnalysisStatus] = None
+    recommended_licenses: Optional[List[str]] = None
     outlier_packages: List[Dict[str, Any]] = None
     conflict_packages: List['ConflictPackages'] = None
     current_stack_license: Dict[str, Any] = None
     unknown_licenses: 'UnknownLicenses' = None
     distinct_licenses: Optional[List[str]] = None
-    stack_license_conflict: Optional[bool] = None
-    total_licenses: Optional[int] = None
 
 
 class UsedByItem(BaseModel):  # noqa: D101

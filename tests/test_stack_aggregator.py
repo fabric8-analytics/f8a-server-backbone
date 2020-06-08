@@ -54,6 +54,10 @@ def mock_dependency_response(*_args, **_kwargs):
             """Get the mock json response."""
             return self.json_data
 
+        def raise_for_status(self):
+            if self.status_code != 200:
+                raise Exception('not 200')
+
     with open('tests/data/dependency_response.json') as f:
         resp = json.loads(f.read())
     return MockResponse(resp, 200)
@@ -132,6 +136,10 @@ def mock_licenses_resp_unknown(*_args, **_kwargs):
         def json(self):
             """Get the mock json response."""
             return self.json_data
+
+        def raise_for_status(self):
+            if self.status_code != 200:
+                raise Exception('not 200')
 
     with open('tests/data/license_unknown.json') as f:
         resp = json.loads(f.read())

@@ -326,6 +326,22 @@ components:
         - current_stack_license
         - unknown_licenses
       properties:
+        reason:
+          type: string
+          example: |
+            Cannot calculate stack license due to unknown dependencies or license not supported.
+        status:
+          type: string
+          enum:
+            - ComponentConflict
+            - StackConflict
+            - Successful
+            - Unknown
+            - Failure
+        recommended_licenses:
+          type: array
+          items:
+            type: string
         outlier_packages:
           type: array
           items:
@@ -344,11 +360,6 @@ components:
           type: array
           items:
             type: string
-        stack_license_conflict:
-          type: boolean
-        total_licenses:
-          type: integer
-          example: 15
       description: License analyses data
 
     GitHubDetails:

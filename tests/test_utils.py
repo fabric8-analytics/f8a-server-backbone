@@ -11,7 +11,7 @@ from src.utils import (
     version_info_tuple as vt, select_latest_version as slv,
     get_osio_user_count, create_package_dict, is_quickstart_majority, post_http_request,
     server_create_analysis, select_from_db, total_time_elapsed, post_gremlin,
-    GremlinExeception)
+    GremlinExeception, RequestException)
 
 METRICS_COLLECTION_URL = "http://{base_url}:{port}/api/v1/prometheus".format(
     base_url='metrics-accumulator-deepak1725-fabric8-analytics.devtools-dev.ext.devshift.net',
@@ -31,6 +31,10 @@ def mock_error_response(*_args, **_kwargs):
         def json(self):
             """Get the mock json response."""
             return self.json_data
+
+        def raise_for_status(self):
+            if self.status_code != 200:
+                raise Exception('not 200')
 
     return MockResponse({}, 500)
 
@@ -175,8 +179,8 @@ def test_is_quickstart_majority():
 def test_post_http_request(_mock1):
     """Test error response for gremlin."""
     payload = {'gremlin': ''}
-    result = post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
-    assert result is None
+    with raises(RequestException):
+        post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
 
 
 def test_server_create_analysis():
@@ -236,7 +240,7 @@ def test_get_time_delta_with_no_param():
     assert get_time_delta({}) is None
 
 
-@mock.patch('requests.Session.post', return_value=None)
+@mock.patch('requests.Session.post', side_effect=mock_error_response)
 def test_post_gremlin_exception(_mock_post):
     """Test error response for gremlin."""
     with raises(GremlinExeception):

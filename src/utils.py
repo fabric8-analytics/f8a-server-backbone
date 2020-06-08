@@ -323,20 +323,17 @@ def persist_data_in_db(external_request_id, task_result, worker, started_at=None
         raise DatabaseException from e
 
 
-def post_http_request(url, payload):
+def post_http_request(url: str, payload: Dict):
     """Post the given payload to url."""
     try:
         response = get_session_retry().post(url=url, json=payload)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            logger.error(
-                "HTTP error {code}. Error retrieving data from {url}.".format(
-                    code=response.status_code, url=url))
-            return None
-
+        response.raise_for_status()
+        return response.json()
     except Exception as e:
         logger.error(traceback.format_exc())
+        logger.error(
+            "HTTP error {code}. Error retrieving data from {url}.".format(
+                code=response.status_code, url=url))
         raise RequestException from e
 
 
@@ -346,13 +343,15 @@ def post_gremlin(query: str, bindings: Dict = None) -> Dict:
         payload = {
             'gremlin': query,
         }
-        if bindings:
-            payload['bindings'] = bindings
+        payload['bindings'] = bindings
         response = get_session_retry().post(url=GREMLIN_SERVER_URL_REST, json=payload)
         response.raise_for_status()
         return response.json()
     except Exception as e:
         logger.error(traceback.format_exc())
+        logger.error(
+            "HTTP error {code}. Error retrieving data for {query}.".format(
+                code=response.status_code, query=payload))
         raise GremlinExeception from e
 
 
