@@ -62,5 +62,5 @@
         }
     ],
     "stack_license": null,
-    "status": "ComponentLicenseConflict"
+    "status": "ComponentConflict"
 }

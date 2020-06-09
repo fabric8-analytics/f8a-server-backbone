@@ -41,18 +41,15 @@ def test_get_license_service_request_payload_args():
     assert len(diff) == 0
 
 
-@mock.patch('src.v2.license_service.post_http_request', return_value=None)
+@mock.patch('src.v2.license_service.post_http_request', side_effect=Exception())
 def test_get_license_analysis_for_stack_with_empty_param(_mock_post):
     """Test with empty normalized_packages."""
     result = la.get_license_analysis_for_stack({})
     _mock_post.assert_called_once()
     assert isinstance(result, LicenseAnalysis)
-    assert result.total_licenses == 0
-    assert result.conflict_packages == []
-    assert not result.stack_license_conflict
-    assert result.unknown_licenses.component_conflict is None
-    assert result.unknown_licenses.unknown is None
-    assert result.outlier_packages == []
+    assert result.conflict_packages is None
+    assert result.unknown_licenses is None
+    assert result.outlier_packages is None
 
 
 @mock.patch('src.v2.license_service.post_http_request')
@@ -65,9 +62,7 @@ def test_get_license_analysis_for_stack_unknown_licenses(_mock_post):
     result = la.get_license_analysis_for_stack(_get_normalized_packages())
     _mock_post.assert_called_once()
     assert isinstance(result, LicenseAnalysis)
-    assert result.total_licenses == 2
     assert result.conflict_packages == []
-    assert result.stack_license_conflict
     assert result.outlier_packages == []
     assert result.unknown_licenses.component_conflict == []
     assert len(result.unknown_licenses.unknown) == 1
@@ -84,13 +79,11 @@ def test_get_license_analysis_for_stack_conflict_packages(_mock_post):
     result = la.get_license_analysis_for_stack(_get_normalized_packages())
     _mock_post.assert_called_once()
     assert isinstance(result, LicenseAnalysis)
-    assert result.total_licenses == 2
     assert len(result.conflict_packages) == 1
     assert result.conflict_packages[0].package1 == 'package1'
     assert result.conflict_packages[0].package2 == 'package2'
     assert result.conflict_packages[0].license1 == 'license1'
     assert result.conflict_packages[0].license2 == 'license2'
-    assert result.stack_license_conflict
     assert result.unknown_licenses.unknown == []
     assert len(result.unknown_licenses.component_conflict) == 1
     assert result.unknown_licenses.component_conflict[0].package == 'p2'

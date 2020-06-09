@@ -4,7 +4,6 @@ import logging
 
 from typing import Set
 
-import requests
 from src.utils import LICENSE_SCORING_URL_REST, post_http_request
 from src.v2.models import LicenseAnalysis
 
@@ -87,7 +86,7 @@ def _extract_unknown_licenses(license_service_output):
                     })
 
     # (fixme) refactoring
-    if license_service_output.get('status', '') == 'ComponentLicenseConflict':
+    if license_service_output.get('status', '') == 'ComponentConflict':
         list_components = license_service_output.get('packages', [])
         for comp in list_components:
             license_analysis = comp.get('license_analysis', {})
@@ -166,44 +165,27 @@ def get_license_analysis_for_stack(
     payload = {
         "packages": get_license_service_request_payload(normalized_package_details)
     }
-    resp = {}
-    flag_stack_license_exception = False
+
     # (fixme) refactoring
     try:
         resp = post_http_request(url=license_url, payload=payload)
-        # lic_response.raise_for_status()  # raise exception for bad http-status codes
-        if not resp:
-            raise requests.exceptions.RequestException
-    except requests.exceptions.RequestException:
-        logger.exception("Unexpected error happened while invoking license analysis!")
-        flag_stack_license_exception = True
-
-    stack_license = []
-    unknown_licenses = []
-    license_conflict_packages = []
-    license_outliers = []
-    if not flag_stack_license_exception:
-        # Unused as of now
-        # list_components = resp.get('packages', [])
-        # for comp in list_components:  # output from license analysis
-        #     pkg = Package(name=comp['package'], version=comp['version'])
-        #     package_detail = normalized_package_details.get(pkg)
-        #     if package_detail:
-        #         package_detail.license_analysis = comp.get('license_analysis', {})
-
-        _stack_license = resp.get('stack_license', None)
-        if _stack_license is not None:
-            stack_license = [_stack_license]
+    except Exception as e:
+        logger.exception("Unexpected error(%s) happened while invoking license analysis!",
+                         e)
+    else:
         unknown_licenses = _extract_unknown_licenses(resp)
         license_conflict_packages = _extract_conflict_packages(resp)
         license_outliers = _extract_license_outliers(resp)
 
-    stack_distinct_licenses = list(get_distinct_licenses(normalized_package_details))
-    stack_license_conflict = (len(stack_license) == 0 and
-                              len(stack_distinct_licenses) > 0)
-    return LicenseAnalysis(total_licenses=len(stack_distinct_licenses),
-                           distinct_licenses=stack_distinct_licenses,
-                           stack_license_conflict=stack_license_conflict,
-                           unknown_licenses=unknown_licenses,
-                           conflict_packages=license_conflict_packages,
-                           outlier_packages=license_outliers)
+        stack_license = resp.get('stack_license', None)
+        stack_license = [stack_license] if stack_license else None
+        reason = resp.get('message')
+        status = resp.get('status', None)
+        stack_distinct_licenses = list(get_distinct_licenses(normalized_package_details))
+        return LicenseAnalysis(reason=reason, status=status,
+                               recommended_licenses=stack_license,
+                               distinct_licenses=stack_distinct_licenses,
+                               unknown_licenses=unknown_licenses,
+                               conflict_packages=license_conflict_packages,
+                               outlier_packages=license_outliers)
+    return LicenseAnalysis()
