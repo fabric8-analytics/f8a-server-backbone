@@ -17,6 +17,7 @@ from src.v2.normalized_packages import NormalizedPackages
 _DJANGO = Package(name='django', version='1.2.1')
 _FLASK = Package(name='flask', version='0.12')
 _SIX = Package(name='six', version='3.2.1')
+_FOO_UNKNOWN = Package(name='foo_unknown', version='0.0.0')
 
 
 def _request_body():
@@ -180,12 +181,15 @@ def test_unknown_flow(_mock_license, _mock_gremlin, _mock_unknown):
         _mock_gremlin.return_value = json.load(fin)
 
     payload = _request_body()
-    # add unknown package
+    # add unknown package as direct dependency
     payload['packages'].append(_SIX.dict())
+    # add unknown packages as transitive dependency
+    payload['packages'][0]['dependencies'].append(_SIX.dict())
+    payload['packages'][0]['dependencies'].append(_FOO_UNKNOWN.dict())
     resp = StackAggregator().execute(payload, persist=False)
     _mock_license.assert_called_once()
     _mock_gremlin.assert_called()
-    _mock_unknown.assert_called_once()
+    _mock_unknown.assert_called()
     assert resp['aggregation'] == 'success'
     assert resp['result'] is not None
     result = resp['result']
@@ -195,7 +199,10 @@ def test_unknown_flow(_mock_license, _mock_gremlin, _mock_unknown):
     result = StackAggregatorResultForFreeTier(**result)
     assert len(result.analyzed_dependencies) == 2
     assert len(result.unknown_dependencies) == 1
+
     assert _SIX in result.unknown_dependencies
+    # transitive shouldn't be part of unknown
+    assert _FOO_UNKNOWN not in result.unknown_dependencies
 
     _mock_unknown.reset_mock()
     _mock_unknown.side_effect = Exception('mocked exception')

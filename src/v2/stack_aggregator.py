@@ -21,8 +21,7 @@ from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails
                            PackageDetailsForRegisteredUser,
                            Package, Audit, Ecosystem,
                            StackAggregatorResultForFreeTier,
-                           StackAggregatorResultForRegisteredUser,
-                           StackAggregatorResult)
+                           StackAggregatorResultForRegisteredUser)
 from src.v2.normalized_packages import NormalizedPackages
 from src.v2.license_service import (get_license_analysis_for_stack,
                                     get_license_service_request_payload)
@@ -174,18 +173,6 @@ def _get_snyk_package_link(ecosystem, package):
                                                      package=package)
 
 
-def initiate_unknown_package_ingestion(output: StackAggregatorResult):
-    """Ingestion of Unknown dependencies."""
-    try:
-        for dep in output.unknown_dependencies:
-            server_create_analysis(output.ecosystem, dep.name, dep.version, api_flow=True,
-                                   force=False, force_graph_sync=True)
-    except Exception as e:  # pylint:disable=W0703,C0103
-        logger.error('Ingestion has been failed for {%s, %s, %s}',
-                     output.ecosystem, dep.name, dep.version)
-        logger.error(e)
-
-
 class Aggregator(ABC):
     """Base class which contains common functionality related to aggregation."""
 
@@ -316,14 +303,29 @@ class Aggregator(ABC):
             package_details.append(package_detail)
         return package_details
 
-    def _get_unknown_packages(self) -> List[Package]:
+    def get_unknown_packages(self, include_transitive=False) -> List[Package]:
         """Get list of unknown packages from the normalized_package_details."""
-        all_dependencies = set(self._normalized_packages.all_dependencies)
+        if include_transitive:
+            all_dependencies = set(self._normalized_packages.all_dependencies)
+        else:
+            all_dependencies = set(self._normalized_packages.direct_dependencies)
         analyzed_dependencies = set(self._normalized_package_details.keys())
         unknown_dependencies = list()
         for pkg in all_dependencies.difference(analyzed_dependencies):
             unknown_dependencies.append(pkg)
         return unknown_dependencies
+
+    def initiate_unknown_package_ingestion(self):
+        """Ingestion of Unknown dependencies."""
+        ecosystem = self._normalized_packages.ecosystem
+        try:
+            for dep in self.get_unknown_packages(include_transitive=True):
+                server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
+                                       force=False, force_graph_sync=True)
+        except Exception as e:  # pylint:disable=W0703,C0103
+            logger.error('Ingestion has been failed for {%s, %s, %s}',
+                         ecosystem, dep.name, dep.version)
+            logger.error(e)
 
     @abstractmethod
     def create_vulnerability(self,
@@ -355,7 +357,7 @@ class Aggregator(ABC):
         """Aggregate stack data."""
         # denormalize package details according to request.dependencies relations
         package_details = self._get_denormalized_package_details()
-        unknown_dependencies = self._get_unknown_packages()
+        unknown_dependencies = self.get_unknown_packages(include_transitive=False)
         license_analysis = get_license_analysis_for_stack(self._normalized_package_details)
         return self.create_result(**self._request.dict(exclude={'packages'}),
                                   analyzed_dependencies=package_details,
@@ -410,7 +412,7 @@ class StackAggregator:
     """Aggregate stack data from components."""
 
     @staticmethod
-    def process_request(request) -> Aggregator:
+    def process_request(request: Dict) -> Aggregator:
         """Task code."""
         request = StackAggregatorRequest(**request)
         normalized_packages = NormalizedPackages(request.packages,
@@ -421,14 +423,15 @@ class StackAggregator:
             aggregator = Freetier(request, normalized_packages)
 
         aggregator.fetch_details()
-        return aggregator.get_result()
+        return aggregator
 
     @staticmethod
-    def execute(request, persist=True):
+    def execute(request: Dict, persist=True):
         """Task code."""
         # (fixme): Use timestamp instead of str representation.
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
-        output = StackAggregator.process_request(request)
+        aggregator = StackAggregator.process_request(request)
+        output = aggregator.get_result()
         output_dict = output.dict()
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         # (fixme): Remove _ to make it as part of pydantic model.
@@ -440,7 +443,7 @@ class StackAggregator:
                                started_at=started_at, ended_at=ended_at)
             logger.info("Aggregation process completed for %s. "
                         "Result persisted into RDS.", output.external_request_id)
-        initiate_unknown_package_ingestion(output)
+        aggregator.initiate_unknown_package_ingestion()
         # result attribute is added to keep a compatibility with v1
         # otherwise metric accumulator related handling has to be
         # customized for v2.
