@@ -25,7 +25,7 @@ def _get_normalized_packages():
                                             ecosystem='pypi',
                                             licenses=['XYZ', 'ABC'])
 
-    return {flask: flask_details, six: six_details}
+    return [flask_details, six_details]
 
 
 def test_get_license_service_request_payload_args():

@@ -2,10 +2,10 @@
 
 import logging
 
-from typing import Set
+from typing import List, Set
 
 from src.utils import LICENSE_SCORING_URL_REST, post_http_request
-from src.v2.models import LicenseAnalysis
+from src.v2.models import LicenseAnalysis, PackageDetails
 
 
 logger = logging.getLogger(__file__)  # pylint:disable=C0103
@@ -136,34 +136,34 @@ def _extract_license_outliers(license_service_output):
     return outliers
 
 
-def get_distinct_licenses(normalized_package_details) -> Set[str]:
+def get_distinct_licenses(package_details: List[PackageDetails]) -> Set[str]:
     """Return list of unique license in the given PackageDetails."""
     licenses = list()
-    for _, package_detail in normalized_package_details.items():
+    for package_detail in package_details:
         licenses.extend(package_detail.licenses)
     return set(licenses)
 
 
-def get_license_service_request_payload(normalized_package_details):
+def get_license_service_request_payload(package_details: List[PackageDetails]):
     """Prepare payload for license server."""
     license_score_list = []
-    for pkg, package_detail in normalized_package_details.items():
+    for package_detail in package_details:
         license_score_list.append({
-            'package': pkg.name,
-            'version': pkg.version,
+            'package': package_detail.name,
+            'version': package_detail.version,
             'licenses': package_detail.licenses
         })
     return license_score_list
 
 
 def get_license_analysis_for_stack(
-        normalized_package_details) -> LicenseAnalysis:  # pylint:disable=R0914
+        package_details: List[PackageDetails]) -> LicenseAnalysis:  # pylint:disable=R0914
     """Create LicenseAnalysis from license server."""
     license_url = LICENSE_SCORING_URL_REST + "/api/v1/stack_license"
 
     # form payload for license service request
     payload = {
-        "packages": get_license_service_request_payload(normalized_package_details)
+        "packages": get_license_service_request_payload(package_details)
     }
 
     # (fixme) refactoring
@@ -181,7 +181,7 @@ def get_license_analysis_for_stack(
         stack_license = [stack_license] if stack_license else None
         reason = resp.get('message')
         status = resp.get('status', None)
-        stack_distinct_licenses = list(get_distinct_licenses(normalized_package_details))
+        stack_distinct_licenses = list(get_distinct_licenses(package_details))
         return LicenseAnalysis(reason=reason, status=status,
                                recommended_licenses=stack_license,
                                distinct_licenses=stack_distinct_licenses,
