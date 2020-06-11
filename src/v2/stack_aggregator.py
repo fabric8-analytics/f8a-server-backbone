@@ -323,7 +323,7 @@ class Aggregator(ABC):
                 server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
                                        force=False, force_graph_sync=True)
         except Exception as e:  # pylint:disable=W0703,C0103
-            logger.error('Ingestion has been failed for {%s, %s, %s}',
+            logger.error('Ingestion failed for {%s, %s, %s}',
                          ecosystem, dep.name, dep.version)
             logger.error(e)
 
