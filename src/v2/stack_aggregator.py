@@ -358,7 +358,7 @@ class Aggregator(ABC):
         # denormalize package details according to request.dependencies relations
         package_details = self._get_denormalized_package_details()
         unknown_dependencies = self.get_unknown_packages(include_transitive=False)
-        license_analysis = get_license_analysis_for_stack(self._normalized_package_details)
+        license_analysis = get_license_analysis_for_stack(package_details)
         return self.create_result(**self._request.dict(exclude={'packages'}),
                                   analyzed_dependencies=package_details,
                                   unknown_dependencies=unknown_dependencies,
