@@ -10,7 +10,7 @@ import time
 import logging
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Set
 from src.settings import Settings
 from src.utils import (select_latest_version, server_create_analysis,
                        persist_data_in_db, post_gremlin, GREMLIN_QUERY_SIZE,
@@ -303,29 +303,17 @@ class Aggregator(ABC):
             package_details.append(package_detail)
         return package_details
 
-    def get_unknown_packages(self, include_transitive=False) -> List[Package]:
-        """Get list of unknown packages from the normalized_package_details."""
-        if include_transitive:
-            all_dependencies = set(self._normalized_packages.all_dependencies)
-        else:
-            all_dependencies = set(self._normalized_packages.direct_dependencies)
+    def get_all_unknown_packages(self) -> Set[Package]:
+        """Get list of all unknowns from the normalized_package_details."""
+        all_dependencies = set(self._normalized_packages.all_dependencies)
         analyzed_dependencies = set(self._normalized_package_details.keys())
-        unknown_dependencies = list()
-        for pkg in all_dependencies.difference(analyzed_dependencies):
-            unknown_dependencies.append(pkg)
-        return unknown_dependencies
+        return all_dependencies.difference(analyzed_dependencies)
 
-    def initiate_unknown_package_ingestion(self):
-        """Ingestion of Unknown dependencies."""
-        ecosystem = self._normalized_packages.ecosystem
-        try:
-            for dep in self.get_unknown_packages(include_transitive=True):
-                server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
-                                       force=False, force_graph_sync=True)
-        except Exception as e:  # pylint:disable=W0703,C0103
-            logger.error('Ingestion has been failed for {%s, %s, %s}',
-                         ecosystem, dep.name, dep.version)
-            logger.error(e)
+    def _get_direct_unknown_packages(self) -> Set[Package]:
+        """Get list of direct unknowns from the normalized_package_details."""
+        all_dependencies = set(self._normalized_packages.direct_dependencies)
+        analyzed_dependencies = set(self._normalized_package_details.keys())
+        return all_dependencies.difference(analyzed_dependencies)
 
     @abstractmethod
     def create_vulnerability(self,
@@ -357,7 +345,7 @@ class Aggregator(ABC):
         """Aggregate stack data."""
         # denormalize package details according to request.dependencies relations
         package_details = self._get_denormalized_package_details()
-        unknown_dependencies = self.get_unknown_packages(include_transitive=False)
+        unknown_dependencies = self._get_direct_unknown_packages()
         license_analysis = get_license_analysis_for_stack(self._normalized_package_details)
         return self.create_result(**self._request.dict(exclude={'packages'}),
                                   analyzed_dependencies=package_details,
@@ -408,6 +396,19 @@ class Registered(Aggregator):
         return StackAggregatorResultForRegisteredUser(**kwargs)
 
 
+def initiate_unknown_package_ingestion(aggregator: Aggregator):
+    """Ingestion of Unknown dependencies."""
+    ecosystem = aggregator._normalized_packages.ecosystem
+    try:
+        for dep in aggregator.get_all_unknown_packages():
+            server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
+                                   force=False, force_graph_sync=True)
+    except Exception as e:  # pylint:disable=W0703,C0103
+        logger.error('Ingestion has been failed for {%s, %s, %s}',
+                     ecosystem, dep.name, dep.version)
+        logger.error(e)
+
+
 class StackAggregator:
     """Aggregate stack data from components."""
 
@@ -443,7 +444,7 @@ class StackAggregator:
                                started_at=started_at, ended_at=ended_at)
             logger.info("Aggregation process completed for %s. "
                         "Result persisted into RDS.", output.external_request_id)
-        aggregator.initiate_unknown_package_ingestion()
+        initiate_unknown_package_ingestion(aggregator)
         # result attribute is added to keep a compatibility with v1
         # otherwise metric accumulator related handling has to be
         # customized for v2.
