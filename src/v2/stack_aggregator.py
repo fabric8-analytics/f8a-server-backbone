@@ -4,6 +4,7 @@ Gathers component data from the graph database and aggregate the data to be pres
 by stack-analyses endpoint
 """
 
+import os
 import datetime
 import inspect
 import time
@@ -398,15 +399,16 @@ class Registered(Aggregator):
 
 def initiate_unknown_package_ingestion(aggregator: Aggregator):
     """Ingestion of Unknown dependencies."""
-    ecosystem = aggregator._normalized_packages.ecosystem
-    try:
-        for dep in aggregator.get_all_unknown_packages():
-            server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
-                                   force=False, force_graph_sync=True)
-    except Exception as e:  # pylint:disable=W0703,C0103
-        logger.error('Ingestion failed for {%s, %s, %s}',
-                     ecosystem, dep.name, dep.version)
-        logger.error(e)
+    if os.environ.get("DISABLE_UNKNOWN_PACKAGE_FLOW", "") != "1":
+        ecosystem = aggregator._normalized_packages.ecosystem
+        try:
+            for dep in aggregator.get_all_unknown_packages():
+                server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
+                                       force=False, force_graph_sync=True)
+        except Exception as e:  # pylint:disable=W0703,C0103
+            logger.error('Ingestion failed for {%s, %s, %s}',
+                         ecosystem, dep.name, dep.version)
+            logger.error(e)
 
 
 class StackAggregator:

@@ -101,6 +101,8 @@ objects:
             value: "metrics-accumulator"
           - name: METRICS_ENDPOINT_URL_PORT
             value: "5200"
+          - name: DISABLE_UNKNOWN_PACKAGE_FLOW
+            value: ${DISABLE_UNKNOWN_PACKAGE_FLOW}
 
           image: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${IMAGE_TAG}"
           name: f8a-server-backbone
@@ -226,4 +228,10 @@ parameters:
   required: false
   name: FLASK_LOGGING_LEVEL
   value: "INFO"
+
+- description: Flag to enable or disable the unknown package ingetion flow
+  displayName: DISABLE UNKNOWN PACKAGE FLOW
+  required: false
+  name: DISABLE_UNKNOWN_PACKAGE_FLOW
+  value: "0"
 
