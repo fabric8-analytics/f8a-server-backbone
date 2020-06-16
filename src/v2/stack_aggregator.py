@@ -399,7 +399,10 @@ class Registered(Aggregator):
 
 def initiate_unknown_package_ingestion(aggregator: Aggregator):
     """Ingestion of Unknown dependencies."""
-    if os.environ.get("DISABLE_UNKNOWN_PACKAGE_FLOW", "") != "1":
+    if os.environ.get("DISABLE_UNKNOWN_PACKAGE_FLOW", "") == "1":
+        logger.warning('Unknown package flow is disabled')
+        print('Unknown package flow is disabled')
+    else:
         ecosystem = aggregator._normalized_packages.ecosystem
         try:
             for dep in aggregator.get_all_unknown_packages():
