@@ -398,16 +398,15 @@ class Registered(Aggregator):
 
 def initiate_unknown_package_ingestion(aggregator: Aggregator):
     """Ingestion of Unknown dependencies."""
+    if Settings().disable_unknown_package_flow:
+        logger.warning('Skipping unknown flow %s', aggregator.get_all_unknown_packages())
+        return
+
     ecosystem = aggregator._normalized_packages.ecosystem
     try:
         for dep in aggregator.get_all_unknown_packages():
-            if Settings().disable_unknown_package_flow:
-                logger.warning('Unknown package {} with version {} skipped as '
-                               'DISABLE_UNKNOWN_PACKAGE_FLOW is set'.format(dep['name'],
-                                                                            dep['version']))
-            else:
-                server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
-                                       force=False, force_graph_sync=True)
+            server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
+                                   force=False, force_graph_sync=True)
     except Exception as e:  # pylint:disable=W0703,C0103
         logger.error('Ingestion failed for {%s, %s, %s}',
                      ecosystem, dep.name, dep.version)
