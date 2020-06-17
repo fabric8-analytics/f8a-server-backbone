@@ -4,7 +4,6 @@ Gathers component data from the graph database and aggregate the data to be pres
 by stack-analyses endpoint
 """
 
-import os
 import datetime
 import inspect
 import time
@@ -399,7 +398,7 @@ class Registered(Aggregator):
 
 def initiate_unknown_package_ingestion(aggregator: Aggregator):
     """Ingestion of Unknown dependencies."""
-    if os.environ.get("DISABLE_UNKNOWN_PACKAGE_FLOW", "") == "1":
+    if Settings().disable_unknown_package_flow:
         logger.warning('Unknown package flow is disabled')
     else:
         ecosystem = aggregator._normalized_packages.ecosystem

@@ -174,6 +174,23 @@ def test_with_2_public_vuln_for_registered(_mock_license, _mock_gremlin):
 
 @mock.patch('src.v2.stack_aggregator.server_create_analysis')
 @mock.patch('src.v2.stack_aggregator.post_gremlin')
+def test_unknown_flow_with_disabled_flag(_mock_gremlin, _mock_unknown):
+    """Test unknown flow."""
+    with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
+        _mock_gremlin.return_value = json.load(fin)
+
+    payload = _request_body()
+    # add unknown package as direct dependency
+    payload['packages'].append(_SIX.dict())
+
+    # Disabled unknown flow check
+    with mock.patch.dict('os.environ', {'DISABLE_UNKNOWN_PACKAGE_FLOW': '1'}):
+        StackAggregator().execute(payload, persist=False)
+        _mock_unknown.assert_not_called()
+
+
+@mock.patch('src.v2.stack_aggregator.server_create_analysis')
+@mock.patch('src.v2.stack_aggregator.post_gremlin')
 @mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
 def test_unknown_flow(_mock_license, _mock_gremlin, _mock_unknown):
     """Test unknown flow."""
