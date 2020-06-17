@@ -662,16 +662,19 @@ class StackAggregator:
                          'external_request_id': external_request_id,
                          'result': stack_data}
         # Ingestion of Unknown dependencies
-        if Settings().disable_unknown_package_flow:
-            logger.warning('Unknown package flow is disabled')
-        else:
-            logger.info("Unknown ingestion flow process initiated.")
-            try:
-                for dep in unknown_dep_list:
+        logger.info("Unknown ingestion flow process initiated.")
+        try:
+            for dep in unknown_dep_list:
+                if Settings().disable_unknown_package_flow:
+                    logger.warning('Unknown package {} with version {} skipped as '
+                                   'DISABLE_UNKNOWN_PACKAGE_FLOW is set'.format(dep['name'],
+                                                                                dep['version']))
+                else:
                     server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=True,
                                            force=False, force_graph_sync=True)
-            except Exception as e:
-                logger.error('Ingestion has been failed for ' + dep['name'])
-                logger.error(e)
-                pass
+        except Exception as e:
+            logger.error('Ingestion has been failed for ' + dep['name'])
+            logger.error(e)
+            pass
+
         return persiststatus
