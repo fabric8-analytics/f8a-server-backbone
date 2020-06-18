@@ -180,7 +180,7 @@ def test_unknown_flow_with_disabled_flag(_mock_gremlin, _mock_unknown, monkeypat
         _mock_gremlin.return_value = json.load(fin)
 
     payload = _request_body()
-    # add unknown package as direct dependency
+    # Add direct dependency with unknown package
     payload['packages'].append(_SIX.dict())
 
     # Disabled unknown flow check
