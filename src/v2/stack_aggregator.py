@@ -398,6 +398,10 @@ class Registered(Aggregator):
 
 def initiate_unknown_package_ingestion(aggregator: Aggregator):
     """Ingestion of Unknown dependencies."""
+    if Settings().disable_unknown_package_flow:
+        logger.warning('Skipping unknown flow %s', aggregator.get_all_unknown_packages())
+        return
+
     ecosystem = aggregator._normalized_packages.ecosystem
     try:
         for dep in aggregator.get_all_unknown_packages():

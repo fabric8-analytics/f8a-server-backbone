@@ -12,6 +12,7 @@ from flask import current_app
 import requests
 import copy
 from collections import defaultdict
+from src.settings import Settings
 from src.utils import (select_latest_version, server_create_analysis, LICENSE_SCORING_URL_REST,
                        post_http_request, GREMLIN_SERVER_URL_REST, persist_data_in_db,
                        GREMLIN_QUERY_SIZE, format_date)
@@ -662,12 +663,16 @@ class StackAggregator:
                          'result': stack_data}
         # Ingestion of Unknown dependencies
         logger.info("Unknown ingestion flow process initiated.")
-        try:
-            for dep in unknown_dep_list:
-                server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=True,
-                                       force=False, force_graph_sync=True)
-        except Exception as e:
-            logger.error('Ingestion has been failed for ' + dep['name'])
-            logger.error(e)
-            pass
+        if Settings().disable_unknown_package_flow:
+            logger.warning('Skipping unknown flow %s', unknown_dep_list)
+        else:
+            try:
+                for dep in unknown_dep_list:
+                    server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=True,
+                                           force=False, force_graph_sync=True)
+            except Exception as e:
+                logger.error('Ingestion has been failed for ' + dep['name'])
+                logger.error(e)
+                pass
+
         return persiststatus

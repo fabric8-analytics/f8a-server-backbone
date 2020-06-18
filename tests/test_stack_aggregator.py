@@ -76,6 +76,26 @@ def test_execute(_mock_get, _mock_post):
     assert out['result']['stack_data'][0]['user_stack_info']['transitive_count'] == -1
 
 
+@mock.patch('requests.get', side_effect=mock_dependency_response)
+@mock.patch('requests.Session.post', side_effect=mock_dependency_response)
+@mock.patch('stack_aggregator.server_create_analysis')
+def test_execute_unknonw_with_disable_unkonwn_package_flow(_mock_unknown, _mock_get,
+                                                           _mock_post, monkeypatch):
+    """Test the function execute."""
+    with open("tests/data/stack_aggregator_execute_input.json", "r") as f:
+        payload = json.loads(f.read())
+
+    # add unknown package as direct dependency
+    payload['result'][0]['details'][0]['_resolved'].append({'package': 'six', 'version': '3.2.1'})
+
+    monkeypatch.setenv('DISABLE_UNKNOWN_PACKAGE_FLOW', '1')
+    s = stack_aggregator.StackAggregator()
+    out = s.execute(payload, False)
+    assert out['stack_aggregator'] == "success"
+    assert out['result']['stack_data'][0]['user_stack_info']['transitive_count'] == -1
+    _mock_unknown.assert_not_called()
+
+
 def mock_licenses_resp_component_conflict(*_args, **_kwargs):
     """Mock the call to the insights service."""
     class MockResponse:
