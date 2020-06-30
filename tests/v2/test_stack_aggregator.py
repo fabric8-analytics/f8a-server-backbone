@@ -3,7 +3,6 @@
 import copy
 import json
 from unittest import mock
-from functools import partial
 
 from src.v2 import stack_aggregator as sa
 from src.v2.stack_aggregator import StackAggregator
