@@ -30,35 +30,6 @@ logger = logging.getLogger(__file__)  # pylint:disable=C0103
 _TRUE = ['true', True, 1, '1']
 
 
-def get_recommended_version(ecosystem: Ecosystem, pkg: Package) -> str:
-    """Fetch the recommended version in case of CVEs."""
-    query = """
-            g.V().has('ecosystem', eco).has('name', name).
-            out('has_version').not(out('has_snyk_cve')).values('version');
-            """
-    query = inspect.cleandoc(query)
-    bindings = {
-        'eco': ecosystem,
-        'name': pkg.name
-    }
-    result = post_gremlin(query, bindings)
-    if result:
-        versions = result['result']['data']
-        if len(versions) == 0:
-            return None
-    else:
-        return None
-    rec_version = pkg.version
-    for ver in versions:
-        rec_version = select_latest_version(
-            ver,
-            rec_version
-        )
-    if rec_version == pkg.version:
-        return None
-    return rec_version
-
-
 def _is_private_vulnerability(vulnerability_node):
     """Check whether the given node contains private vulnerability."""
     return vulnerability_node.get('snyk_pvt_vulnerability', [False])[0]
@@ -212,14 +183,7 @@ class Aggregator(ABC):
         ecosystem, pkg = _get_pkg_from_graph_version_node(version_node)
         github_details = _get_github_details(pkg_node)
         public_vulns, private_vulns = self._get_vulnerabilities(component.get("vuln", {}))
-        recommended_latest_version = None
-        if public_vulns or private_vulns:
-            recommended_latest_version = pkg_node.get("latest_non_cve_version", [""])[0]
-            if not recommended_latest_version:
-                logger.warning('Fallback to graph query to retrive latest version for '
-                               '%s %s %s', ecosystem, pkg.name, pkg.version)
-                recommended_latest_version = get_recommended_version(ecosystem, pkg)
-
+        recommended_latest_version = pkg_node.get("latest_non_cve_version", [""])[0]
         licenses = version_node.get("declared_licenses", [])
 
         latest_version = select_latest_version(

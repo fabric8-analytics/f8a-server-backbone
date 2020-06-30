@@ -3,7 +3,6 @@
 import copy
 import json
 from unittest import mock
-from functools import partial
 
 from src.v2 import stack_aggregator as sa
 from src.v2.stack_aggregator import StackAggregator
@@ -245,104 +244,6 @@ def test_db_store(_mock_license, _mock_gremlin, _mock_store):
     assert resp['result'] is not None
     result = resp['result']
     assert result['external_request_id'] == 'test_id'
-
-
-def _recommended_version_fallback(body, *args, **kwargs):
-    """Handle post_gremlin according to the caller."""
-    if args[1].get('eco'):
-        return body
-    with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
-        resp = json.load(fin)
-        # remove latest_non_cve_version attribute to test fallback.
-        del resp['result']['data'][0]['package']['latest_non_cve_version']
-        del resp['result']['data'][1]['package']['latest_non_cve_version']
-        return resp
-
-
-@mock.patch('src.v2.stack_aggregator.post_gremlin',
-            side_effect=partial(_recommended_version_fallback, {}))
-@mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
-def test_get_recommended_version_fallback_empty(_mock_license, _mock_gremlin):
-    """Test recommended_latest_version fallback call."""
-    resp = StackAggregator().execute(_request_body(), persist=False)
-    _mock_license.assert_called_once()
-    # fallback call to get latest_non_cve_version
-    _mock_gremlin.assert_called()
-    assert resp['aggregation'] == 'success'
-    # check analyzed_dependencies
-    result = resp['result']
-    result = StackAggregatorResultForFreeTier(**result)
-    django_index = result.analyzed_dependencies.index(_DJANGO)
-    assert result.analyzed_dependencies[django_index].recommended_version is None
-
-
-@mock.patch('src.v2.stack_aggregator.post_gremlin',
-            side_effect=partial(_recommended_version_fallback, {'result': {'data': []}}))
-@mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
-def test_get_recommended_version_fallback_result_none(_mock_license, _mock_gremlin):
-    """Test recommended_latest_version fallback call."""
-    resp = StackAggregator().execute(_request_body(), persist=False)
-    _mock_license.assert_called_once()
-    # fallback call to get latest_non_cve_version
-    _mock_gremlin.assert_called()
-    assert resp['aggregation'] == 'success'
-    # check analyzed_dependencies
-    result = resp['result']
-    result = StackAggregatorResultForFreeTier(**result)
-    django_index = result.analyzed_dependencies.index(_DJANGO)
-    assert result.analyzed_dependencies[django_index].recommended_version is None
-
-
-@mock.patch('src.v2.stack_aggregator.post_gremlin',
-            side_effect=partial(_recommended_version_fallback, {'result': {'data': ['10.1']}}))
-@mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
-def test_get_recommended_version_fallback_result_valid_latest(_mock_license, _mock_gremlin):
-    """Test recommended_latest_version fallback call."""
-    resp = StackAggregator().execute(_request_body(), persist=False)
-    _mock_license.assert_called_once()
-    # fallback call to get latest_non_cve_version
-    _mock_gremlin.assert_called()
-    assert resp['aggregation'] == 'success'
-    # check analyzed_dependencies
-    result = resp['result']
-    result = StackAggregatorResultForFreeTier(**result)
-    django_index = result.analyzed_dependencies.index(_DJANGO)
-    assert result.analyzed_dependencies[django_index].recommended_version == '10.1'
-
-
-@mock.patch('src.v2.stack_aggregator.post_gremlin',
-            side_effect=partial(_recommended_version_fallback,
-                                {'result': {'data': ['10.1', '11.2']}}))
-@mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
-def test_get_recommended_version_fallback_result_multiple_latest(_mock_license, _mock_gremlin):
-    """Test recommended_latest_version fallback call."""
-    resp = StackAggregator().execute(_request_body(), persist=False)
-    _mock_license.assert_called_once()
-    # fallback call to get latest_non_cve_version
-    _mock_gremlin.assert_called()
-    assert resp['aggregation'] == 'success'
-    # check analyzed_dependencies
-    result = resp['result']
-    result = StackAggregatorResultForFreeTier(**result)
-    django_index = result.analyzed_dependencies.index(_DJANGO)
-    assert result.analyzed_dependencies[django_index].recommended_version == '11.2'
-
-
-@mock.patch('src.v2.stack_aggregator.post_gremlin',
-            side_effect=partial(_recommended_version_fallback, {'result': {'data': ['1.2.1']}}))
-@mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
-def test_get_recommended_version_fallback_result_affected_as_latest(_mock_license, _mock_gremlin):
-    """Test recommended_latest_version fallback call."""
-    resp = StackAggregator().execute(_request_body(), persist=False)
-    _mock_license.assert_called_once()
-    # fallback call to get latest_non_cve_version
-    _mock_gremlin.assert_called()
-    assert resp['aggregation'] == 'success'
-    # check analyzed_dependencies
-    result = resp['result']
-    result = StackAggregatorResultForFreeTier(**result)
-    django_index = result.analyzed_dependencies.index(_DJANGO)
-    assert result.analyzed_dependencies[django_index].recommended_version is None
 
 
 # ref: https://stackoverflow.com/a/29525603/1942688

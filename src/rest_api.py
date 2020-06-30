@@ -101,7 +101,7 @@ def _stack_aggregator(handler):
         'status_code': 200
     }
 
-    current_app.logger.info('recommender/ request with payload: %s', input_json)
+    current_app.logger.info('stack_aggregator/ request with payload: %s', input_json)
     if input_json and 'external_request_id' in input_json \
             and input_json['external_request_id']:
 
