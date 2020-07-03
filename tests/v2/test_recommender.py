@@ -13,6 +13,7 @@ def current_app_logger(_str):
     """Mock for the logger."""
     pass
 
+
 with open("tests/data/graph_response.json", "r") as f:
     graph_resp = json.load(f)
 
@@ -27,6 +28,7 @@ with open('tests/data/valid_license_analysis.json', 'r') as f:
 
 with open("tests/data/dependency_response.json", "r") as f:
     dep_resp = json.load(f)
+
 
 def mocked_requests_get(*args, **_kwargs):
     """Mock the call to the insights service."""
@@ -79,7 +81,8 @@ class TestRecommendationTask(TestCase):
                 'test_request_id', [{"ecosystem": "maven", "package_list": []}])
             self.assertTrue('pgm' in called_url_json['url'])
 
-            called_url_json = RecommendationTask.call_insights_recommender('test_request_id',
+            called_url_json = RecommendationTask.call_insights_recommender(
+                'test_request_id',
                 [{"ecosystem": "maven", "package_list": ["org.slf4j:slf4j-api"]}])
             self.assertTrue('hpf-insights' in called_url_json['url'])
 
@@ -262,10 +265,10 @@ def test_perform_license_analysis(_mock1, _mock2, _mock_logger):
         payload = json.load(f)
     request = RecommenderRequest(**payload)
     comp_graph = License.perform_license_analysis(
+        external_request_id=payload['external_request_id'],
         packages=NormalizedPackages(request.packages, 'maven'),
         filtered_comp_packages_graph=payload['filtered_comp_packages_graph'],
-        filtered_companion_packages=payload['filtered_companion_packages'],
-        external_request_id=payload['external_request_id'])
+        filtered_companion_packages=payload['filtered_companion_packages'])
 
     assert comp_graph is not None
 

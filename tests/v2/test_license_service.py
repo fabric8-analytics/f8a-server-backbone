@@ -11,6 +11,7 @@ def current_app_logger(_str):
     """Mock for the logger."""
     pass
 
+
 def test_get_license_service_request_payload_empty():
     """Test empty args for get_license_service_request_payload."""
     assert la.get_license_service_request_payload({}) == []

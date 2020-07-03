@@ -18,9 +18,11 @@ _FLASK = Package(name='flask', version='0.12')
 _SIX = Package(name='six', version='3.2.1')
 _FOO_UNKNOWN = Package(name='foo_unknown', version='0.0.0')
 
+
 def current_app_logger(_str):
     """Mock for the logger."""
     pass
+
 
 def _request_body():
     return {
@@ -177,10 +179,12 @@ def test_with_2_public_vuln_for_registered(_mock_license, _mock_gremlin, _mock_l
                vulnerable_dependencies[0].public_vulnerabilities) == 2
 
 
+@mock.patch('src.v2.license_service.current_app', side_effect=current_app_logger)
 @mock.patch('src.v2.stack_aggregator.current_app', side_effect=current_app_logger)
 @mock.patch('src.v2.stack_aggregator.server_create_analysis')
 @mock.patch('src.v2.stack_aggregator.post_gremlin')
-def test_unknown_flow_with_disabled_flag(_mock_gremlin, _mock_unknown, _mock_logger, monkeypatch):
+def test_unknown_flow_with_disabled_flag(_mock_gremlin, _mock_unknown, _mock_logger,
+                                         _mock_logger_license, monkeypatch):
     """Test unknown flow."""
     with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
         _mock_gremlin.return_value = json.load(fin)

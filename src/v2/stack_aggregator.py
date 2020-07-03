@@ -7,7 +7,6 @@ by stack-analyses endpoint
 import datetime
 import inspect
 import time
-import logging
 from flask import current_app
 
 
@@ -206,7 +205,7 @@ class Aggregator(ABC):
 
     def _get_package_details_with_vulnerabilities(self) -> List[Dict[str, object]]:
         """Get package data from graph along with vulnerability."""
-        external_request_id = self._request.external_request_id if self._request is not None else 'UNKNOWN'
+        eri = self._request.external_request_id if self._request is not None else 'UNKNOWN'
         time_start = time.time()
         pkgs_with_vuln = {
             "result": {
@@ -247,13 +246,13 @@ class Aggregator(ABC):
             elapsed_secs = time.time() - started_at
             current_app.logger.info(
                 '%s took %0.2f secs for post_gremlin() batch request',
-                external_request_id, elapsed_secs)
+                eri, elapsed_secs)
             if result:
                 pkgs_with_vuln['result']['data'] += result['result']['data']
 
         elapsed_secs = time.time() - time_start
         current_app.logger.info('%s took %0.2f secs for get_package_details_with_'
-                                'vulnerabilities() for total_results %d', external_request_id,
+                                'vulnerabilities() for total_results %d', eri,
                                 elapsed_secs, len(pkgs_with_vuln['result']['data']))
         return pkgs_with_vuln['result']['data']
 

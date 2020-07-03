@@ -262,7 +262,7 @@ class License:
         if len(lic_filtered_list_com) > 0:
             s = set(filtered_companion_packages).difference(set(lic_filtered_list_com))
             current_app.logger.info(
-                '%s Companion Packages filtered (licenses) %s',external_request_id, s)
+                '%s Companion Packages filtered (licenses) %s', external_request_id, s)
 
         return lic_filtered_comp_graph
 
@@ -277,7 +277,7 @@ def set_valid_cooccurrence_probability(external_request_id, package_list=[]):
     for package in package_list:
         if str(package['cooccurrence_probability']) == 'nan':
             current_app.logger.error('%s Found an invalid cooccurrence probability for %s',
-                external_request_id, package['name'])
+                                     external_request_id, package['name'])
             package['cooccurrence_probability'] = float(100.0)
         new_package_list.append(package)
     return new_package_list
@@ -344,7 +344,7 @@ class RecommendationTask:
 
             if response.status_code != 200:
                 current_app.logger.error('%s HTTP error %d. Error retrieving insights data',
-                    external_request_id, response.status_code)
+                                         external_request_id, response.status_code)
                 return None
             else:
                 json_response = response.json()
@@ -352,7 +352,7 @@ class RecommendationTask:
 
         except Exception as e:
             current_app.logger.error('%s Failed retrieving insights data', external_request_id)
-            current_app.logger.error('%s',e)
+            current_app.logger.error('%s', e)
             return None
 
     def execute(self, arguments=None, persist=True, check_license=False):
@@ -394,7 +394,7 @@ class RecommendationTask:
                                                                input_task_for_insights_recommender)
             elapsed_secs = time.time() - start
             current_app.logger.info('%s took %0.2f secs for call_insights_recommender()',
-                external_request_id, elapsed_secs)
+                                    external_request_id, elapsed_secs)
 
             # From PGM response process companion and alternate packages and
             # then get Data from Graph
@@ -431,7 +431,7 @@ class RecommendationTask:
                 elapsed_secs = time.time() - graph_request_started_at
                 current_app.logger.info(
                     '%s took %0.2f secs for GraphDB().get_version_information()',
-                    external_request_id,elapsed_secs)
+                    external_request_id, elapsed_secs)
 
                 # Apply Version Filters
                 input_stack = {
@@ -442,7 +442,7 @@ class RecommendationTask:
                 filtered_companion_packages = \
                     set(companion_packages).difference(set(filtered_list))
                 current_app.logger.info('%s Fitered companion packages %s',
-                    external_request_id, filtered_companion_packages)
+                                        external_request_id, filtered_companion_packages)
 
                 if check_license:
                     # Apply License Filters
@@ -490,7 +490,7 @@ class RecommendationTask:
 
         elapsed_secs = time.time() - execute_started_at
         current_app.logger.info('%s took %0.2f secs for RecommendationTask.execute()',
-            external_request_id, elapsed_secs)
+                                external_request_id, elapsed_secs)
 
         return {'recommendation': 'success',
                 'external_request_id': external_request_id,
