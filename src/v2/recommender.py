@@ -154,9 +154,9 @@ class GraphDB:
                                 semversion_tuple=semversion_tuple,
                                 input_stack_tuple=input_stack_tuple)
 
-        current_app.logger.info('%s new dict %s', external_request_id, new_dict)
+        current_app.logger.info('%s new dict %s', external_request_id, json.dumps(new_dict))
         current_app.logger.info(
-            '%s filtered comp list %s', external_request_id, filtered_comp_list)
+            '%s filtered comp list %s', external_request_id, json.dumps(filtered_comp_list))
 
         new_list = GraphDB.prepare_final_filtered_list(new_dict)
         return new_list, filtered_comp_list
