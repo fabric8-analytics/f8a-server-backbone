@@ -8,6 +8,8 @@ import datetime
 import inspect
 import time
 import logging
+from flask import current_app
+
 
 from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple, Union, Set
@@ -26,7 +28,7 @@ from src.v2.normalized_packages import NormalizedPackages
 from src.v2.license_service import (get_license_analysis_for_stack,
                                     get_license_service_request_payload)
 
-logger = logging.getLogger(__file__)  # pylint:disable=C0103
+
 _TRUE = ['true', True, 1, '1']
 
 
@@ -204,6 +206,7 @@ class Aggregator(ABC):
 
     def _get_package_details_with_vulnerabilities(self) -> List[Dict[str, object]]:
         """Get package data from graph along with vulnerability."""
+        external_request_id = self._request.external_request_id if self._request is not None else 'UNKNOWN'
         time_start = time.time()
         pkgs_with_vuln = {
             "result": {
@@ -236,13 +239,22 @@ class Aggregator(ABC):
                                            GREMLIN_QUERY_SIZE):
             # convert Tuple[Package] into List[{name:.., version:..}]
             bindings['packages'] = [pkg.dict(exclude={'dependencies'}) for pkg in pkgs]
+
+            started_at = time.time()
+
             result = post_gremlin(query, bindings)
+
+            elapsed_secs = time.time() - started_at
+            current_app.logger.info(
+                '%s took %0.2f secs for post_gremlin() batch request',
+                external_request_id, elapsed_secs)
             if result:
                 pkgs_with_vuln['result']['data'] += result['result']['data']
 
-        logger.info(
-            'get_package_details_with_vulnerabilities time: %f total_results %d',
-            time.time() - time_start, len(pkgs_with_vuln['result']['data']))
+        elapsed_secs = time.time() - time_start
+        current_app.logger.info('%s took %0.2f secs for get_package_details_with_'
+                                'vulnerabilities() for total_results %d', external_request_id,
+                                elapsed_secs, len(pkgs_with_vuln['result']['data']))
         return pkgs_with_vuln['result']['data']
 
     def _get_denormalized_package_details(self) -> List[PackageDetails]:
@@ -310,7 +322,14 @@ class Aggregator(ABC):
         # denormalize package details according to request.dependencies relations
         package_details = self._get_denormalized_package_details()
         unknown_dependencies = self._get_direct_unknown_packages()
+        started_at = time.time()
+
         license_analysis = get_license_analysis_for_stack(package_details)
+
+        eri = self._request.external_request_id if self._request is not None else 'UNKNOWN'
+        elapsed_secs = time.time() - started_at
+        current_app.logger.info(
+            '%s took %0.2f secs for get_license_analysis_for_stack()', eri, elapsed_secs)
         return self.create_result(**self._request.dict(exclude={'packages'}),
                                   analyzed_dependencies=package_details,
                                   unknown_dependencies=unknown_dependencies,
@@ -360,10 +379,12 @@ class Registered(Aggregator):
         return StackAggregatorResultForRegisteredUser(**kwargs)
 
 
-def initiate_unknown_package_ingestion(aggregator: Aggregator):
+def initiate_unknown_package_ingestion(external_request_id, aggregator: Aggregator):
     """Ingestion of Unknown dependencies."""
     if Settings().disable_unknown_package_flow:
-        logger.warning('Skipping unknown flow %s', aggregator.get_all_unknown_packages())
+        current_app.logger.warning(
+            '%s Skipping unknown flow %s',
+            external_request_id, aggregator.get_all_unknown_packages())
         return
 
     ecosystem = aggregator._normalized_packages.ecosystem
@@ -372,9 +393,10 @@ def initiate_unknown_package_ingestion(aggregator: Aggregator):
             server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
                                    force=False, force_graph_sync=True)
     except Exception as e:  # pylint:disable=W0703,C0103
-        logger.error('Ingestion failed for {%s, %s, %s}',
-                     ecosystem, dep.name, dep.version)
-        logger.error(e)
+        current_app.logger.error(
+            '%s Ingestion failed for {%s, %s, %s}',
+            external_request_id, ecosystem, dep.name, dep.version)
+        current_app.logger.error(e)
 
 
 class StackAggregator:
@@ -398,6 +420,7 @@ class StackAggregator:
     def execute(request: Dict, persist=True):
         """Task code."""
         # (fixme): Use timestamp instead of str representation.
+        execute_started_at = time.time()
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         aggregator = StackAggregator.process_request(request)
         output = aggregator.get_result()
@@ -410,12 +433,21 @@ class StackAggregator:
             persist_data_in_db(external_request_id=output.external_request_id,
                                task_result=output_dict, worker='stack_aggregator_v2',
                                started_at=started_at, ended_at=ended_at)
-            logger.info("Aggregation process completed for %s. "
-                        "Result persisted into RDS.", output.external_request_id)
-        initiate_unknown_package_ingestion(aggregator)
+            current_app.logger.info(
+                '%s Aggregation process completed, result persisted into RDS',
+                output.external_request_id)
+
+        initiate_unknown_package_ingestion(output.external_request_id, aggregator)
         # result attribute is added to keep a compatibility with v1
         # otherwise metric accumulator related handling has to be
         # customized for v2.
+
+        # compute the elapsed time
+        elapsed_secs = time.time() - execute_started_at
+        current_app.logger.info(
+            '%s took %0.2f secs for StackAggregator.execute()',
+            output.external_request_id, elapsed_secs)
+
         return {'aggregation': 'success',
                 'external_request_id': output.external_request_id,
                 'result': output_dict}
