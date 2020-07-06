@@ -544,10 +544,8 @@ class RecommendationTask:
             insights_response = self.call_insights_recommender(input_task_for_insights_recommender)
             elapsed_seconds = (datetime.datetime.utcnow() -
                                start).total_seconds()
-            msg = "It took {t} seconds to get insight's response" \
-                  "for external request {e}.".format(t=elapsed_seconds,
-                                                     e=external_request_id)
-            logger.info(msg)
+            logger.info('%s took %0.2f secs to get insight\'s response',
+                        external_request_id, elapsed_seconds)
 
             # From PGM response process companion and alternate packages and
             # then get Data from Graph

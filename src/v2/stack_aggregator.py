@@ -7,7 +7,7 @@ by stack-analyses endpoint
 import datetime
 import inspect
 import time
-from flask import current_app
+import logging
 
 
 from abc import ABC, abstractmethod
@@ -29,6 +29,8 @@ from src.v2.license_service import (get_license_analysis_for_stack,
 
 
 _TRUE = ['true', True, 1, '1']
+
+logger = logging.getLogger(__name__)
 
 
 def _is_private_vulnerability(vulnerability_node):
@@ -244,16 +246,16 @@ class Aggregator(ABC):
             result = post_gremlin(query, bindings)
 
             elapsed_secs = time.time() - started_at
-            current_app.logger.info(
+            logger.info(
                 '%s took %0.2f secs for post_gremlin() batch request',
                 eri, elapsed_secs)
             if result:
                 pkgs_with_vuln['result']['data'] += result['result']['data']
 
         elapsed_secs = time.time() - time_start
-        current_app.logger.info('%s took %0.2f secs for get_package_details_with_'
-                                'vulnerabilities() for total_results %d', eri,
-                                elapsed_secs, len(pkgs_with_vuln['result']['data']))
+        logger.info('%s took %0.2f secs for get_package_details_with_'
+                    'vulnerabilities() for total_results %d', eri,
+                    elapsed_secs, len(pkgs_with_vuln['result']['data']))
         return pkgs_with_vuln['result']['data']
 
     def _get_denormalized_package_details(self) -> List[PackageDetails]:
@@ -327,7 +329,7 @@ class Aggregator(ABC):
 
         eri = self._request.external_request_id if self._request is not None else 'UNKNOWN'
         elapsed_secs = time.time() - started_at
-        current_app.logger.info(
+        logger.info(
             '%s took %0.2f secs for get_license_analysis_for_stack()', eri, elapsed_secs)
         return self.create_result(**self._request.dict(exclude={'packages'}),
                                   analyzed_dependencies=package_details,
@@ -381,7 +383,7 @@ class Registered(Aggregator):
 def initiate_unknown_package_ingestion(external_request_id, aggregator: Aggregator):
     """Ingestion of Unknown dependencies."""
     if Settings().disable_unknown_package_flow:
-        current_app.logger.warning(
+        logger.warning(
             '%s Skipping unknown flow %s',
             external_request_id, aggregator.get_all_unknown_packages())
         return
@@ -392,10 +394,10 @@ def initiate_unknown_package_ingestion(external_request_id, aggregator: Aggregat
             server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
                                    force=False, force_graph_sync=True)
     except Exception as e:  # pylint:disable=W0703,C0103
-        current_app.logger.error(
+        logger.error(
             '%s Ingestion failed for {%s, %s, %s}',
             external_request_id, ecosystem, dep.name, dep.version)
-        current_app.logger.error(e)
+        logger.error(e)
 
 
 class StackAggregator:
@@ -419,7 +421,6 @@ class StackAggregator:
     def execute(request: Dict, persist=True):
         """Task code."""
         # (fixme): Use timestamp instead of str representation.
-        execute_started_at = time.time()
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         aggregator = StackAggregator.process_request(request)
         output = aggregator.get_result()
@@ -432,7 +433,7 @@ class StackAggregator:
             persist_data_in_db(external_request_id=output.external_request_id,
                                task_result=output_dict, worker='stack_aggregator_v2',
                                started_at=started_at, ended_at=ended_at)
-            current_app.logger.info(
+            logger.debug(
                 '%s Aggregation process completed, result persisted into RDS',
                 output.external_request_id)
 
@@ -440,12 +441,6 @@ class StackAggregator:
         # result attribute is added to keep a compatibility with v1
         # otherwise metric accumulator related handling has to be
         # customized for v2.
-
-        # compute the elapsed time
-        elapsed_secs = time.time() - execute_started_at
-        current_app.logger.info(
-            '%s took %0.2f secs for StackAggregator.execute()',
-            output.external_request_id, elapsed_secs)
 
         return {'aggregation': 'success',
                 'external_request_id': output.external_request_id,

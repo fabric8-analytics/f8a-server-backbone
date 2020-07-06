@@ -1,10 +1,13 @@
 """Abstracts license service related functionalities."""
 
-from flask import current_app
+import logging
 from typing import List, Set
 
 from src.utils import LICENSE_SCORING_URL_REST, post_http_request
 from src.v2.models import LicenseAnalysis, PackageDetails
+
+
+logger = logging.getLogger(__name__)
 
 
 def _extract_conflict_packages(license_service_output):
@@ -166,7 +169,7 @@ def get_license_analysis_for_stack(
     try:
         resp = post_http_request(url=license_url, payload=payload)
     except Exception as e:
-        current_app.logger.exception(
+        logger.exception(
             'Unexpected error(%s) happened while invoking license analysis!', e)
     else:
         unknown_licenses = _extract_unknown_licenses(resp)

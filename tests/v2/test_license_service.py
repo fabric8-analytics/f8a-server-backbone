@@ -7,11 +7,6 @@ from src.v2 import license_service as la
 from src.v2.models import Package, PackageDetailsForFreeTier, LicenseAnalysis
 
 
-def current_app_logger(_str):
-    """Mock for the logger."""
-    pass
-
-
 def test_get_license_service_request_payload_empty():
     """Test empty args for get_license_service_request_payload."""
     assert la.get_license_service_request_payload({}) == []
@@ -46,9 +41,8 @@ def test_get_license_service_request_payload_args():
     assert len(diff) == 0
 
 
-@mock.patch('src.v2.license_service.current_app', side_effect=current_app_logger)
 @mock.patch('src.v2.license_service.post_http_request', side_effect=Exception())
-def test_get_license_analysis_for_stack_with_empty_param(_mock_post, _mock_logger):
+def test_get_license_analysis_for_stack_with_empty_param(_mock_post):
     """Test with empty normalized_packages."""
     result = la.get_license_analysis_for_stack({})
     _mock_post.assert_called_once()

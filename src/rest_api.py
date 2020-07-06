@@ -145,7 +145,7 @@ def _stack_aggregator(handler):
             pass
 
     elapsed_secs = time.time() - stack_aggregator_started_at
-    current_app.logger.info('%s took {t} seconds for _stack_aggregators', eri, elapsed_secs)
+    current_app.logger.info('%s took %0.2f seconds for _stack_aggregators', eri, elapsed_secs)
 
     return flask.jsonify(s)
 

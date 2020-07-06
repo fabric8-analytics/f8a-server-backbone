@@ -19,11 +19,6 @@ _SIX = Package(name='six', version='3.2.1')
 _FOO_UNKNOWN = Package(name='foo_unknown', version='0.0.0')
 
 
-def current_app_logger(_str):
-    """Mock for the logger."""
-    pass
-
-
 def _request_body():
     return {
         "manifest_name": "requirements.txt",
@@ -45,10 +40,9 @@ def _request_body():
     }
 
 
-@mock.patch('src.v2.stack_aggregator.current_app', side_effect=current_app_logger)
 @mock.patch('src.v2.stack_aggregator.post_gremlin')
 @mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
-def test_with_2_public_vuln(_mock_license, _mock_gremlin, _mock_logger, monkeypatch):
+def test_with_2_public_vuln(_mock_license, _mock_gremlin, monkeypatch):
     """Test basic request and response."""
     with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
         _mock_gremlin.return_value = json.load(fin)
@@ -94,10 +88,9 @@ def test_with_2_public_vuln(_mock_license, _mock_gremlin, _mock_logger, monkeypa
                vulnerable_dependencies[0].public_vulnerabilities) == 2
 
 
-@mock.patch('src.v2.stack_aggregator.current_app', side_effect=current_app_logger)
 @mock.patch('src.v2.stack_aggregator.post_gremlin')
 @mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
-def test_with_1_public_1_pvt_vuln(_mock_license, _mock_gremlin, _mock_logger):
+def test_with_1_public_1_pvt_vuln(_mock_license, _mock_gremlin):
     """Test with 1 public and 1 private vulnerability."""
     with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
         resp = json.load(fin)
@@ -137,10 +130,9 @@ def test_with_1_public_1_pvt_vuln(_mock_license, _mock_gremlin, _mock_logger):
                vulnerable_dependencies[0].public_vulnerabilities) == 1
 
 
-@mock.patch('src.v2.stack_aggregator.current_app', side_effect=current_app_logger)
 @mock.patch('src.v2.stack_aggregator.post_gremlin')
 @mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
-def test_with_2_public_vuln_for_registered(_mock_license, _mock_gremlin, _mock_logger):
+def test_with_2_public_vuln_for_registered(_mock_license, _mock_gremlin):
     """Test basic request and response for registered user."""
     with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
         _mock_gremlin.return_value = json.load(fin)
@@ -179,12 +171,9 @@ def test_with_2_public_vuln_for_registered(_mock_license, _mock_gremlin, _mock_l
                vulnerable_dependencies[0].public_vulnerabilities) == 2
 
 
-@mock.patch('src.v2.license_service.current_app', side_effect=current_app_logger)
-@mock.patch('src.v2.stack_aggregator.current_app', side_effect=current_app_logger)
 @mock.patch('src.v2.stack_aggregator.server_create_analysis')
 @mock.patch('src.v2.stack_aggregator.post_gremlin')
-def test_unknown_flow_with_disabled_flag(_mock_gremlin, _mock_unknown, _mock_logger,
-                                         _mock_logger_license, monkeypatch):
+def test_unknown_flow_with_disabled_flag(_mock_gremlin, _mock_unknown, monkeypatch):
     """Test unknown flow."""
     with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
         _mock_gremlin.return_value = json.load(fin)
@@ -199,11 +188,10 @@ def test_unknown_flow_with_disabled_flag(_mock_gremlin, _mock_unknown, _mock_log
     _mock_unknown.assert_not_called()
 
 
-@mock.patch('src.v2.stack_aggregator.current_app', side_effect=current_app_logger)
 @mock.patch('src.v2.stack_aggregator.server_create_analysis')
 @mock.patch('src.v2.stack_aggregator.post_gremlin')
 @mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
-def test_unknown_flow(_mock_license, _mock_gremlin, _mock_unknown, _mock_logger):
+def test_unknown_flow(_mock_license, _mock_gremlin, _mock_unknown):
     """Test unknown flow."""
     with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
         _mock_gremlin.return_value = json.load(fin)
@@ -239,11 +227,10 @@ def test_unknown_flow(_mock_license, _mock_gremlin, _mock_unknown, _mock_logger)
     assert resp['aggregation'] == 'success'
 
 
-@mock.patch('src.v2.stack_aggregator.current_app', side_effect=current_app_logger)
 @mock.patch('src.v2.stack_aggregator.persist_data_in_db')
 @mock.patch('src.v2.stack_aggregator.post_gremlin')
 @mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
-def test_db_store(_mock_license, _mock_gremlin, _mock_store, _mock_logger):
+def test_db_store(_mock_license, _mock_gremlin, _mock_store):
     """Test call to RDS."""
     with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
         _mock_gremlin.return_value = json.load(fin)
@@ -307,9 +294,8 @@ def _gremlin_batch_test(_mock_gremlin, size: int):
         return _mock_gremlin.call_count, ith, last
 
 
-@mock.patch('src.v2.stack_aggregator.current_app', side_effect=current_app_logger)
 @mock.patch('src.v2.stack_aggregator.post_gremlin', new_callable=_ModifiedMagicMock)
-def test_gremlin_batch_call(_mock_gremlin, _mock_logger):
+def test_gremlin_batch_call(_mock_gremlin):
     """Test post_gremlin call according to batch size."""
     # empty
     _mock_gremlin.return_value = None

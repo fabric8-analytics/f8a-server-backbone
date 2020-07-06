@@ -9,11 +9,6 @@ from src.v2.recommender import (RecommendationTask, GraphDB, License,
 from src.v2.models import RecommenderRequest
 
 
-def current_app_logger(_str):
-    """Mock for the logger."""
-    pass
-
-
 with open("tests/data/graph_response.json", "r") as f:
     graph_resp = json.load(f)
 
@@ -128,10 +123,9 @@ def mocked_response_license(*args, **_kwargs):
         return MockResponse(dep_resp, 200)
 
 
-@mock.patch('src.v2.recommender.current_app', side_effect=current_app_logger)
 @mock.patch('src.v2.recommender.persist_data_in_db')
 @mock.patch('src.v2.recommender.RecommendationTask.call_insights_recommender', return_value=[])
-def test_execute(_mock_call_insights, _mock_db, _mock_logger):
+def test_execute(_mock_call_insights, _mock_db):
     """Test the function execute."""
     with open("tests/v2/data/stack_aggregator_execute_input.json", "r") as f:
         payload = json.load(f)
@@ -147,14 +141,13 @@ def test_execute(_mock_call_insights, _mock_db, _mock_logger):
     _mock_db.assert_called_once()
 
 
-@mock.patch('src.v2.recommender.current_app', side_effect=current_app_logger)
 @mock.patch('src.v2.recommender.RecommendationTask.call_insights_recommender',
             side_effect=[insights_comp_resp])
 @mock.patch('src.v2.recommender.GraphDB.get_version_information',
             side_effect=[graph_resp['result']['data']])
 @mock.patch('src.v2.recommender.License.perform_license_analysis',
             side_effect=license_resp)
-def test_execute_with_insights(_mock1, _mock2, _mock3, _mock_logger):
+def test_execute_with_insights(_mock1, _mock2, _mock3):
     """Test the function execute."""
     with open("tests/v2/data/stack_aggregator_execute_input.json", "r") as f:
         payload = json.load(f)
@@ -165,10 +158,9 @@ def test_execute_with_insights(_mock1, _mock2, _mock3, _mock_logger):
     assert out['recommendation'] == "success"
 
 
-@mock.patch('src.v2.recommender.current_app', side_effect=current_app_logger)
 @mock.patch('src.v2.recommender.persist_data_in_db')
 @mock.patch('src.v2.recommender.RecommendationTask.call_insights_recommender', return_value=[])
-def test_execute_empty_resolved(_mock_call_insights, _mock_db, _mock_logger):
+def test_execute_empty_resolved(_mock_call_insights, _mock_db):
     """Test the function execute."""
     with open("tests/v2/data/stack_aggregator_empty_resolved.json", "r") as f:
         payload = json.load(f)
@@ -188,10 +180,9 @@ def test_execute_empty_resolved(_mock_call_insights, _mock_db, _mock_logger):
     _mock_db.assert_called_once()
 
 
-@mock.patch('src.v2.recommender.current_app', side_effect=current_app_logger)
 @mock.patch('src.v2.recommender.persist_data_in_db')
 @mock.patch('src.v2.recommender.RecommendationTask.call_insights_recommender', return_value=[])
-def test_execute_both_resolved_type(_mock_call_insights, _mock_db, _mock_logger):
+def test_execute_both_resolved_type(_mock_call_insights, _mock_db):
     """Test the function execute."""
     with open("tests/v2/data/stack_aggregator_combined_input.json", "r") as f:
         payload = json.load(f)
@@ -207,8 +198,7 @@ def test_execute_both_resolved_type(_mock_call_insights, _mock_db, _mock_logger)
     _mock_db.assert_called_once()
 
 
-@mock.patch('src.v2.recommender.current_app', side_effect=current_app_logger)
-def test_filter_versions(_mock_logger):
+def test_filter_versions():
     """Test the function filter_versions for latest version."""
     input_stack = {"io.vertx:vertx-web": "3.4.2", "io.vertx:vertx-core": "3.4.2"}
 
@@ -222,8 +212,7 @@ def test_filter_versions(_mock_logger):
     assert len(filtered_list) > 0
 
 
-@mock.patch('src.v2.recommender.current_app', side_effect=current_app_logger)
-def test_prepare_final_filtered_list(_mock_logger):
+def test_prepare_final_filtered_list():
     """Test the function filter_versions."""
     with open("tests/data/companion_pkg_graph_deps.json", "r") as f:
         comp_pkg_graph = json.load(f)
@@ -238,16 +227,14 @@ def test_prepare_final_filtered_list(_mock_logger):
     assert len(filtered_list) > 0
 
 
-@mock.patch('src.v2.recommender.current_app', side_effect=current_app_logger)
 @mock.patch('requests.Session.post', side_effect=mocked_response_graph)
-def test_get_version_information(_mock1, _mock_logger):
+def test_get_version_information(_mock1):
     """Test the function get_version_information."""
     out = GraphDB().get_version_information(['io.vertx:vertx-web'], 'maven')
     assert len(out) == 1
 
 
-@mock.patch('src.v2.recommender.current_app', side_effect=current_app_logger)
-def test_get_topics(_mock_logger):
+def test_get_topics():
     """Test the function get topics."""
     comp_list = GraphDB.get_topics_for_comp(graph_resp['result']['data'],
                                             insights_resp[0]['companion_packages'])
@@ -256,10 +243,9 @@ def test_get_topics(_mock_logger):
     assert isinstance(comp_list, list)
 
 
-@mock.patch('src.v2.recommender.current_app', side_effect=current_app_logger)
 @mock.patch('src.v2.recommender.extract_user_stack_package_licenses', return_value=[])
 @mock.patch('requests.Session.post', side_effect=mocked_response_license)
-def test_perform_license_analysis(_mock1, _mock2, _mock_logger):
+def test_perform_license_analysis(_mock1, _mock2):
     """Test license analysis function."""
     with open("tests/v2/data/license_analysis.json", "r") as f:
         payload = json.load(f)
@@ -273,10 +259,9 @@ def test_perform_license_analysis(_mock1, _mock2, _mock_logger):
     assert comp_graph is not None
 
 
-@mock.patch('src.v2.recommender.current_app', side_effect=current_app_logger)
 @mock.patch('src.v2.recommender.License.invoke_license_analysis_service',
             return_value={'status': 'successful', 'license_filter': {}})
-def test_apply_license_filter(_mock1, _mock_logger):
+def test_apply_license_filter(_mock1):
     """Test the function apply_license_filter."""
     with open('tests/data/epv_list.json', 'r') as f:
         resp = json.load(f)
@@ -285,8 +270,7 @@ def test_apply_license_filter(_mock1, _mock_logger):
     assert isinstance(out, dict)
 
 
-@mock.patch('src.v2.recommender.current_app', side_effect=current_app_logger)
-def test_set_valid_cooccurrence_probability(_mock_logger):
+def test_set_valid_cooccurrence_probability():
     """Test the function set_valid_cooccurrence_probability."""
     input = [{"ecosystem": "maven", "name": "io.fabric8.funktion.connector:connector-smpp",
               "cooccurrence_probability": 'nan'}]

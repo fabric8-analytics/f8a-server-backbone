@@ -9,8 +9,8 @@ import datetime
 import requests
 import os
 import time
+import logging
 from collections import defaultdict
-from flask import current_app
 
 from src.utils import (create_package_dict, get_session_retry, select_latest_version,
                        LICENSE_SCORING_URL_REST, convert_version_to_proper_semantic,
@@ -19,6 +19,9 @@ from src.utils import (create_package_dict, get_session_retry, select_latest_ver
 from src.v2.models import RecommenderRequest, StackRecommendationResult
 from src.v2.stack_aggregator import extract_user_stack_package_licenses
 from src.v2.normalized_packages import NormalizedPackages
+
+
+logger = logging.getLogger(__name__)
 
 
 class GraphDB:
@@ -62,7 +65,7 @@ class GraphDB:
                 filtered_comp_list.append(name)
 
         except ValueError:
-            current_app.logger.exception(
+            logger.exception(
                 '%s Unexpected ValueError while filtering latest version!', eri)
             pass
         return pkg_dict, new_dict, filtered_comp_list
@@ -96,7 +99,7 @@ class GraphDB:
         4. Dependents Count in Github Manifest Data
         5. Github Release Date
         """
-        current_app.logger.info('%s filtering %s', external_request_id, rec_type)
+        logger.debug('%s filtering %s', external_request_id, rec_type)
 
         pkg_dict = defaultdict(dict)
         new_dict = defaultdict(dict)
@@ -154,8 +157,8 @@ class GraphDB:
                                 semversion_tuple=semversion_tuple,
                                 input_stack_tuple=input_stack_tuple)
 
-        current_app.logger.info('%s new dict %s', external_request_id, json.dumps(new_dict))
-        current_app.logger.info(
+        logger.debug('%s new dict %s', external_request_id, json.dumps(new_dict))
+        logger.debug(
             '%s filtered comp list %s', external_request_id, json.dumps(filtered_comp_list))
 
         new_list = GraphDB.prepare_final_filtered_list(new_dict)
@@ -199,7 +202,7 @@ class License:
                 lic_response.raise_for_status()  # raise exception for bad http-status codes
             json_response = lic_response.json()
         except requests.exceptions.RequestException:
-            current_app.logger.exception(
+            logger.exception(
                 '%s Unexpected error happened while invoking license analysis!',
                 external_request_id)
             pass
@@ -241,7 +244,7 @@ class License:
             'filtered_comp_packages_graph': epv_list_com,
             'filtered_list_pkg_names_com': list_pkg_names_com
         }
-        current_app.logger.info(
+        logger.info(
             '%s License Filter output: %s', external_request_id, json.dumps(output))
 
         return output
@@ -261,7 +264,7 @@ class License:
 
         if len(lic_filtered_list_com) > 0:
             s = set(filtered_companion_packages).difference(set(lic_filtered_list_com))
-            current_app.logger.info(
+            logger.info(
                 '%s Companion Packages filtered (licenses) %s', external_request_id, s)
 
         return lic_filtered_comp_graph
@@ -276,8 +279,8 @@ def set_valid_cooccurrence_probability(external_request_id, package_list=[]):
     new_package_list = []
     for package in package_list:
         if str(package['cooccurrence_probability']) == 'nan':
-            current_app.logger.error('%s Found an invalid cooccurrence probability for %s',
-                                     external_request_id, package['name'])
+            logger.error('%s Found an invalid cooccurrence probability for %s',
+                         external_request_id, package['name'])
             package['cooccurrence_probability'] = float(100.0)
         new_package_list.append(package)
     return new_package_list
@@ -325,9 +328,9 @@ class RecommendationTask:
             return insights_url
 
         else:
-            current_app.logger.error('%s Payload information not passed in the call, '
-                                     'Quitting! inights recommender\'s call',
-                                     external_request_id)
+            logger.error('%s Payload information not passed in the call, '
+                         'Quitting! inights recommender\'s call',
+                         external_request_id)
 
     @staticmethod
     def call_insights_recommender(external_request_id, payload):
@@ -343,21 +346,20 @@ class RecommendationTask:
             response = get_session_retry().post(insights_url, json=payload)
 
             if response.status_code != 200:
-                current_app.logger.error('%s HTTP error %d. Error retrieving insights data',
-                                         external_request_id, response.status_code)
+                logger.error('%s HTTP error %d. Error retrieving insights data',
+                             external_request_id, response.status_code)
                 return None
             else:
                 json_response = response.json()
                 return json_response
 
         except Exception as e:
-            current_app.logger.error('%s Failed retrieving insights data', external_request_id)
-            current_app.logger.error('%s', e)
+            logger.error('%s Failed retrieving insights data', external_request_id)
+            logger.error('%s', e)
             return None
 
     def execute(self, arguments=None, persist=True, check_license=False):
         """Execute task."""
-        execute_started_at = time.time()
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         request = RecommenderRequest(**arguments)
         external_request_id = request.external_request_id
@@ -393,8 +395,8 @@ class RecommendationTask:
             insights_response = self.call_insights_recommender(external_request_id,
                                                                input_task_for_insights_recommender)
             elapsed_secs = time.time() - start
-            current_app.logger.info('%s took %0.2f secs for call_insights_recommender()',
-                                    external_request_id, elapsed_secs)
+            logger.info('%s took %0.2f secs for call_insights_recommender()',
+                        external_request_id, elapsed_secs)
 
             # From PGM response process companion and alternate packages and
             # then get Data from Graph
@@ -429,7 +431,7 @@ class RecommendationTask:
                 comp_packages_graph = GraphDB().get_version_information(companion_packages,
                                                                         ecosystem)
                 elapsed_secs = time.time() - graph_request_started_at
-                current_app.logger.info(
+                logger.info(
                     '%s took %0.2f secs for GraphDB().get_version_information()',
                     external_request_id, elapsed_secs)
 
@@ -441,8 +443,8 @@ class RecommendationTask:
 
                 filtered_companion_packages = \
                     set(companion_packages).difference(set(filtered_list))
-                current_app.logger.info('%s Fitered companion packages %s',
-                                        external_request_id, filtered_companion_packages)
+                logger.info('%s Fitered companion packages %s',
+                            external_request_id, filtered_companion_packages)
 
                 if check_license:
                     # Apply License Filters
@@ -455,7 +457,7 @@ class RecommendationTask:
                             filtered_companion_packages=filtered_companion_packages
                         )
                     elapsed_secs = time.time() - license_request_started_at
-                    current_app.logger.info(
+                    logger.info(
                         '%s took %0.2f secs for License.perform_license_analysis()',
                         external_request_id, elapsed_secs)
                 else:
@@ -484,13 +486,9 @@ class RecommendationTask:
             persist_data_in_db(external_request_id=external_request_id,
                                task_result=recommendation, worker='recommendation_v2',
                                started_at=started_at, ended_at=ended_at)
-            current_app.logger.info(
+            logger.debug(
                 '%s Recommendation process completed, result persisted into RDS.',
                 external_request_id)
-
-        elapsed_secs = time.time() - execute_started_at
-        current_app.logger.info('%s took %0.2f secs for RecommendationTask.execute()',
-                                external_request_id, elapsed_secs)
 
         return {'recommendation': 'success',
                 'external_request_id': external_request_id,
