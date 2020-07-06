@@ -207,8 +207,6 @@ class Aggregator(ABC):
 
     def _get_package_details_with_vulnerabilities(self) -> List[Dict[str, object]]:
         """Get package data from graph along with vulnerability."""
-        external_request_id = self._request.external_request_id \
-            if self._request is not None else 'UNKNOWN'
         time_start = time.time()
         pkgs_with_vuln = {
             "result": {
@@ -248,12 +246,12 @@ class Aggregator(ABC):
 
             logger.info(
                 '%s took %0.2f secs for post_gremlin() batch request',
-                external_request_id, (time.time() - started_at))
+                self._request.external_request_id, (time.time() - started_at))
             if result:
                 pkgs_with_vuln['result']['data'] += result['result']['data']
 
         logger.info('%s took %0.2f secs for get_package_details_with_'
-                    'vulnerabilities() for total_results %d', external_request_id,
+                    'vulnerabilities() for total_results %d', self._request.external_request_id,
                     (time.time() - time_start), len(pkgs_with_vuln['result']['data']))
         return pkgs_with_vuln['result']['data']
 
@@ -326,11 +324,9 @@ class Aggregator(ABC):
 
         license_analysis = get_license_analysis_for_stack(package_details)
 
-        external_request_id = self._request.external_request_id \
-            if self._request is not None else 'UNKNOWN'
         logger.info(
             '%s took %0.2f secs for get_license_analysis_for_stack()',
-            external_request_id, (time.time() - started_at))
+            self._request.external_request_id, (time.time() - started_at))
         return self.create_result(**self._request.dict(exclude={'packages'}),
                                   analyzed_dependencies=package_details,
                                   unknown_dependencies=unknown_dependencies,
