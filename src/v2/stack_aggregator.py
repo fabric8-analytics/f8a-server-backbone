@@ -207,7 +207,8 @@ class Aggregator(ABC):
 
     def _get_package_details_with_vulnerabilities(self) -> List[Dict[str, object]]:
         """Get package data from graph along with vulnerability."""
-        eri = self._request.external_request_id if self._request is not None else 'UNKNOWN'
+        external_request_id = self._request.external_request_id \
+            if self._request is not None else 'UNKNOWN'
         time_start = time.time()
         pkgs_with_vuln = {
             "result": {
@@ -245,17 +246,15 @@ class Aggregator(ABC):
 
             result = post_gremlin(query, bindings)
 
-            elapsed_secs = time.time() - started_at
             logger.info(
                 '%s took %0.2f secs for post_gremlin() batch request',
-                eri, elapsed_secs)
+                external_request_id, (time.time() - started_at))
             if result:
                 pkgs_with_vuln['result']['data'] += result['result']['data']
 
-        elapsed_secs = time.time() - time_start
         logger.info('%s took %0.2f secs for get_package_details_with_'
-                    'vulnerabilities() for total_results %d', eri,
-                    elapsed_secs, len(pkgs_with_vuln['result']['data']))
+                    'vulnerabilities() for total_results %d', external_request_id,
+                    (time.time() - time_start), len(pkgs_with_vuln['result']['data']))
         return pkgs_with_vuln['result']['data']
 
     def _get_denormalized_package_details(self) -> List[PackageDetails]:
@@ -327,10 +326,11 @@ class Aggregator(ABC):
 
         license_analysis = get_license_analysis_for_stack(package_details)
 
-        eri = self._request.external_request_id if self._request is not None else 'UNKNOWN'
-        elapsed_secs = time.time() - started_at
+        external_request_id = self._request.external_request_id \
+            if self._request is not None else 'UNKNOWN'
         logger.info(
-            '%s took %0.2f secs for get_license_analysis_for_stack()', eri, elapsed_secs)
+            '%s took %0.2f secs for get_license_analysis_for_stack()',
+            external_request_id, (time.time() - started_at))
         return self.create_result(**self._request.dict(exclude={'packages'}),
                                   analyzed_dependencies=package_details,
                                   unknown_dependencies=unknown_dependencies,

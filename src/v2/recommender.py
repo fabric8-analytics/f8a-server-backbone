@@ -52,7 +52,7 @@ class GraphDB:
         return response
 
     @staticmethod
-    def add_version_to_filtered_list(eri, epv, key, val, semversion_tuple, input_stack_tuple,
+    def add_version_to_filtered_list(epv, key, val, semversion_tuple, input_stack_tuple,
                                      pkg_dict, new_dict, filtered_comp_list):
         """Add versions to filtered list."""
         name = epv.get('package', {}).get('name', [''])[0]
@@ -65,8 +65,7 @@ class GraphDB:
                 filtered_comp_list.append(name)
 
         except ValueError:
-            logger.exception(
-                '%s Unexpected ValueError while filtering latest version!', eri)
+            logger.exception('Unexpected ValueError while filtering latest version!')
             pass
         return pkg_dict, new_dict, filtered_comp_list
 
@@ -125,10 +124,9 @@ class GraphDB:
 
                 if latest_version and latest_version == version:
                     pkg_dict, new_dict, filtered_comp_list = GraphDB.add_version_to_filtered_list(
-                        eri=external_request_id, epv=epv, key='latest_version',
-                        val=latest_version, pkg_dict=pkg_dict, new_dict=new_dict,
-                        filtered_comp_list=filtered_comp_list, semversion_tuple=semversion_tuple,
-                        input_stack_tuple=input_stack_tuple)
+                        epv=epv, key='latest_version', val=latest_version, pkg_dict=pkg_dict,
+                        new_dict=new_dict, filtered_comp_list=filtered_comp_list,
+                        semversion_tuple=semversion_tuple, input_stack_tuple=input_stack_tuple)
 
                 # Select Version based on highest dependents count (usage)
                 deps_count = epv.get('version').get('dependents_count', [-1])[0]
@@ -137,9 +135,8 @@ class GraphDB:
                             deps_count > pkg_dict[name].get('deps_count').get('deps_count', 0):
                         pkg_dict, new_dict, filtered_comp_list = \
                             GraphDB.add_version_to_filtered_list(
-                                eri=external_request_id, epv=epv, key='deps_count',
-                                val=deps_count, pkg_dict=pkg_dict, new_dict=new_dict,
-                                filtered_comp_list=filtered_comp_list,
+                                epv=epv, key='deps_count', val=deps_count, pkg_dict=pkg_dict,
+                                new_dict=new_dict, filtered_comp_list=filtered_comp_list,
                                 semversion_tuple=semversion_tuple,
                                 input_stack_tuple=input_stack_tuple)
 
@@ -151,8 +148,8 @@ class GraphDB:
                             get('gh_release_date', 0.0):
                         pkg_dict, new_dict, filtered_comp_list = \
                             GraphDB.add_version_to_filtered_list(
-                                eri=external_request_id, epv=epv, key='gh_release_date',
-                                val=gh_release_date, pkg_dict=pkg_dict, new_dict=new_dict,
+                                epv=epv, key='gh_release_date', val=gh_release_date,
+                                pkg_dict=pkg_dict, new_dict=new_dict,
                                 filtered_comp_list=filtered_comp_list,
                                 semversion_tuple=semversion_tuple,
                                 input_stack_tuple=input_stack_tuple)
@@ -394,9 +391,8 @@ class RecommendationTask:
             start = time.time()
             insights_response = self.call_insights_recommender(external_request_id,
                                                                input_task_for_insights_recommender)
-            elapsed_secs = time.time() - start
             logger.info('%s took %0.2f secs for call_insights_recommender()',
-                        external_request_id, elapsed_secs)
+                        external_request_id, (time.time() - start))
 
             # From PGM response process companion and alternate packages and
             # then get Data from Graph
@@ -430,10 +426,9 @@ class RecommendationTask:
                 graph_request_started_at = time.time()
                 comp_packages_graph = GraphDB().get_version_information(companion_packages,
                                                                         ecosystem)
-                elapsed_secs = time.time() - graph_request_started_at
                 logger.info(
                     '%s took %0.2f secs for GraphDB().get_version_information()',
-                    external_request_id, elapsed_secs)
+                    external_request_id, (time.time() - graph_request_started_at))
 
                 # Apply Version Filters
                 input_stack = {
@@ -456,10 +451,9 @@ class RecommendationTask:
                             filtered_comp_packages_graph=filtered_comp_packages_graph,
                             filtered_companion_packages=filtered_companion_packages
                         )
-                    elapsed_secs = time.time() - license_request_started_at
                     logger.info(
                         '%s took %0.2f secs for License.perform_license_analysis()',
-                        external_request_id, elapsed_secs)
+                        external_request_id, (time.time() - license_request_started_at))
                 else:
                     lic_filtered_comp_graph = filtered_comp_packages_graph
 
