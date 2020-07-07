@@ -21,7 +21,7 @@ def setup_logging(flask_app):
     if not flask_app.debug:
         handler = logging.StreamHandler()
         handler.setFormatter(logging.Formatter(
-            '[%(asctime)s] %(levelname)s in %(module)s:%(lineno)d: %(message)s'))
+            '[%(asctime)s] %(levelname)s in %(pathname)s:%(lineno)d: %(message)s'))
         log_level = os.environ.get('FLASK_LOGGING_LEVEL', logging.getLevelName(logging.WARNING))
         handler.setLevel(log_level)
 
