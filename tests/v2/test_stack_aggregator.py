@@ -9,7 +9,8 @@ from src.v2.stack_aggregator import StackAggregator
 from src.v2.models import (Package, BasicVulnerabilityFields,
                            PremiumVulnerabilityFields,
                            StackAggregatorResultForFreeTier,
-                           StackAggregatorResultForRegisteredUser)
+                           StackAggregatorResultForRegisteredUser,
+                           StackAggregatorRequest)
 from src.v2.normalized_packages import NormalizedPackages
 
 
@@ -279,7 +280,9 @@ def _gremlin_batch_test(_mock_gremlin, size: int):
     _mock_gremlin.return_value = None
     with mock.patch('src.v2.stack_aggregator.GREMLIN_QUERY_SIZE', size):
         _mock_gremlin.reset_mock()
-        sa.Freetier(normalized_packages=packages).get_package_details_from_graph()
+        sa.Freetier(request=StackAggregatorRequest(external_request_id='test_request_id',
+                    ecosystem='pypi', manifest_file_path='/tmp/bin', packages=[_DJANGO]),
+                    normalized_packages=packages).get_package_details_from_graph()
         ith = 0
         last = 0
         for i, call in enumerate(_mock_gremlin.call_args_list, start=1):
@@ -300,7 +303,9 @@ def test_gremlin_batch_call(_mock_gremlin):
     # empty
     _mock_gremlin.return_value = None
     packages = NormalizedPackages([], 'pypi')
-    result = sa.Freetier(normalized_packages=packages).get_package_details_from_graph()
+    result = sa.Freetier(request=StackAggregatorRequest(external_request_id='test_request_id',
+                         ecosystem='pypi', manifest_file_path='/tmp/bin', packages=[_DJANGO]),
+                         normalized_packages=packages).get_package_details_from_graph()
     assert result is not None
     assert isinstance(result, dict)
     _mock_gremlin.assert_not_called()

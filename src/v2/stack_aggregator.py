@@ -26,7 +26,7 @@ from src.v2.normalized_packages import NormalizedPackages
 from src.v2.license_service import (get_license_analysis_for_stack,
                                     get_license_service_request_payload)
 
-logger = logging.getLogger(__file__)  # pylint:disable=C0103
+logger = logging.getLogger(__name__)
 _TRUE = ['true', True, 1, '1']
 
 
@@ -236,13 +236,20 @@ class Aggregator(ABC):
                                            GREMLIN_QUERY_SIZE):
             # convert Tuple[Package] into List[{name:.., version:..}]
             bindings['packages'] = [pkg.dict(exclude={'dependencies'}) for pkg in pkgs]
+
+            started_at = time.time()
+
             result = post_gremlin(query, bindings)
+
+            logger.info(
+                '%s took %0.2f secs for post_gremlin() batch request',
+                self._request.external_request_id, time.time() - started_at)
             if result:
                 pkgs_with_vuln['result']['data'] += result['result']['data']
 
-        logger.info(
-            'get_package_details_with_vulnerabilities time: %f total_results %d',
-            time.time() - time_start, len(pkgs_with_vuln['result']['data']))
+        logger.info('%s took %0.2f secs for get_package_details_with_'
+                    'vulnerabilities() for total_results %d', self._request.external_request_id,
+                    time.time() - time_start, len(pkgs_with_vuln['result']['data']))
         return pkgs_with_vuln['result']['data']
 
     def _get_denormalized_package_details(self) -> List[PackageDetails]:
@@ -310,7 +317,13 @@ class Aggregator(ABC):
         # denormalize package details according to request.dependencies relations
         package_details = self._get_denormalized_package_details()
         unknown_dependencies = self._get_direct_unknown_packages()
+        started_at = time.time()
+
         license_analysis = get_license_analysis_for_stack(package_details)
+
+        logger.info(
+            '%s took %0.2f secs for get_license_analysis_for_stack()',
+            self._request.external_request_id, time.time() - started_at)
         return self.create_result(**self._request.dict(exclude={'packages'}),
                                   analyzed_dependencies=package_details,
                                   unknown_dependencies=unknown_dependencies,
@@ -410,12 +423,15 @@ class StackAggregator:
             persist_data_in_db(external_request_id=output.external_request_id,
                                task_result=output_dict, worker='stack_aggregator_v2',
                                started_at=started_at, ended_at=ended_at)
-            logger.info("Aggregation process completed for %s. "
-                        "Result persisted into RDS.", output.external_request_id)
+            logger.info(
+                '%s Aggregation process completed, result persisted into RDS',
+                output.external_request_id)
+
         initiate_unknown_package_ingestion(aggregator)
         # result attribute is added to keep a compatibility with v1
         # otherwise metric accumulator related handling has to be
         # customized for v2.
+
         return {'aggregation': 'success',
                 'external_request_id': output.external_request_id,
                 'result': output_dict}

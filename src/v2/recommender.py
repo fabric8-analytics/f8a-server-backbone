@@ -8,8 +8,9 @@ import json
 import datetime
 import requests
 import os
-from collections import defaultdict
+import time
 import logging
+from collections import defaultdict
 
 from src.utils import (create_package_dict, get_session_retry, select_latest_version,
                        LICENSE_SCORING_URL_REST, convert_version_to_proper_semantic,
@@ -19,8 +20,8 @@ from src.v2.models import RecommenderRequest, StackRecommendationResult
 from src.v2.stack_aggregator import extract_user_stack_package_licenses
 from src.v2.normalized_packages import NormalizedPackages
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__file__)
+
+logger = logging.getLogger(__name__)
 
 
 class GraphDB:
@@ -97,7 +98,7 @@ class GraphDB:
         4. Dependents Count in Github Manifest Data
         5. Github Release Date
         """
-        logger.info("Filtering {} for external_request_id {}".format(rec_type, external_request_id))
+        logger.debug('%s filtering %s', external_request_id, rec_type)
 
         pkg_dict = defaultdict(dict)
         new_dict = defaultdict(dict)
@@ -153,10 +154,9 @@ class GraphDB:
                                 semversion_tuple=semversion_tuple,
                                 input_stack_tuple=input_stack_tuple)
 
-        logger.info("Data Dict new_dict for external_request_id {} is {}".format(
-            external_request_id, new_dict))
-        logger.info("Data List filtered_comp_list for external_request_id {} is {}".format(
-                external_request_id, filtered_comp_list))
+        logger.debug('%s new dict %s', external_request_id, json.dumps(new_dict))
+        logger.debug(
+            '%s filtered comp list %s', external_request_id, json.dumps(filtered_comp_list))
 
         new_list = GraphDB.prepare_final_filtered_list(new_dict)
         return new_list, filtered_comp_list
@@ -257,9 +257,8 @@ class License:
 
         if len(lic_filtered_list_com) > 0:
             s = set(filtered_companion_packages).difference(set(lic_filtered_list_com))
-            msg = "Companion Packages filtered (licenses) for external_request_id {} " \
-                  "{}".format(external_request_id, s)
-            logger.info(msg)
+            logger.info(
+                '%s Companion Packages filtered (licenses) %s', external_request_id, s)
 
         return lic_filtered_comp_graph
 
@@ -339,7 +338,7 @@ class RecommendationTask:
 
             if response.status_code != 200:
                 logger.error("HTTP error {}. Error retrieving insights data.".format(
-                                response.status_code))
+                             response.status_code))
                 return None
             else:
                 json_response = response.json()
@@ -383,12 +382,11 @@ class RecommendationTask:
             input_task_for_insights_recommender = [insights_payload]
 
             # Call PGM and get the response
-            start = datetime.datetime.utcnow()
+            start = time.time()
             insights_response = self.call_insights_recommender(input_task_for_insights_recommender)
-            elapsed_seconds = (datetime.datetime.utcnow() -
-                               start).total_seconds()
-            logger.info("It took %f seconds to get insight's response"
-                        "for external request %s", elapsed_seconds, external_request_id)
+            logger.info('%s took %0.2f secs for call_insights_recommender()',
+                        external_request_id, time.time() - start)
+
             # From PGM response process companion and alternate packages and
             # then get Data from Graph
             # TODO - implement multiple manifest file support for below loop
@@ -418,8 +416,12 @@ class RecommendationTask:
                     companion_packages.append(pkg['package_name'])
 
                 # Get Companion Packages from Graph
+                graph_request_started_at = time.time()
                 comp_packages_graph = GraphDB().get_version_information(companion_packages,
                                                                         ecosystem)
+                logger.info(
+                    '%s took %0.2f secs for GraphDB().get_version_information()',
+                    external_request_id, time.time() - graph_request_started_at)
 
                 # Apply Version Filters
                 input_stack = {
@@ -429,13 +431,12 @@ class RecommendationTask:
 
                 filtered_companion_packages = \
                     set(companion_packages).difference(set(filtered_list))
-                logger.info(
-                    "Companion Packages Filtered for external_request_id %s %s",
-                    external_request_id, filtered_companion_packages
-                )
+                logger.info('%s Fitered companion packages %s',
+                            external_request_id, filtered_companion_packages)
 
                 if check_license:
                     # Apply License Filters
+                    license_request_started_at = time.time()
                     lic_filtered_comp_graph = \
                         License.perform_license_analysis(
                             packages=normalized_packages,
@@ -443,6 +444,9 @@ class RecommendationTask:
                             filtered_companion_packages=filtered_companion_packages,
                             external_request_id=external_request_id
                         )
+                    logger.info(
+                        '%s took %0.2f secs for License.perform_license_analysis()',
+                        external_request_id, time.time() - license_request_started_at)
                 else:
                     lic_filtered_comp_graph = filtered_comp_packages_graph
 
@@ -469,8 +473,10 @@ class RecommendationTask:
             persist_data_in_db(external_request_id=external_request_id,
                                task_result=recommendation, worker='recommendation_v2',
                                started_at=started_at, ended_at=ended_at)
-            logger.info("Recommendation process completed for %s. "
-                        "Result persisted into RDS.", external_request_id)
+            logger.info(
+                '%s Recommendation process completed, result persisted into RDS.',
+                external_request_id)
+
         return {'recommendation': 'success',
                 'external_request_id': external_request_id,
                 'result': recommendation}

@@ -3,8 +3,9 @@
 import os
 import logging
 import flask
+import time
 from f8a_worker.setup_celery import init_selinon
-from flask import Flask, request, current_app
+from flask import Flask, request
 from flask_cors import CORS
 from raven.contrib.flask import Sentry
 
@@ -20,7 +21,7 @@ def setup_logging(flask_app):
     if not flask_app.debug:
         handler = logging.StreamHandler()
         handler.setFormatter(logging.Formatter(
-            '[%(asctime)s] %(levelname)s in %(module)s:%(lineno)d: %(message)s'))
+            '[%(asctime)s] %(levelname)s in %(pathname)s:%(lineno)d: %(message)s'))
         log_level = os.environ.get('FLASK_LOGGING_LEVEL', logging.getLevelName(logging.WARNING))
         handler.setLevel(log_level)
 
@@ -34,6 +35,8 @@ setup_logging(app)
 CORS(app)
 SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
 sentry = Sentry(app, dsn=SENTRY_DSN, logging=True, level=logging.ERROR)
+
+logger = logging.getLogger(__name__)
 
 init_selinon()
 
@@ -51,6 +54,9 @@ def liveness():
 
 
 def _recommender(handler):
+    external_request_id = 'None'
+    recommender_started_at = time.time()
+
     r = {'recommendation': 'failure', 'external_request_id': None}
     # (fixme) Create decorator for metrics handling.
     metrics_payload = {
@@ -62,9 +68,10 @@ def _recommender(handler):
     }
 
     input_json = request.get_json()
-    current_app.logger.info('recommender/ request with payload: %s', input_json)
-
     if input_json and 'external_request_id' in input_json and input_json['external_request_id']:
+        external_request_id = input_json['external_request_id']
+        logger.info('%s recommender/ request with payload: %s', external_request_id, input_json)
+
         try:
             check_license = request.args.get('check_license', 'false') == 'true'
             persist = request.args.get('persist', 'true') == 'true'
@@ -77,7 +84,7 @@ def _recommender(handler):
                 'message': '%s' % e
             }
             metrics_payload['status_code'] = 400
-            current_app.logger.error('failed %s', r)
+            logger.error('%s failed %s', external_request_id, r)
 
     try:
         metrics_payload['value'] = get_time_delta(audit_data=r['result']['_audit'])
@@ -85,10 +92,16 @@ def _recommender(handler):
     except KeyError:
         pass
 
+    logger.info('%s took %0.2f seconds for _recommender',
+                external_request_id, time.time() - recommender_started_at)
+
     return flask.jsonify(r), metrics_payload['status_code']
 
 
 def _stack_aggregator(handler):
+    external_request_id = 'None'
+    stack_aggregator_started_at = time.time()
+
     assert handler
     s = {'stack_aggregator': 'failure', 'external_request_id': None}
     input_json = request.get_json()
@@ -101,9 +114,11 @@ def _stack_aggregator(handler):
         'status_code': 200
     }
 
-    current_app.logger.info('stack_aggregator/ request with payload: %s', input_json)
     if input_json and 'external_request_id' in input_json \
             and input_json['external_request_id']:
+        external_request_id = input_json['external_request_id']
+        logger.info('%s stack_aggregator/ request with payload: %s',
+                    external_request_id, input_json)
 
         try:
             persist = request.args.get('persist', 'true') == 'true'
@@ -122,7 +137,7 @@ def _stack_aggregator(handler):
                 'message': '%s' % e
             }
             metrics_payload['status_code'] = 400
-            current_app.logger.error('failed %s', s)
+            logger.error('%s failed %s', external_request_id, s)
 
         try:
             # Pushing Individual Metrics Data to Accumulator
@@ -131,6 +146,9 @@ def _stack_aggregator(handler):
             push_data(metrics_payload)
         except KeyError:
             pass
+
+    logger.info('%s took %0.2f seconds for _stack_aggregators',
+                external_request_id, time.time() - stack_aggregator_started_at)
 
     return flask.jsonify(s)
 

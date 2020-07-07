@@ -1,9 +1,7 @@
 """Tests for the recommender module."""
 from unittest import TestCase, mock
 import json
-import logging
 
-logger = logging.getLogger(__name__)
 
 from src.v2.normalized_packages import NormalizedPackages
 from src.v2.recommender import (RecommendationTask, GraphDB, License,

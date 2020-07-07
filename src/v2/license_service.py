@@ -1,14 +1,13 @@
 """Abstracts license service related functionalities."""
 
 import logging
-
 from typing import List, Set
 
 from src.utils import LICENSE_SCORING_URL_REST, post_http_request
 from src.v2.models import LicenseAnalysis, PackageDetails
 
 
-logger = logging.getLogger(__file__)  # pylint:disable=C0103
+logger = logging.getLogger(__name__)
 
 
 def _extract_conflict_packages(license_service_output):
