@@ -28,9 +28,9 @@ from src.v2.license_service import (get_license_analysis_for_stack,
                                     get_license_service_request_payload)
 
 
-_TRUE = ['true', True, 1, '1']
-
 logger = logging.getLogger(__name__)
+
+_TRUE = ['true', True, 1, '1']
 
 
 def _is_private_vulnerability(vulnerability_node):
@@ -246,13 +246,13 @@ class Aggregator(ABC):
 
             logger.info(
                 '%s took %0.2f secs for post_gremlin() batch request',
-                self._request.external_request_id, (time.time() - started_at))
+                self._request.external_request_id, time.time() - started_at)
             if result:
                 pkgs_with_vuln['result']['data'] += result['result']['data']
 
         logger.info('%s took %0.2f secs for get_package_details_with_'
                     'vulnerabilities() for total_results %d', self._request.external_request_id,
-                    (time.time() - time_start), len(pkgs_with_vuln['result']['data']))
+                    time.time() - time_start, len(pkgs_with_vuln['result']['data']))
         return pkgs_with_vuln['result']['data']
 
     def _get_denormalized_package_details(self) -> List[PackageDetails]:
@@ -326,7 +326,7 @@ class Aggregator(ABC):
 
         logger.info(
             '%s took %0.2f secs for get_license_analysis_for_stack()',
-            self._request.external_request_id, (time.time() - started_at))
+            self._request.external_request_id, time.time() - started_at)
         return self.create_result(**self._request.dict(exclude={'packages'}),
                                   analyzed_dependencies=package_details,
                                   unknown_dependencies=unknown_dependencies,
@@ -376,12 +376,10 @@ class Registered(Aggregator):
         return StackAggregatorResultForRegisteredUser(**kwargs)
 
 
-def initiate_unknown_package_ingestion(external_request_id, aggregator: Aggregator):
+def initiate_unknown_package_ingestion(aggregator: Aggregator):
     """Ingestion of Unknown dependencies."""
     if Settings().disable_unknown_package_flow:
-        logger.warning(
-            '%s Skipping unknown flow %s',
-            external_request_id, aggregator.get_all_unknown_packages())
+        logger.warning('Skipping unknown flow %s', aggregator.get_all_unknown_packages())
         return
 
     ecosystem = aggregator._normalized_packages.ecosystem
@@ -390,9 +388,8 @@ def initiate_unknown_package_ingestion(external_request_id, aggregator: Aggregat
             server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
                                    force=False, force_graph_sync=True)
     except Exception as e:  # pylint:disable=W0703,C0103
-        logger.error(
-            '%s Ingestion failed for {%s, %s, %s}',
-            external_request_id, ecosystem, dep.name, dep.version)
+        logger.error('Ingestion failed for {%s, %s, %s}',
+                     ecosystem, dep.name, dep.version)
         logger.error(e)
 
 
@@ -433,7 +430,7 @@ class StackAggregator:
                 '%s Aggregation process completed, result persisted into RDS',
                 output.external_request_id)
 
-        initiate_unknown_package_ingestion(output.external_request_id, aggregator)
+        initiate_unknown_package_ingestion(aggregator)
         # result attribute is added to keep a compatibility with v1
         # otherwise metric accumulator related handling has to be
         # customized for v2.

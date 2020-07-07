@@ -54,7 +54,7 @@ def liveness():
 
 
 def _recommender(handler):
-    external_request_id = 'UNKNOWN'
+    external_request_id = 'None'
     recommender_started_at = time.time()
 
     r = {'recommendation': 'failure', 'external_request_id': None}
@@ -93,13 +93,13 @@ def _recommender(handler):
         pass
 
     logger.info('%s took %0.2f seconds for _recommender',
-                external_request_id, (time.time() - recommender_started_at))
+                external_request_id, time.time() - recommender_started_at)
 
     return flask.jsonify(r), metrics_payload['status_code']
 
 
 def _stack_aggregator(handler):
-    external_request_id = 'UNKNOWN'
+    external_request_id = 'None'
     stack_aggregator_started_at = time.time()
 
     assert handler
@@ -148,7 +148,7 @@ def _stack_aggregator(handler):
             pass
 
     logger.info('%s took %0.2f seconds for _stack_aggregators',
-                external_request_id, (time.time() - stack_aggregator_started_at))
+                external_request_id, time.time() - stack_aggregator_started_at)
 
     return flask.jsonify(s)
 

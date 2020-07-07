@@ -60,24 +60,24 @@ class TestRecommendationTask(TestCase):
                 'HPF_SERVICE_HOST': 'hpf-insights',
              }):
             # Test whether the correct service is called for NPM.
-            called_url_json = RecommendationTask.call_insights_recommender(
-                'test_request_id', [{"ecosystem": "npm"}])
+            called_url_json = RecommendationTask.call_insights_recommender([{"ecosystem": "npm"}])
             self.assertTrue('npm-insights' in called_url_json['url'])
             # Test whether the correct service is called for PYPI.
-            called_url_json = RecommendationTask.call_insights_recommender(
-                'test_request_id', [{"ecosystem": "pypi"}])
+            called_url_json = RecommendationTask.call_insights_recommender([{
+                "ecosystem": "pypi"
+            }])
             self.assertTrue('pypi-insights' in called_url_json['url'])
             # Test whether the correct service is called for golang.
-            called_url_json = RecommendationTask.call_insights_recommender(
-                'test_request_id', [{"ecosystem": "golang"}])
+            called_url_json = RecommendationTask.call_insights_recommender([{
+                "ecosystem": "golang"
+            }])
             self.assertTrue('golang-insights' in called_url_json['url'])
             # Now test whether the correct service is called for maven.
             called_url_json = RecommendationTask.call_insights_recommender(
-                'test_request_id', [{"ecosystem": "maven", "package_list": []}])
+                [{"ecosystem": "maven", "package_list": []}])
             self.assertTrue('pgm' in called_url_json['url'])
 
             called_url_json = RecommendationTask.call_insights_recommender(
-                'test_request_id',
                 [{"ecosystem": "maven", "package_list": ["org.slf4j:slf4j-api"]}])
             self.assertTrue('hpf-insights' in called_url_json['url'])
 
@@ -251,10 +251,10 @@ def test_perform_license_analysis(_mock1, _mock2):
         payload = json.load(f)
     request = RecommenderRequest(**payload)
     comp_graph = License.perform_license_analysis(
-        external_request_id=payload['external_request_id'],
         packages=NormalizedPackages(request.packages, 'maven'),
         filtered_comp_packages_graph=payload['filtered_comp_packages_graph'],
-        filtered_companion_packages=payload['filtered_companion_packages'])
+        filtered_companion_packages=payload['filtered_companion_packages'],
+        external_request_id=payload['external_request_id'])
 
     assert comp_graph is not None
 
@@ -266,7 +266,7 @@ def test_apply_license_filter(_mock1):
     with open('tests/data/epv_list.json', 'r') as f:
         resp = json.load(f)
 
-    out = License.apply_license_filter('test_request_id', None, resp)
+    out = License.apply_license_filter(None, resp)
     assert isinstance(out, dict)
 
 
@@ -274,7 +274,7 @@ def test_set_valid_cooccurrence_probability():
     """Test the function set_valid_cooccurrence_probability."""
     input = [{"ecosystem": "maven", "name": "io.fabric8.funktion.connector:connector-smpp",
               "cooccurrence_probability": 'nan'}]
-    components = set_valid_cooccurrence_probability('test_request_id', input)
+    components = set_valid_cooccurrence_probability(input)
     for component in components:
         assert component['cooccurrence_probability'] == 100
 

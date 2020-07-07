@@ -182,7 +182,7 @@ class License:
     """License Analytics Class."""
 
     @staticmethod
-    def invoke_license_analysis_service(external_request_id, user_stack_packages, comp_packages):
+    def invoke_license_analysis_service(user_stack_packages, comp_packages):
         """Pass given args to stack_license analysis."""
         license_url = LICENSE_SCORING_URL_REST + "/api/v1/stack_license"
 
@@ -199,15 +199,13 @@ class License:
                 lic_response.raise_for_status()  # raise exception for bad http-status codes
             json_response = lic_response.json()
         except requests.exceptions.RequestException:
-            logger.exception(
-                '%s Unexpected error happened while invoking license analysis!',
-                external_request_id)
+            logger.exception("Unexpected error happened while invoking license analysis!")
             pass
 
         return json_response
 
     @staticmethod
-    def apply_license_filter(external_request_id, user_stack_components, epv_list_com):
+    def apply_license_filter(user_stack_components, epv_list_com):
         """Get License Analysis and filter out License Conflict EPVs."""
         license_score_list_com = []
         conflict_packages_com = []
@@ -222,8 +220,7 @@ class License:
             license_score_list_com.append(license_scoring_input)
 
         # Call license scoring to find license filters
-        la_output = License.invoke_license_analysis_service(external_request_id,
-                                                            user_stack_components,
+        la_output = License.invoke_license_analysis_service(user_stack_components,
                                                             license_score_list_com)
 
         if la_output.get('status') == 'Successful' and la_output.get('license_filter') is not None:
@@ -241,19 +238,17 @@ class License:
             'filtered_comp_packages_graph': epv_list_com,
             'filtered_list_pkg_names_com': list_pkg_names_com
         }
-        logger.info(
-            '%s License Filter output: %s', external_request_id, json.dumps(output))
+        logger.info("License Filter output: {}".format(json.dumps(output)))
 
         return output
 
     @staticmethod
     def perform_license_analysis(
-            external_request_id, packages, filtered_companion_packages,
-            filtered_comp_packages_graph):
+            packages, filtered_companion_packages,
+            filtered_comp_packages_graph, external_request_id):
         """Apply License Filters and log the messages."""
         list_user_stack_comp = extract_user_stack_package_licenses(packages)
-        license_filter_output = License.apply_license_filter(external_request_id,
-                                                             list_user_stack_comp,
+        license_filter_output = License.apply_license_filter(list_user_stack_comp,
                                                              filtered_comp_packages_graph)
 
         lic_filtered_comp_graph = license_filter_output['filtered_comp_packages_graph']
@@ -267,7 +262,7 @@ class License:
         return lic_filtered_comp_graph
 
 
-def set_valid_cooccurrence_probability(external_request_id, package_list=[]):
+def set_valid_cooccurrence_probability(package_list=[]):
     """Return a list of companion components with valid co-occurrence probability.
 
     :param package_list:
@@ -276,8 +271,7 @@ def set_valid_cooccurrence_probability(external_request_id, package_list=[]):
     new_package_list = []
     for package in package_list:
         if str(package['cooccurrence_probability']) == 'nan':
-            logger.error('%s Found an invalid cooccurrence probability for %s',
-                         external_request_id, package['name'])
+            logger.error("Found an invalid cooccurrence probability for %s" % package['name'])
             package['cooccurrence_probability'] = float(100.0)
         new_package_list.append(package)
     return new_package_list
@@ -295,7 +289,7 @@ class RecommendationTask:
     golang_ecosystem = ['golang']
 
     @staticmethod
-    def get_insights_url(external_request_id, payload):
+    def get_insights_url(payload):
         """Get the insights url based on the ecosystem."""
         if payload and 'ecosystem' in payload[0]:
             quickstarts = False
@@ -325,12 +319,11 @@ class RecommendationTask:
             return insights_url
 
         else:
-            logger.error('%s Payload information not passed in the call, '
-                         'Quitting! inights recommender\'s call',
-                         external_request_id)
+            logger.error('Payload information not passed in the call, Quitting! inights '
+                         'recommender\'s call')
 
     @staticmethod
-    def call_insights_recommender(external_request_id, payload):
+    def call_insights_recommender(payload):
         """Call the PGM model.
 
         Calls the PGM model with the normalized manifest information to get
@@ -339,20 +332,20 @@ class RecommendationTask:
         try:
             # TODO remove hardcodedness for payloads with multiple ecosystems
 
-            insights_url = RecommendationTask.get_insights_url(external_request_id, payload)
+            insights_url = RecommendationTask.get_insights_url(payload)
             response = get_session_retry().post(insights_url, json=payload)
 
             if response.status_code != 200:
-                logger.error('%s HTTP error %d. Error retrieving insights data',
-                             external_request_id, response.status_code)
+                logger.error("HTTP error {}. Error retrieving insights data.".format(
+                             response.status_code))
                 return None
             else:
                 json_response = response.json()
                 return json_response
 
         except Exception as e:
-            logger.error('%s Failed retrieving insights data', external_request_id)
-            logger.error('%s', e)
+            logger.error("Failed retrieving insights data.")
+            logger.error("%s" % e)
             return None
 
     def execute(self, arguments=None, persist=True, check_license=False):
@@ -389,10 +382,9 @@ class RecommendationTask:
 
             # Call PGM and get the response
             start = time.time()
-            insights_response = self.call_insights_recommender(external_request_id,
-                                                               input_task_for_insights_recommender)
+            insights_response = self.call_insights_recommender(input_task_for_insights_recommender)
             logger.info('%s took %0.2f secs for call_insights_recommender()',
-                        external_request_id, (time.time() - start))
+                        external_request_id, time.time() - start)
 
             # From PGM response process companion and alternate packages and
             # then get Data from Graph
@@ -428,7 +420,7 @@ class RecommendationTask:
                                                                         ecosystem)
                 logger.info(
                     '%s took %0.2f secs for GraphDB().get_version_information()',
-                    external_request_id, (time.time() - graph_request_started_at))
+                    external_request_id, time.time() - graph_request_started_at)
 
                 # Apply Version Filters
                 input_stack = {
@@ -446,14 +438,14 @@ class RecommendationTask:
                     license_request_started_at = time.time()
                     lic_filtered_comp_graph = \
                         License.perform_license_analysis(
-                            external_request_id=external_request_id,
                             packages=normalized_packages,
                             filtered_comp_packages_graph=filtered_comp_packages_graph,
-                            filtered_companion_packages=filtered_companion_packages
+                            filtered_companion_packages=filtered_companion_packages,
+                            external_request_id=external_request_id
                         )
                     logger.info(
                         '%s took %0.2f secs for License.perform_license_analysis()',
-                        external_request_id, (time.time() - license_request_started_at))
+                        external_request_id, time.time() - license_request_started_at)
                 else:
                     lic_filtered_comp_graph = filtered_comp_packages_graph
 
@@ -465,7 +457,7 @@ class RecommendationTask:
                 # Create Companion Block
                 comp_packages = create_package_dict(topics_comp_packages_graph)
                 final_comp_packages = \
-                    set_valid_cooccurrence_probability(external_request_id, comp_packages)
+                    set_valid_cooccurrence_probability(comp_packages)
 
                 recommendation['companion'] = final_comp_packages
 
