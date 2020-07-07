@@ -169,8 +169,8 @@ def get_license_analysis_for_stack(
     try:
         resp = post_http_request(url=license_url, payload=payload)
     except Exception as e:
-        logger.exception(
-            'Unexpected error(%s) happened while invoking license analysis!', e)
+        logger.exception("Unexpected error(%s) happened while invoking license analysis!",
+                         e)
     else:
         unknown_licenses = _extract_unknown_licenses(resp)
         license_conflict_packages = _extract_conflict_packages(resp)

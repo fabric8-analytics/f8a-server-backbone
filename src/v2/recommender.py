@@ -65,7 +65,7 @@ class GraphDB:
                 filtered_comp_list.append(name)
 
         except ValueError:
-            logger.exception('Unexpected ValueError while filtering latest version!')
+            logger.exception("Unexpected ValueError while filtering latest version!")
             pass
         return pkg_dict, new_dict, filtered_comp_list
 
@@ -248,8 +248,9 @@ class License:
             filtered_comp_packages_graph, external_request_id):
         """Apply License Filters and log the messages."""
         list_user_stack_comp = extract_user_stack_package_licenses(packages)
-        license_filter_output = License.apply_license_filter(list_user_stack_comp,
-                                                             filtered_comp_packages_graph)
+        license_filter_output = License.apply_license_filter(
+            list_user_stack_comp,
+            filtered_comp_packages_graph)
 
         lic_filtered_comp_graph = license_filter_output['filtered_comp_packages_graph']
         lic_filtered_list_com = license_filter_output['filtered_list_pkg_names_com']
@@ -472,7 +473,7 @@ class RecommendationTask:
             persist_data_in_db(external_request_id=external_request_id,
                                task_result=recommendation, worker='recommendation_v2',
                                started_at=started_at, ended_at=ended_at)
-            logger.debug(
+            logger.info(
                 '%s Recommendation process completed, result persisted into RDS.',
                 external_request_id)
 

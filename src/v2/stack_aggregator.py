@@ -9,7 +9,6 @@ import inspect
 import time
 import logging
 
-
 from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple, Union, Set
 from src.settings import Settings
@@ -27,9 +26,7 @@ from src.v2.normalized_packages import NormalizedPackages
 from src.v2.license_service import (get_license_analysis_for_stack,
                                     get_license_service_request_payload)
 
-
 logger = logging.getLogger(__name__)
-
 _TRUE = ['true', True, 1, '1']
 
 
@@ -426,7 +423,7 @@ class StackAggregator:
             persist_data_in_db(external_request_id=output.external_request_id,
                                task_result=output_dict, worker='stack_aggregator_v2',
                                started_at=started_at, ended_at=ended_at)
-            logger.debug(
+            logger.info(
                 '%s Aggregation process completed, result persisted into RDS',
                 output.external_request_id)
 

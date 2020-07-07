@@ -8,6 +8,7 @@ Output: TBD
 """
 import datetime
 import time
+from flask import current_app
 import requests
 import copy
 from collections import defaultdict
@@ -282,7 +283,7 @@ def perform_license_analysis(license_score_list, dependencies):
         if not resp:
             raise requests.exceptions.RequestException
     except requests.exceptions.RequestException:
-        logger.exception("Unexpected error happened while invoking license analysis!")
+        current_app.logger.exception("Unexpected error happened while invoking license analysis!")
         flag_stack_license_exception = True
 
     msg = None

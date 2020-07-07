@@ -8,7 +8,6 @@ from src.v2.recommender import (RecommendationTask, GraphDB, License,
                                 set_valid_cooccurrence_probability)
 from src.v2.models import RecommenderRequest
 
-
 with open("tests/data/graph_response.json", "r") as f:
     graph_resp = json.load(f)
 
