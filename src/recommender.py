@@ -500,7 +500,6 @@ class RecommendationTask:
                                 result.get("details", [])[0].get("_resolved")}
             for tdeps in result.get("details", [])[0].get("_resolved"):
                 temp_transitive_stack = [d['package'] for d in tdeps.get('deps', [])]
-                logger.debug("transitive_stack {}".format(temp_transitive_stack))
                 transitive_stack.update(temp_transitive_stack)
             input_stack.update(temp_input_stack)
 
