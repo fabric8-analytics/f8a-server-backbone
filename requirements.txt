@@ -30,3 +30,6 @@ six==1.11.0               # via flask-cors
 sqlalchemy==1.2.6         # via -r requirements.in
 urllib3==1.22             # via requests
 werkzeug==0.15.3          # via flask
+git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@fdc0435
+git+https://github.com/fabric8-analytics/fabric8-analytics-utils.git@1f45e6f
+git+https://git@github.com/fabric8-analytics/fabric8-analytics-version-comparator.git#egg=f8a_version_comparator
