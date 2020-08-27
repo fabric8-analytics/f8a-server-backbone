@@ -4,7 +4,7 @@ info:
   version: "2.0"
 servers:
   - url: /api/v2
-  
+
 paths:
   /recommender:
     post:
@@ -71,9 +71,7 @@ paths:
           content:
             application/json:
               schema:
-                oneOf:
-                - $ref: '#/components/schemas/StackAggregatorResultForRegisteredUser'
-                - $ref: '#/components/schemas/StackAggregatorResultForFreeTier'
+                $ref: '#/components/schemas/StackAggregatorResult'
         400:
           description: Bad request
           content: {}
@@ -99,7 +97,8 @@ components:
         - manifest_file_path
       properties:
         registration_status:
-          $ref: '#/components/schemas/RegistrationStatus'
+          type: string
+          example: FREETIER
         uuid:
           type: string
           format: uuid
@@ -132,9 +131,9 @@ components:
         - npm
       description: List of supported package ecosystems
 
-    BasicVulnerabilityFields:
-      title: BasicVulnerabilityFields
-      required: 
+    VulnerabilityFields:
+      title: VulnerabilityFields
+      required:
         - cvss
         - cvss_v3
         - severity
@@ -146,7 +145,7 @@ components:
           type: array
           items:
             type: string
-          example: 
+          example:
             - CVE-2014-0474
             - CVE-2014-0475
         cvss:
@@ -157,7 +156,7 @@ components:
           type: array
           items:
             type: string
-          example: 
+          example:
             - CWE-185
             - CWE-730
         cvss_v3:
@@ -179,64 +178,56 @@ components:
         url:
           type: string
           example: https://snyk.io/vuln/SNYK-PYTHON-DJANGO-4002
-      description: Limited private vulnerability details for free tier users
-
-    PremiumVulnerabilityFields:
-      title: PremiumVulnerabilityFields
-      allOf:
-        - $ref: '#/components/schemas/BasicVulnerabilityFields'
-        - type: object
-          properties:
-            malicious:
-              type: boolean
-              default: true
-            patch_exists:
-              type: boolean
-              default: false
-              example: true
-            fixable:
-              type: boolean
-              default: false
-              example: true
-            exploit:
-              type: string
-              enum:
-                - High
-                - Functional
-                - Proof of Concept
-                - Unproven
-                - Not Defined
-              example: High
-            description:
-              type: string
-              example: |
-                "## Overview\r\n[`django`](https://pypi.python.org/pypi/django) is a high-level Python Web framework that encourages rapid development and clean, pragmatic design.\r\n\r\nAffected versions of this package expose sensitive information due to not properly restricting the use of a query string that performs certain object filtering. An attacker may obtain sensitive information via a series of requests containing regular expressions, as demonstrated by a `created_by__password__regex` parameter.\r\n\r\n## References\r\n- [Django Vulnerability Description](http://www.djangoproject.com/weblog/2010/dec/22/security/)\r\n- [GitHub Commit](https://github.com/django/django/commit/732198ed5c)\r\n- [Redhat Bugzilla](https://bugzilla.redhat.com/show_bug.cgi?id=665373)\r\n- [Openwall](http://www.openwall.com/lists/oss-security/2011/01/03/5)\r\n- [CVE](https://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2010-4534)\r\n"
-            fixed_in:
-              type: array
-              items:
+        malicious:
+          type: boolean
+          default: true
+        patch_exists:
+          type: boolean
+          default: false
+          example: true
+        fixable:
+          type: boolean
+          default: false
+          example: true
+        exploit:
+          type: string
+          enum:
+            - High
+            - Functional
+            - Proof of Concept
+            - Unproven
+            - Not Defined
+          example: High
+        description:
+          type: string
+          example: |
+            "## Overview\r\n[`django`](https://pypi.python.org/pypi/django) is a high-level Python Web framework that encourages rapid development and clean, pragmatic design.\r\n\r\nAffected versions of this package expose sensitive information due to not properly restricting the use of a query string that performs certain object filtering. An attacker may obtain sensitive information via a series of requests containing regular expressions, as demonstrated by a `created_by__password__regex` parameter.\r\n\r\n## References\r\n- [Django Vulnerability Description](http://www.djangoproject.com/weblog/2010/dec/22/security/)\r\n- [GitHub Commit](https://github.com/django/django/commit/732198ed5c)\r\n- [Redhat Bugzilla](https://bugzilla.redhat.com/show_bug.cgi?id=665373)\r\n- [Openwall](http://www.openwall.com/lists/oss-security/2011/01/03/5)\r\n- [CVE](https://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2010-4534)\r\n"
+        fixed_in:
+          type: array
+          items:
+            type: string
+          example:
+            - 2.6.7
+            - 2.7.5
+            - 2.8.0
+        references:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
                 type: string
-              example:
-                - 2.6.7
-                - 2.7.5
-                - 2.8.0
-            references:
-              type: array
-              items:
-                type: object
-                properties:
-                  title:
-                    type: string
-                    example: Redhat Security Advisory
-                  url:
-                    type: string
-                    example: https://access.redhat.com/security/cve/CVE-2013-2186
+                example: Redhat Security Advisory
+              url:
+                type: string
+                example: https://access.redhat.com/security/cve/CVE-2013-2186
           description: |
-            Extended Vulnerability details, available only to registered users
+            All vulnerability details as provided from graph DB
 
     Package:
       title: Package
       type: object
-      required: 
+      required:
         - name
         - version
       properties:
@@ -256,7 +247,7 @@ components:
                 version: 1.2.3
             - six:
                 name: six
-                version: 5.1.1          
+                version: 5.1.1
       description: Package details
 
     UnknownLicenses:
@@ -297,7 +288,7 @@ components:
     ConflictPackages:
       title: ConflictPackages
       type: object
-      required: 
+      required:
         - package1
         - package2
         - license1
@@ -312,7 +303,7 @@ components:
         package2:
           type: string
           example: rustdoc
-        license2: 
+        license2:
           type: string
           example: General Public License V3(GPL)
       description: Pair of packages which has conflict in license
@@ -320,7 +311,7 @@ components:
     LicenseAnalysis:
       title: LicenseAnalysis
       type: object
-      required: 
+      required:
         - outlier_packages
         - conflict_packages
         - current_stack_license
@@ -432,13 +423,13 @@ components:
               $ref: '#/components/schemas/Ecosystem'
             url:
               type: string
-              example: 
+              example:
                 - https://snyk.io/vuln/pip:django
                 - https://snyk.io/vuln/pip:jinja2
           description: Details of the package
 
-    PackageDetailsForRegisteredUser:
-      title: PackageDetailsForRegisteredUser
+    StackAggregatorPackageData:
+      title: StackAggregatorPackageData
       allOf:
         - $ref: '#/components/schemas/PackageDetails'
         - type: object
@@ -447,14 +438,13 @@ components:
               type: array
               description: Publicly known vulnerability details
               items:
-                $ref: '#/components/schemas/PremiumVulnerabilityFields'
+                $ref: '#/components/schemas/VulnerabilityFields'
             private_vulnerabilities:
               type: array
               description: |
-                Private vulnerability details, available only to registered
-                users
+                Private vulnerability details
               items:
-                $ref: '#/components/schemas/PremiumVulnerabilityFields'
+                $ref: '#/components/schemas/VulnerabilityFields'
             recommended_version:
               type: string
               example: 3.0.0
@@ -463,39 +453,10 @@ components:
             vulnerable_dependencies:
               type: array
               items:
-                $ref: '#/components/schemas/PackageDetailsForRegisteredUser'
+                $ref: '#/components/schemas/StackAggregatorPackageData'
               description: |
                 List of dependencies which are vulnerable.
-          description: Details of the package for registered users
-
-    PackageDetailsForFreeTier:
-      title: PackageDetailsForFreeTier
-      allOf:
-        - $ref: '#/components/schemas/PackageDetails'
-        - type: object
-          properties:
-            public_vulnerabilities:
-              type: array
-              description: Publicly known vulnerability details
-              items:
-                $ref: '#/components/schemas/BasicVulnerabilityFields'
-            private_vulnerabilities:
-              type: array
-              description: Private vulnerability details with limited info
-              items:
-                $ref: '#/components/schemas/BasicVulnerabilityFields'
-            recommended_version:
-              type: string
-              example: 3.0.0
-              description: |
-                Recommended package version which includes fix for public vulnerabilities.
-            vulnerable_dependencies:
-              type: array
-              items:
-                $ref: '#/components/schemas/PackageDetailsForFreeTier'    
-              description: |
-                List of dependencies which are vulnerable.
-          description: Details of the package for free tier users
+          description: Details of the package for the given stack
 
     RecommendedPackageData:
       title: RecommendedPackageData
@@ -514,14 +475,6 @@ components:
             type: array
             items:
               type: string
-              
-    RegistrationStatus:
-      title: RegistrationStatus
-      type: string
-      enum:
-        - registered
-        - freetier
-      default: freetier
 
     StackRecommendationResult:
       title: StackRecommendation
@@ -540,12 +493,13 @@ components:
           $ref: '#/components/schemas/Audit'
         uuid:
           type: string
-          format: uuid          
+          format: uuid
         external_request_id:
           type: string
-          example: 229e7da76708fe374d8c10fa752e72989f      
+          example: 229e7da76708fe374d8c10fa752e72989f
         registration_status:
-          $ref: '#/components/schemas/RegistrationStatus'
+          type: string
+          example: REGISTERED
         recommendation_status:
           type: string
           enum:
@@ -594,22 +548,20 @@ components:
         - ecosystem
         - unknown_dependencies
         - license_analysis
-      discriminator:
-        propertyName: registration_status
-        mapping:
-          registerd: StackAnalysesResultForRegisteredUser
-          freetier: StackAnalysesResultForFreeTier
+        - registration_link
+        - analyzed_dependencies
       properties:
         _audit:
           $ref: '#/components/schemas/Audit'
         uuid:
           type: string
-          format: uuid          
+          format: uuid
         external_request_id:
           type: string
-          example: 229e7da76708fe374d8c10fa752e72989f      
+          example: 229e7da76708fe374d8c10fa752e72989f
         registration_status:
-          $ref: '#/components/schemas/RegistrationStatus'
+          type: string
+          example: FREETIER
         manifest_file_path:
           type: string
           example: pom.xml
@@ -629,40 +581,13 @@ components:
               version: 0.0.1
         license_analysis:
           $ref: '#/components/schemas/LicenseAnalysis'
+        registration_link:
+          type: string
+          format: url
+        analyzed_dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/StackAggregatorPackageData'
+          description: |
+            All direct dependencies details regardless of it's vulnerability status
       description: Stack analyses result data
-
-    StackAggregatorResultForRegisteredUser:
-      title: StackAggregatorResultForRegisteredUser
-      allOf:
-      - $ref: '#/components/schemas/StackAggregatorResult'  
-      - type: object
-        required:
-          - analyzed_direct_dependencies
-        properties:
-          analyzed_dependencies:
-            type: array
-            items:
-              $ref: '#/components/schemas/PackageDetailsForRegisteredUser'
-            description: |
-              All direct dependencies details regardless of it's vulnerability status
-      description: Stack analyses result for registered user
-      
-    StackAggregatorResultForFreeTier:
-      title: StackAggregatorResultForFreeTier
-      allOf:
-      - $ref: '#/components/schemas/StackAggregatorResult'
-      - type: object
-        required:
-          - registration_link
-          - analyzed_direct_dependencies
-        properties:
-          registration_link:
-            type: string
-            format: url
-          analyzed_dependencies:
-            type: array
-            items:
-              $ref: '#/components/schemas/PackageDetailsForFreeTier'
-            description: |
-              All direct dependencies details regardless of it's vulnerability status
-      description: Stack analyses result for free tier user
