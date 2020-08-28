@@ -9,19 +9,14 @@ import inspect
 import time
 import logging
 
-from abc import ABC, abstractmethod
-from typing import Dict, List, Tuple, Union, Set
+from abc import ABC
+from typing import Dict, List, Tuple, Set
 from src.settings import Settings
-from src.utils import (select_latest_version, server_create_analysis,
-                       persist_data_in_db, post_gremlin, GREMLIN_QUERY_SIZE,
-                       format_date)
+from src.utils import (select_latest_version, server_create_analysis, format_date,
+                       persist_data_in_db, post_gremlin, GREMLIN_QUERY_SIZE)
 from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails,
-                           BasicVulnerabilityFields, PremiumVulnerabilityFields,
-                           PackageDetailsForFreeTier,
-                           PackageDetailsForRegisteredUser,
-                           Package, Audit, Ecosystem,
-                           StackAggregatorResultForFreeTier,
-                           StackAggregatorResultForRegisteredUser)
+                           VulnerabilityFields, StackAggregatorPackageData, Package,
+                           Audit, Ecosystem, StackAggregatorResult)
 from src.v2.normalized_packages import NormalizedPackages
 from src.v2.license_service import (get_license_analysis_for_stack,
                                     get_license_service_request_payload)
@@ -122,7 +117,7 @@ def _get_pkg_from_graph_version_node(version_node) -> Tuple[Ecosystem, Package]:
 # (fixme): This should be moved to v2/recommender
 def extract_user_stack_package_licenses(packages: NormalizedPackages):
     """Extract user stack package licenses."""
-    normalized_package_details = (Freetier(normalized_packages=packages).
+    normalized_package_details = (Aggregator(normalized_packages=packages).
                                   get_package_details_from_graph(packages))
     return get_license_service_request_payload(normalized_package_details)
 
@@ -286,33 +281,11 @@ class Aggregator(ABC):
         analyzed_dependencies = set(self._normalized_package_details.keys())
         return all_dependencies.difference(analyzed_dependencies)
 
-    @abstractmethod
-    def create_vulnerability(self,
-                             vuln_node: Dict[str, str]) -> Union[BasicVulnerabilityFields,
-                                                                 PremiumVulnerabilityFields]:
-        """Create Vulnerability object according to the request type."""
-        pass  # pragma: no cover
-
-    @abstractmethod
-    def create_package_details(self,
-                               **kwargs) -> Union[PackageDetailsForFreeTier,
-                                                  PackageDetailsForRegisteredUser]:
-        """Create PackageDetails object according to the request type."""
-        pass  # pragma: no cover
-
-    @abstractmethod
-    def create_result(self,
-                      **kwargs) -> Union[StackAggregatorResultForFreeTier,
-                                         StackAggregatorResultForRegisteredUser]:
-        """Create aggregation result according to the request type."""
-        pass  # pragma: no cover
-
     def fetch_details(self):
         """Fetch package & vulnerability info from graph."""
         self._normalized_package_details = self.get_package_details_from_graph()
 
-    def get_result(self) -> Union[StackAggregatorResultForFreeTier,
-                                  StackAggregatorResultForRegisteredUser]:
+    def get_result(self) -> StackAggregatorResult:
         """Aggregate stack data."""
         # denormalize package details according to request.dependencies relations
         package_details = self._get_denormalized_package_details()
@@ -329,48 +302,17 @@ class Aggregator(ABC):
                                   unknown_dependencies=unknown_dependencies,
                                   license_analysis=license_analysis)
 
+    def create_package_details(self, **kwargs) -> StackAggregatorPackageData:
+        """Create StackAggregatorPackageData."""
+        return StackAggregatorPackageData(**kwargs)
 
-class Freetier(Aggregator):
-    """Create Freetier response."""
+    def create_vulnerability(self, vuln_node: Dict[str, str]) -> VulnerabilityFields:
+        """Get fields associated with user."""
+        return VulnerabilityFields(**_get_vuln_for_registered_user(vuln_node))
 
-    def __init__(self, request: StackAggregatorRequest = None,
-                 normalized_packages: NormalizedPackages = None):
-        """Create Freetier instance."""
-        super().__init__(request, normalized_packages)
-
-    def create_package_details(self, **kwargs) -> PackageDetailsForFreeTier:
-        """Get PackageDetailsForFreeTier."""
-        return PackageDetailsForFreeTier(**kwargs)
-
-    def create_vulnerability(self, vuln_node: Dict[str, str]) -> BasicVulnerabilityFields:
-        """Get fields associated with free tier users."""
-        return BasicVulnerabilityFields(**_get_vuln_for_free_tier(vuln_node))
-
-    def create_result(self, **kwargs) -> StackAggregatorResultForFreeTier:
-        """Get StackAggregatorResultForFreeTier."""
-        return StackAggregatorResultForFreeTier(**kwargs,
-                                                registration_link=Settings().snyk_signin_url)
-
-
-class Registered(Aggregator):
-    """Create registered user response."""
-
-    def __init__(self, request: StackAggregatorRequest = None,
-                 normalized_packages: NormalizedPackages = None):
-        """Create Registered instance."""
-        super().__init__(request, normalized_packages)
-
-    def create_package_details(self, **kwargs) -> PackageDetailsForRegisteredUser:
-        """Create PackageDetailsForRegisteredUser."""
-        return PackageDetailsForRegisteredUser(**kwargs)
-
-    def create_vulnerability(self, vuln_node: Dict[str, str]) -> PremiumVulnerabilityFields:
-        """Get fields associated with registered users."""
-        return PremiumVulnerabilityFields(**_get_vuln_for_registered_user(vuln_node))
-
-    def create_result(self, **kwargs) -> StackAggregatorResultForRegisteredUser:
-        """Get StackAggregatorResultForRegisteredUser."""
-        return StackAggregatorResultForRegisteredUser(**kwargs)
+    def create_result(self, **kwargs) -> StackAggregatorResult:
+        """Get StackAggregatorResult."""
+        return StackAggregatorResult(**kwargs, registration_link=Settings().snyk_signin_url)
 
 
 def initiate_unknown_package_ingestion(aggregator: Aggregator):
@@ -399,11 +341,10 @@ class StackAggregator:
         request = StackAggregatorRequest(**request)
         normalized_packages = NormalizedPackages(request.packages,
                                                  request.ecosystem)
-        if request.registration_status == 'registered':
-            aggregator = Registered(request, normalized_packages)
-        else:
-            aggregator = Freetier(request, normalized_packages)
-
+        # Always generate regitered user report for the given stack, API server
+        # shall filter the report fields based on registration status.
+        # This will avoid analysis of stack upon user registration.
+        aggregator = Aggregator(request, normalized_packages)
         aggregator.fetch_details()
         return aggregator
 

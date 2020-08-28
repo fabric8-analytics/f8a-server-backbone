@@ -10,36 +10,25 @@ from uuid import UUID
 from pydantic import BaseModel, Field, validator
 
 
-class Ecosystem(str, Enum):  # noqa: D101  # noqa: D101
+class Ecosystem(str, Enum):  # noqa: D101
     maven = 'maven'
     pypi = 'pypi'
     npm = 'npm'
 
 
-class Severity(str, Enum):  # noqa: D101  # noqa: D101
+class Severity(str, Enum):  # noqa: D101
     low = 'low'
     medium = 'medium'
     high = 'high'
     critical = 'critical'
 
 
-class LicenseAnalysisStatus(str, Enum):  # noqa: D101  # noqa: D101
+class LicenseAnalysisStatus(str, Enum):  # noqa: D101
     ComponentConflict = 'ComponentConflict'
     StackConflict = 'StackConflict'
     Successful = 'Successful'
     Unknown = 'Unknown'
     Failure = 'Failure'
-
-
-class BasicVulnerabilityFields(BaseModel):  # noqa: D101
-    cve_ids: Optional[List[str]] = None
-    cvss: float
-    cwes: Optional[List[str]] = None
-    cvss_v3: str
-    severity: 'Severity'
-    title: str
-    id: str
-    url: str
 
 
 class Exploit(str, Enum):  # noqa: D101
@@ -55,7 +44,15 @@ class Reference(BaseModel):  # noqa: D101
     url: Optional[str] = None
 
 
-class PremiumVulnerabilityFields(BasicVulnerabilityFields):  # noqa: D101
+class VulnerabilityFields(BaseModel):  # noqa: D101
+    cve_ids: Optional[List[str]] = None
+    cvss: float
+    cwes: Optional[List[str]] = None
+    cvss_v3: str
+    severity: 'Severity'
+    title: str
+    id: str
+    url: str
     malicious: Optional[bool] = True
     patch_exists: Optional[bool] = False
     fixable: Optional[bool] = False
@@ -147,37 +144,21 @@ class PackageDetails(Package):  # noqa: D101
     url: Optional[str] = None
 
 
-class PackageDetailsForRegisteredUser(PackageDetails):  # noqa: D101
-    public_vulnerabilities: Optional[List['PremiumVulnerabilityFields']] = Field(
-        None, description='Publicly known vulnerability details'
+class StackAggregatorPackageData(PackageDetails):  # noqa: D101
+    public_vulnerabilities: Optional[List['VulnerabilityFields']] = Field(
+        None, description='Publicly known vulnerability details.'
     )
-    private_vulnerabilities: Optional[List['PremiumVulnerabilityFields']] = Field(
+    private_vulnerabilities: Optional[List['VulnerabilityFields']] = Field(
         None,
-        description='Private vulnerability details, available only to registered\nusers\n',
+        description='Private vulnerability details.',
     )
     recommended_version: Optional[str] = Field(
         None,
         description=('Recommended package version which includes '
-                     'fix for both public and private vulnerabilities.\n'),
+                     'fix for both public and private vulnerabilities.'),
     )
-    vulnerable_dependencies: Optional[List['PackageDetailsForRegisteredUser']] = Field(
-        None, description='List of dependencies which are vulnerable.\n'
-    )
-
-
-class PackageDetailsForFreeTier(PackageDetails):  # noqa: D101
-    public_vulnerabilities: Optional[List['BasicVulnerabilityFields']] = Field(
-        None, description='Publicly known vulnerability details'
-    )
-    private_vulnerabilities: Optional[List['BasicVulnerabilityFields']] = Field(
-        None, description='Private vulnerability details with limited info'
-    )
-    recommended_version: Optional[str] = Field(
-        None,
-        description='Recommended package version which includes fix for public vulnerabilities.\n',
-    )
-    vulnerable_dependencies: Optional[List['PackageDetailsForFreeTier']] = Field(
-        None, description='List of dependencies which are vulnerable.\n'
+    vulnerable_dependencies: Optional[List['StackAggregatorPackageData']] = Field(
+        None, description='List of dependencies which are vulnerable.'
     )
 
 
@@ -185,11 +166,6 @@ class RecommendedPackageData(PackageDetails):  # noqa: D101
     cooccurrence_probability: Optional[float] = 0
     cooccurrence_count: int = 0
     topic_list: Optional[List[str]] = None
-
-
-class RegistrationStatus(str, Enum):  # noqa: D101
-    registered = 'registered'
-    freetier = 'freetier'
 
 
 class RecommendationStatus(str, Enum):  # noqa: D101
@@ -207,31 +183,21 @@ class StackAggregatorResult(BaseModel):  # noqa: D101
     _audit: Optional['Audit'] = None
     uuid: Optional[UUID] = None
     external_request_id: Optional[str] = None
-    registration_status: Optional['RegistrationStatus'] = None
+    registration_status: Optional[str] = None
     manifest_file_path: Optional[str] = None
     manifest_name: Optional[str] = None
     ecosystem: Optional['Ecosystem'] = None
     unknown_dependencies: Optional[List['Package']] = None
     license_analysis: Optional['LicenseAnalysis'] = None
-
-
-class StackAggregatorResultForRegisteredUser(StackAggregatorResult):  # noqa: D101
-    analyzed_dependencies: Optional[List['PackageDetailsForRegisteredUser']] = Field(
-        None,
-        description="All direct dependencies details regardless of it's vulnerability status\n",
-    )
-
-
-class StackAggregatorResultForFreeTier(StackAggregatorResult):  # noqa: D101
     registration_link: str
-    analyzed_dependencies: Optional[List['PackageDetailsForFreeTier']] = Field(
+    analyzed_dependencies: Optional[List['StackAggregatorPackageData']] = Field(
         None,
         description="All direct dependencies details regardless of it's vulnerability status\n",
     )
 
 
 class StackAggregatorRequest(BaseModel):  # noqa: D101
-    registration_status: 'RegistrationStatus' = 'freetier'
+    registration_status: str
     uuid: UUID = None
     external_request_id: str
     show_transitive: Optional[bool] = Field(
@@ -239,7 +205,7 @@ class StackAggregatorRequest(BaseModel):  # noqa: D101
         description='This is required to enable or disable the transitive support\n',
     )
     ecosystem: 'Ecosystem'
-    manifest_name: Optional[str] = None
+    manifest_name: Optional[str]
     manifest_file_path: str
     packages: List['Package']
 
@@ -254,7 +220,7 @@ class StackRecommendationResult(BaseModel):  # noqa: D101
     external_request_id: str
     manifest_file_path: str = None
     manifest_name: str = None
-    registration_status: 'RegistrationStatus'
+    registration_status: str
     recommendation_status: 'RecommendationStatus' = 'success'
     companion: List['RecommendedPackageData']
     usage_outliers: List[Dict[str, Any]]
@@ -265,6 +231,5 @@ class RecommenderRequest(StackAggregatorRequest):  # noqa: D101
 
 
 Package.update_forward_refs()
-PackageDetailsForRegisteredUser.update_forward_refs()
-PackageDetailsForFreeTier.update_forward_refs()
+StackAggregatorPackageData.update_forward_refs()
 RecommendedPackageData.update_forward_refs()
