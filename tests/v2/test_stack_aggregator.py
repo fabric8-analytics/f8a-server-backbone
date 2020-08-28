@@ -14,7 +14,6 @@ from src.v2.models import (
 )
 from src.v2.normalized_packages import NormalizedPackages
 
-
 _DJANGO = Package(name="django", version="1.2.1")
 _FLASK = Package(name="flask", version="0.12")
 _SIX = Package(name="six", version="3.2.1")
@@ -23,19 +22,31 @@ _FOO_UNKNOWN = Package(name="foo_unknown", version="0.0.0")
 
 def _request_body():
     return {
-        "registration_status": "REGISTERED",
-        "uuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-        "manifest_name": "requirements.txt",
-        "manifest_file_path": "/foo/bar",
-        "external_request_id": "test_id",
-        "ecosystem": "pypi",
+        "registration_status":
+        "REGISTERED",
+        "uuid":
+        "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        "manifest_name":
+        "requirements.txt",
+        "manifest_file_path":
+        "/foo/bar",
+        "external_request_id":
+        "test_id",
+        "ecosystem":
+        "pypi",
         "packages": [
             {
                 "name": "flask",
                 "version": "0.12",
-                "dependencies": [{"name": "django", "version": "1.2.1"}],
+                "dependencies": [{
+                    "name": "django",
+                    "version": "1.2.1"
+                }],
             },
-            {"name": "django", "version": "1.2.1"},
+            {
+                "name": "django",
+                "version": "1.2.1"
+            },
         ],
     }
 
@@ -47,9 +58,8 @@ def test_with_2_public_vuln(_mock_license, _mock_gremlin, monkeypatch):
     with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
         _mock_gremlin.return_value = json.load(fin)
 
-    monkeypatch.setenv(
-        "SNYK_PACKAGE_URL_FORMAT", "https://abc.io/vuln/{ecosystem}:{package}"
-    )
+    monkeypatch.setenv("SNYK_PACKAGE_URL_FORMAT",
+                       "https://abc.io/vuln/{ecosystem}:{package}")
     monkeypatch.setenv("SNYK_SIGNIN_URL", "https://abc.io/login")
     resp = StackAggregator().execute(_request_body(), persist=False)
     _mock_license.assert_called_once()
@@ -76,22 +86,26 @@ def test_with_2_public_vuln(_mock_license, _mock_gremlin, monkeypatch):
 
     # check vuln
     django_index = result.analyzed_dependencies.index(_DJANGO)
-    assert (
-        result.analyzed_dependencies[django_index].url == "https://abc.io/vuln/pip:django"
-    )
-    assert len(result.analyzed_dependencies[django_index].public_vulnerabilities) == 2
-    assert len(result.analyzed_dependencies[django_index].private_vulnerabilities) == 0
+    assert (result.analyzed_dependencies[django_index].url ==
+            "https://abc.io/vuln/pip:django")
+    assert len(
+        result.analyzed_dependencies[django_index].public_vulnerabilities) == 2
+    assert len(result.analyzed_dependencies[django_index].
+               private_vulnerabilities) == 0
     assert isinstance(
         result.analyzed_dependencies[django_index].public_vulnerabilities[0],
         VulnerabilityFields,
     )
     flask_index = result.analyzed_dependencies.index(_FLASK)
-    assert len(result.analyzed_dependencies[flask_index].public_vulnerabilities) == 0
+    assert len(
+        result.analyzed_dependencies[flask_index].public_vulnerabilities) == 0
     # check transitive vuln
-    assert len(result.analyzed_dependencies[flask_index].vulnerable_dependencies) == 1
-    assert _DJANGO in result.analyzed_dependencies[flask_index].vulnerable_dependencies
-    assert (len(result.analyzed_dependencies[flask_index].vulnerable_dependencies[0]
-                .public_vulnerabilities) == 2)
+    assert len(
+        result.analyzed_dependencies[flask_index].vulnerable_dependencies) == 1
+    assert _DJANGO in result.analyzed_dependencies[
+        flask_index].vulnerable_dependencies
+    assert (len(result.analyzed_dependencies[flask_index].
+                vulnerable_dependencies[0].public_vulnerabilities) == 2)
 
 
 @mock.patch("src.v2.stack_aggregator.post_gremlin")
@@ -122,25 +136,32 @@ def test_with_1_public_1_pvt_vuln(_mock_license, _mock_gremlin):
 
     # check vuln
     django_index = result.analyzed_dependencies.index(_DJANGO)
-    assert len(result.analyzed_dependencies[django_index].public_vulnerabilities) == 1
-    assert len(result.analyzed_dependencies[django_index].private_vulnerabilities) == 1
+    assert len(
+        result.analyzed_dependencies[django_index].public_vulnerabilities) == 1
+    assert len(result.analyzed_dependencies[django_index].
+               private_vulnerabilities) == 1
     assert isinstance(
         result.analyzed_dependencies[django_index].public_vulnerabilities[0],
         VulnerabilityFields,
     )
     flask_index = result.analyzed_dependencies.index(_FLASK)
-    assert len(result.analyzed_dependencies[flask_index].public_vulnerabilities) == 0
-    assert len(result.analyzed_dependencies[flask_index].private_vulnerabilities) == 0
+    assert len(
+        result.analyzed_dependencies[flask_index].public_vulnerabilities) == 0
+    assert len(
+        result.analyzed_dependencies[flask_index].private_vulnerabilities) == 0
     # check transitive vuln
-    assert len(result.analyzed_dependencies[flask_index].vulnerable_dependencies) == 1
-    assert _DJANGO in result.analyzed_dependencies[flask_index].vulnerable_dependencies
-    assert (len(result.analyzed_dependencies[flask_index].vulnerable_dependencies[0]
-                .public_vulnerabilities) == 1)
+    assert len(
+        result.analyzed_dependencies[flask_index].vulnerable_dependencies) == 1
+    assert _DJANGO in result.analyzed_dependencies[
+        flask_index].vulnerable_dependencies
+    assert (len(result.analyzed_dependencies[flask_index].
+                vulnerable_dependencies[0].public_vulnerabilities) == 1)
 
 
 @mock.patch("src.v2.stack_aggregator.server_create_analysis")
 @mock.patch("src.v2.stack_aggregator.post_gremlin")
-def test_unknown_flow_with_disabled_flag(_mock_gremlin, _mock_unknown, monkeypatch):
+def test_unknown_flow_with_disabled_flag(_mock_gremlin, _mock_unknown,
+                                         monkeypatch):
     """Test unknown flow."""
     with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
         _mock_gremlin.return_value = json.load(fin)
@@ -217,9 +238,9 @@ def test_db_store(_mock_license, _mock_gremlin, _mock_store):
 # ref: https://docs.python.org/dev/library/unittest.mock-examples.html#coping-with-mutable-arguments
 class _ModifiedMagicMock(mock.MagicMock):
     def _mock_call(_mock_self, *args, **kwargs):
-        return super(_ModifiedMagicMock, _mock_self)._mock_call(
-            *copy.deepcopy(args), **copy.deepcopy(kwargs)
-        )
+        return super(_ModifiedMagicMock,
+                     _mock_self)._mock_call(*copy.deepcopy(args),
+                                            **copy.deepcopy(kwargs))
 
 
 def _get_normalized_packages():
@@ -229,12 +250,16 @@ def _get_normalized_packages():
         **{
             "name": "flask",
             "version": "0.12",
-            "dependencies": [{"name": "flask-mock", "version": "0.0.13"}],
-        }
-    )
-    bar = Package(
-        **{"name": "bar", "version": "0.12", "dependencies": [flask, six, pip]}
-    )
+            "dependencies": [{
+                "name": "flask-mock",
+                "version": "0.0.13"
+            }],
+        })
+    bar = Package(**{
+        "name": "bar",
+        "version": "0.12",
+        "dependencies": [flask, six, pip]
+    })
     return NormalizedPackages([flask, bar], "pypi")
 
 
@@ -267,7 +292,8 @@ def _gremlin_batch_test(_mock_gremlin, size: int):
         return _mock_gremlin.call_count, ith, last
 
 
-@mock.patch("src.v2.stack_aggregator.post_gremlin", new_callable=_ModifiedMagicMock)
+@mock.patch("src.v2.stack_aggregator.post_gremlin",
+            new_callable=_ModifiedMagicMock)
 def test_gremlin_batch_call(_mock_gremlin):
     """Test post_gremlin call according to batch size."""
     # empty

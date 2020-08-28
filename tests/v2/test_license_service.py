@@ -16,12 +16,14 @@ def test_get_license_service_request_payload_empty():
 def _get_normalized_packages():
     flask = Package(name="flask", version="0.12")
     six = Package(name="six", version="3.1.1")
-    flask_details = StackAggregatorPackageData(
-        **flask.dict(), latest_version="1.1.2", ecosystem="pypi", licenses=["ABC"]
-    )
-    six_details = StackAggregatorPackageData(
-        **six.dict(), latest_version="3.5.0", ecosystem="pypi", licenses=["XYZ", "ABC"]
-    )
+    flask_details = StackAggregatorPackageData(**flask.dict(),
+                                               latest_version="1.1.2",
+                                               ecosystem="pypi",
+                                               licenses=["ABC"])
+    six_details = StackAggregatorPackageData(**six.dict(),
+                                             latest_version="3.5.0",
+                                             ecosystem="pypi",
+                                             licenses=["XYZ", "ABC"])
 
     return [flask_details, six_details]
 
@@ -39,7 +41,8 @@ def test_get_license_service_request_payload_args():
     assert len(diff) == 0
 
 
-@mock.patch("src.v2.license_service.post_http_request", side_effect=Exception())
+@mock.patch("src.v2.license_service.post_http_request",
+            side_effect=Exception())
 def test_get_license_analysis_for_stack_with_empty_param(_mock_post):
     """Test with empty normalized_packages."""
     result = la.get_license_analysis_for_stack({})
@@ -85,7 +88,7 @@ def test_get_license_analysis_for_stack_conflict_packages(_mock_post):
     assert result.unknown_licenses.unknown == []
     assert len(result.unknown_licenses.component_conflict) == 1
     assert result.unknown_licenses.component_conflict[0].package == "p2"
-    assert (result.unknown_licenses.component_conflict[0].
-            conflict_licenses[0].license1 == "apache 2.0")
-    assert (result.unknown_licenses.component_conflict[0].
-            conflict_licenses[0].license2 == "gplv2")
+    assert (result.unknown_licenses.component_conflict[0].conflict_licenses[0].
+            license1 == "apache 2.0")
+    assert (result.unknown_licenses.component_conflict[0].conflict_licenses[0].
+            license2 == "gplv2")
