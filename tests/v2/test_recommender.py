@@ -27,6 +27,7 @@ def mocked_requests_get(*args, **_kwargs):
     """Mock the call to the insights service."""
     class MockResponse:
         """Mock response object."""
+
         def __init__(self, json_data, status_code):
             """Create a mock json response."""
             self.json_data = json_data
@@ -43,6 +44,7 @@ def mocked_requests_get(*args, **_kwargs):
 
 class TestRecommendationTask(TestCase):
     """Test for the recommendation task class."""
+
     @mock.patch('requests.get', side_effect=mocked_requests_get)
     @mock.patch('requests.Session.post', side_effect=mocked_requests_get)
     def test_call_insights_recommender_npm(self, _mock_get, _mock_post):
@@ -94,6 +96,7 @@ def mocked_response_graph(*args, **_kwargs):
     """Mock the call to the insights service."""
     class MockResponse:
         """Mock response object."""
+
         def __init__(self, json_data, status_code):
             """Create a mock json response."""
             self.json_data = json_data
@@ -114,6 +117,7 @@ def mocked_response_license(*args, **_kwargs):
     """Mock the call to the execute."""
     class MockResponse:
         """Mock response object."""
+
         def __init__(self, json_data, status_code):
             """Create a mock json response."""
             self.json_data = json_data

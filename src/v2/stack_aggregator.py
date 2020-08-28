@@ -153,6 +153,7 @@ def _get_snyk_package_link(ecosystem, package):
 
 class Aggregator(ABC):
     """Base class which contains common functionality related to aggregation."""
+
     def __init__(self,
                  request: StackAggregatorRequest = None,
                  normalized_packages: NormalizedPackages = None):
@@ -359,6 +360,7 @@ def initiate_unknown_package_ingestion(aggregator: Aggregator):
 
 class StackAggregator:
     """Aggregate stack data from components."""
+
     @staticmethod
     def process_request(request: Dict) -> Aggregator:
         """Task code."""
