@@ -1,152 +1,369 @@
 {
-  "requestId": "4bee2f91-c012-4f4a-971e-08a9da845267",
-  "status": {
-    "message": "",
-    "code": 200,
-    "attributes": {}
-  },
-  "result": {
-    "data": [
-      {
-        "package": {
-          "gh_issues_last_month_opened": [-1],
-          "gh_prs_last_year_closed": [-1],
-          "ecosystem": ["pypi"],
-          "latest_version_last_updated": ["20200403"],
-          "vertex_label": ["Package"],
-          "libio_dependents_repos": ["103474"],
-          "latest_non_cve_version": ["3.0.4"],
-          "gh_issues_last_year_opened": [-1],
-          "gh_issues_last_month_closed": [-1],
-          "libio_dependents_projects": ["1038"],
-          "latest_version": ["3.0.5"],
-          "tokens": ["django"],
-          "package_relative_used": ["not used"],
-          "gh_stargazers": [-1],
-          "gh_forks": [-1],
-          "package_dependents_count": ["100K"],
-          "gh_prs_last_month_opened": ["1K"],
-          "gh_issues_last_year_closed": ["1K"],
-          "last_updated": [1.5852810389354534e9],
-          "gh_prs_last_month_closed": ["100K"],
-          "libio_total_releases": ["196"],
-          "gh_prs_last_year_opened": ["100K"],
-          "name": ["django"],
-          "libio_latest_version": ["2.2.4"],
-          "libio_latest_release": [1.564650277e9]
-        },
-        "version": {
-          "last_updated": [1.5852801707278361e9],
-          "pecosystem": ["pypi"],
-          "pname": ["django"],
-          "vertex_label": ["Version"],
-          "version": ["1.2.1"]
-        },
-        "vuln": [
-          {
-            "severity": ["medium"],
-            "snyk_url": ["https://vendor.io"],
-            "references": ["CVE:https://example.com/CVE-1234"],
-            "snyk_cwes": ["CWE-000"],
-            "vertex_label": ["SCVE"],
-            "description": ["Description about vuln\nDescription about vuln\n"],
-            "cvss_scores": [4.3],
-            "snyk_cve_ids": ["CVE-0000-0000"],
-            "modified_date": ["20200327"],
-            "title": ["Information Exposure"],
-            "snyk_ecosystem": ["pypi"],
-            "malicious": [false],
-            "snyk_cvss_v3": ["CVSS:3.0/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N"],
-            "snyk_vuln_id": ["VENDOR-PYTHON-DJANGO-0000"],
-            "snyk_pvt_vulnerability": [false],
-            "exploit": ["Not Defined"],
-            "patch_exists": [""],
-            "fixable": [true]
-          },
-          {
-            "severity": ["medium"],
-            "snyk_url": ["https://vendor.io"],
-            "references": ["CVE:https://example.com/CVE-1234"],
-            "snyk_cwes": ["CWE-001"],
-            "vertex_label": ["SCVE"],
-            "description": ["Description about vuln\nDescription about vuln\n"],
-            "cvss_scores": [4.3],
-            "snyk_cve_ids": ["CVE-0000-0001"],
-            "modified_date": ["20200327"],
-            "title": ["SQL Injection"],
-            "snyk_ecosystem": ["pypi"],
-            "malicious": [false],
-            "snyk_cvss_v3": ["CVSS:3.0/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N"],
-            "snyk_vuln_id": ["VENDOR-PYTHON-DJANGO-0001"],
-            "snyk_pvt_vulnerability": [false],
-            "exploit": ["Not Defined"],
-            "patch_exists": [false],
-            "fixable": [true]
-          }
-        ]
-      },
-      {
-        "package": {
-          "gh_issues_last_month_opened": [-1],
-          "gh_prs_last_year_closed": [-1],
-          "ecosystem": ["pypi"],
-          "gh_subscribers_count": [2275],
-          "gh_contributors_count": [30],
-          "latest_version_last_updated": ["20191204"],
-          "vertex_label": ["Package"],
-          "libio_dependents_repos": ["114481"],
-          "latest_non_cve_version": ["1.1.1"],
-          "gh_issues_last_year_opened": [-1],
-          "gh_issues_last_month_closed": [-1],
-          "gh_open_issues_count": [22],
-          "libio_dependents_projects": ["1345"],
-          "latest_version": ["1.1.2"],
-          "tokens": ["flask"],
-          "package_relative_used": ["not used"],
-          "gh_stargazers": [49882],
-          "gh_forks": [13422],
-          "package_dependents_count": [0],
-          "gh_prs_last_month_opened": [-1],
-          "gh_issues_last_year_closed": [-1],
-          "last_updated": [1.5869628831419795e9],
-          "gh_prs_last_month_closed": [-1],
-          "topics": [
-            "flask",
-            "jinja",
-            "python",
-            "web-framework",
-            "werkzeug",
-            "wsgi"
-          ],
-          "libio_total_releases": ["32"],
-          "gh_refreshed_on": ["2020-04-15 14:29:41"],
-          "gh_prs_last_year_opened": [-1],
-          "name": ["flask"],
-          "libio_latest_version": ["1.1.1"],
-          "libio_latest_release": [1.562608828e9]
-        },
-        "version": {
-          "last_updated": [1.568026831334864e9],
-          "shipped_as_downstream": [false],
-          "source_repo": ["pypi"],
-          "pname": ["flask"],
-          "vertex_label": ["Version"],
-          "description": [
-            "A microframework based on Werkzeug Jinja2 and good intentions"
-          ],
-          "version": ["0.12"],
-          "dependents_count": [19],
-          "licenses": ["BSD-Modified"],
-          "cm_avg_cyclomatic_complexity": [-1.0],
-          "declared_licenses": ["BSD"],
-          "pecosystem": ["pypi"],
-          "relative_used": [""],
-          "cm_loc": [14497],
-          "cm_num_files": [96]
-        },
-        "vuln": []
-      }
-    ],
-    "meta": {}
-  }
+    "requestId": "4bee2f91-c012-4f4a-971e-08a9da845267",
+    "status": {
+        "message": "",
+        "code": 200,
+        "attributes": {}
+    },
+    "result": {
+        "data": [
+            {
+                "package": {
+                    "gh_issues_last_month_opened": [
+                        -1
+                    ],
+                    "gh_prs_last_year_closed": [
+                        -1
+                    ],
+                    "ecosystem": [
+                        "pypi"
+                    ],
+                    "latest_version_last_updated": [
+                        "20200403"
+                    ],
+                    "vertex_label": [
+                        "Package"
+                    ],
+                    "libio_dependents_repos": [
+                        "103474"
+                    ],
+                    "latest_non_cve_version": [
+                        "3.0.4"
+                    ],
+                    "gh_issues_last_year_opened": [
+                        -1
+                    ],
+                    "gh_issues_last_month_closed": [
+                        -1
+                    ],
+                    "libio_dependents_projects": [
+                        "1038"
+                    ],
+                    "latest_version": [
+                        "3.0.5"
+                    ],
+                    "tokens": [
+                        "django"
+                    ],
+                    "package_relative_used": [
+                        "not used"
+                    ],
+                    "gh_stargazers": [
+                        -1
+                    ],
+                    "gh_forks": [
+                        -1
+                    ],
+                    "package_dependents_count": [
+                      "100K"
+                    ],
+                    "gh_prs_last_month_opened": [
+                      "1K"
+                    ],
+                    "gh_issues_last_year_closed": [
+                      "1K"
+                    ],
+                    "last_updated": [
+                        1.5852810389354534E9
+                    ],
+                    "gh_prs_last_month_closed": [
+                      "100K"
+                    ],
+                    "libio_total_releases": [
+                        "196"
+                    ],
+                    "gh_prs_last_year_opened": [
+                      "100K"
+                    ],
+                    "name": [
+                        "django"
+                    ],
+                    "libio_latest_version": [
+                        "2.2.4"
+                    ],
+                    "libio_latest_release": [
+                        1.564650277E9
+                    ]
+                },
+                "version": {
+                    "last_updated": [
+                        1.5852801707278361E9
+                    ],
+                    "pecosystem": [
+                        "pypi"
+                    ],
+                    "pname": [
+                        "django"
+                    ],
+                    "vertex_label": [
+                        "Version"
+                    ],
+                    "version": [
+                        "1.2.1"
+                    ]
+                },
+                "vuln": [
+                {
+                        "severity": [
+                            "medium"
+                        ],
+                        "snyk_url": [
+                            "https://vendor.io"
+                        ],
+                        "references": [
+                            "CVE:https://example.com/CVE-1234"
+                        ],
+                        "snyk_cwes": [
+                            "CWE-000"
+                        ],
+                        "vertex_label": [
+                            "SCVE"
+                        ],
+                        "description": [
+                          "Description about vuln\nDescription about vuln\n"
+                        ],
+                        "cvss_scores": [
+                            4.3
+                        ],
+                        "snyk_cve_ids": [
+                            "CVE-0000-0000"
+                        ],
+                        "modified_date": [
+                            "20200327"
+                        ],
+                        "title": [
+                            "Information Exposure"
+                        ],
+                        "snyk_ecosystem": [
+                            "pypi"
+                        ],
+                        "malicious": [
+                            false
+                        ],
+                        "snyk_cvss_v3": [
+                            "CVSS:3.0/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N"
+                        ],
+                        "snyk_vuln_id": [
+                            "VENDOR-PYTHON-DJANGO-0000"
+                        ],
+                        "snyk_pvt_vulnerability": [
+                            false
+                        ],
+                        "exploit": [
+                            "Not Defined"
+                        ],
+                        "patch_exists": [
+													""
+                        ],
+                        "fixable": [
+                            true
+                        ]
+                    },
+                    {
+                        "severity": [
+                            "medium"
+                        ],
+                        "snyk_url": [
+                            "https://vendor.io"
+                        ],
+                        "references": [
+                            "CVE:https://example.com/CVE-1234"
+                        ],
+                        "snyk_cwes": [
+                            "CWE-001"
+                        ],
+                        "vertex_label": [
+                            "SCVE"
+                        ],
+                        "description": [
+                          "Description about vuln\nDescription about vuln\n"
+                        ],
+                        "cvss_scores": [
+                            4.3
+                        ],
+                        "snyk_cve_ids": [
+                            "CVE-0000-0001"
+                        ],
+                        "modified_date": [
+                            "20200327"
+                        ],
+                        "title": [
+                            "SQL Injection"
+                        ],
+                        "snyk_ecosystem": [
+                            "pypi"
+                        ],
+                        "malicious": [
+                            false
+                        ],
+                        "snyk_cvss_v3": [
+                            "CVSS:3.0/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N"
+                        ],
+                        "snyk_vuln_id": [
+                            "VENDOR-PYTHON-DJANGO-0001"
+                        ],
+                        "snyk_pvt_vulnerability": [
+                            false
+                        ],
+                        "exploit": [
+                            "Not Defined"
+                        ],
+                        "patch_exists": [
+                            false
+                        ],
+                        "fixable": [
+                            true
+                        ]
+                    }]
+            },
+            {
+                "package": {
+                    "gh_issues_last_month_opened": [
+                        -1
+                    ],
+                    "gh_prs_last_year_closed": [
+                        -1
+                    ],
+                    "ecosystem": [
+                        "pypi"
+                    ],
+                    "gh_subscribers_count": [
+                        2275
+                    ],
+                    "gh_contributors_count": [
+                        30
+                    ],
+                    "latest_version_last_updated": [
+                        "20191204"
+                    ],
+                    "vertex_label": [
+                        "Package"
+                    ],
+                    "libio_dependents_repos": [
+                        "114481"
+                    ],
+                    "latest_non_cve_version": [
+                        "1.1.1"
+                    ],
+                    "gh_issues_last_year_opened": [
+                        -1
+                    ],
+                    "gh_issues_last_month_closed": [
+                        -1
+                    ],
+                    "gh_open_issues_count": [
+                        22
+                    ],
+                    "libio_dependents_projects": [
+                        "1345"
+                    ],
+                    "latest_version": [
+                        "1.1.2"
+                    ],
+                    "tokens": [
+                        "flask"
+                    ],
+                    "package_relative_used": [
+                        "not used"
+                    ],
+                    "gh_stargazers": [
+                        49882
+                    ],
+                    "gh_forks": [
+                        13422
+                    ],
+                    "package_dependents_count": [
+                        0
+                    ],
+                    "gh_prs_last_month_opened": [
+                        -1
+                    ],
+                    "gh_issues_last_year_closed": [
+                        -1
+                    ],
+                    "last_updated": [
+                        1.5869628831419795E9
+                    ],
+                    "gh_prs_last_month_closed": [
+                        -1
+                    ],
+                    "topics": [
+                        "flask",
+                        "jinja",
+                        "python",
+                        "web-framework",
+                        "werkzeug",
+                        "wsgi"
+                    ],
+                    "libio_total_releases": [
+                        "32"
+                    ],
+                    "gh_refreshed_on": [
+                        "2020-04-15 14:29:41"
+                    ],
+                    "gh_prs_last_year_opened": [
+                        -1
+                    ],
+                    "name": [
+                        "flask"
+                    ],
+                    "libio_latest_version": [
+                        "1.1.1"
+                    ],
+                    "libio_latest_release": [
+                        1.562608828E9
+                    ]
+                },
+                "version": {
+                    "last_updated": [
+                        1.568026831334864E9
+                    ],
+                    "shipped_as_downstream": [
+                        false
+                    ],
+                    "source_repo": [
+                        "pypi"
+                    ],
+                    "pname": [
+                        "flask"
+                    ],
+                    "vertex_label": [
+                        "Version"
+                    ],
+                    "description": [
+                        "A microframework based on Werkzeug Jinja2 and good intentions"
+                    ],
+                    "version": [
+                        "0.12"
+                    ],
+                    "dependents_count": [
+                        19
+                    ],
+                    "licenses": [
+                        "BSD-Modified"
+                    ],
+                    "cm_avg_cyclomatic_complexity": [
+                        -1.0
+                    ],
+                    "declared_licenses": [
+                        "BSD"
+                    ],
+                    "pecosystem": [
+                        "pypi"
+                    ],
+                    "relative_used": [
+                        ""
+                    ],
+                    "cm_loc": [
+                        14497
+                    ],
+                    "cm_num_files": [
+                        96
+                    ]
+                },
+                "vuln": []
+            }
+        ],
+        "meta": {}
+    }
 }

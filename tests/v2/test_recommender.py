@@ -2,6 +2,7 @@
 from unittest import TestCase, mock
 import json
 
+
 from src.v2.normalized_packages import NormalizedPackages
 from src.v2.recommender import (RecommendationTask, GraphDB, License,
                                 set_valid_cooccurrence_probability)
@@ -49,46 +50,34 @@ class TestRecommendationTask(TestCase):
     @mock.patch('requests.Session.post', side_effect=mocked_requests_get)
     def test_call_insights_recommender_npm(self, _mock_get, _mock_post):
         """Test if the correct service is called for the correct ecosystem."""
-        with mock.patch.dict(
-                'src.v2.recommender.os.environ', {
-                    'GOLANG_SERVICE_HOST': 'golang-insights',
-                    'CHESTER_SERVICE_HOST': 'npm-insights',
-                    'PYPI_SERVICE_HOST': 'pypi-insights',
-                    'PGM_SERVICE_HOST': 'pgm',
-                    'PGM_SERVICE_PORT': '6006',
-                    'HPF_SERVICE_HOST': 'hpf-insights',
-                }):
+        with mock.patch.dict('src.v2.recommender.os.environ', {
+                'GOLANG_SERVICE_HOST': 'golang-insights',
+                'CHESTER_SERVICE_HOST': 'npm-insights',
+                'PYPI_SERVICE_HOST': 'pypi-insights',
+                'PGM_SERVICE_HOST': 'pgm',
+                'PGM_SERVICE_PORT': '6006',
+                'HPF_SERVICE_HOST': 'hpf-insights',
+             }):
             # Test whether the correct service is called for NPM.
-            called_url_json = RecommendationTask.call_insights_recommender([{
-                "ecosystem":
-                "npm"
-            }])
+            called_url_json = RecommendationTask.call_insights_recommender([{"ecosystem": "npm"}])
             self.assertTrue('npm-insights' in called_url_json['url'])
             # Test whether the correct service is called for PYPI.
             called_url_json = RecommendationTask.call_insights_recommender([{
-                "ecosystem":
-                "pypi"
+                "ecosystem": "pypi"
             }])
             self.assertTrue('pypi-insights' in called_url_json['url'])
             # Test whether the correct service is called for golang.
             called_url_json = RecommendationTask.call_insights_recommender([{
-                "ecosystem":
-                "golang"
+                "ecosystem": "golang"
             }])
             self.assertTrue('golang-insights' in called_url_json['url'])
             # Now test whether the correct service is called for maven.
-            called_url_json = RecommendationTask.call_insights_recommender([{
-                "ecosystem":
-                "maven",
-                "package_list": []
-            }])
+            called_url_json = RecommendationTask.call_insights_recommender(
+                [{"ecosystem": "maven", "package_list": []}])
             self.assertTrue('pgm' in called_url_json['url'])
 
-            called_url_json = RecommendationTask.call_insights_recommender([{
-                "ecosystem":
-                "maven",
-                "package_list": ["org.slf4j:slf4j-api"]
-            }])
+            called_url_json = RecommendationTask.call_insights_recommender(
+                [{"ecosystem": "maven", "package_list": ["org.slf4j:slf4j-api"]}])
             self.assertTrue('hpf-insights' in called_url_json['url'])
 
 
@@ -134,8 +123,7 @@ def mocked_response_license(*args, **_kwargs):
 
 
 @mock.patch('src.v2.recommender.persist_data_in_db')
-@mock.patch('src.v2.recommender.RecommendationTask.call_insights_recommender',
-            return_value=[])
+@mock.patch('src.v2.recommender.RecommendationTask.call_insights_recommender', return_value=[])
 def test_execute(_mock_call_insights, _mock_db):
     """Test the function execute."""
     with open("tests/v2/data/stack_aggregator_execute_input.json", "r") as f:
@@ -170,8 +158,7 @@ def test_execute_with_insights(_mock1, _mock2, _mock3):
 
 
 @mock.patch('src.v2.recommender.persist_data_in_db')
-@mock.patch('src.v2.recommender.RecommendationTask.call_insights_recommender',
-            return_value=[])
+@mock.patch('src.v2.recommender.RecommendationTask.call_insights_recommender', return_value=[])
 def test_execute_empty_resolved(_mock_call_insights, _mock_db):
     """Test the function execute."""
     with open("tests/v2/data/stack_aggregator_empty_resolved.json", "r") as f:
@@ -193,8 +180,7 @@ def test_execute_empty_resolved(_mock_call_insights, _mock_db):
 
 
 @mock.patch('src.v2.recommender.persist_data_in_db')
-@mock.patch('src.v2.recommender.RecommendationTask.call_insights_recommender',
-            return_value=[])
+@mock.patch('src.v2.recommender.RecommendationTask.call_insights_recommender', return_value=[])
 def test_execute_both_resolved_type(_mock_call_insights, _mock_db):
     """Test the function execute."""
     with open("tests/v2/data/stack_aggregator_combined_input.json", "r") as f:
@@ -213,17 +199,14 @@ def test_execute_both_resolved_type(_mock_call_insights, _mock_db):
 
 def test_filter_versions():
     """Test the function filter_versions for latest version."""
-    input_stack = {
-        "io.vertx:vertx-web": "3.4.2",
-        "io.vertx:vertx-core": "3.4.2"
-    }
+    input_stack = {"io.vertx:vertx-web": "3.4.2", "io.vertx:vertx-core": "3.4.2"}
 
     with open("tests/data/companion_pkg_graph.json", "r") as f:
         companion_packages_graph = json.load(f)
 
     g = GraphDB()
-    filtered_comp_packages_graph, filtered_list = g.filter_versions(
-        companion_packages_graph, input_stack)
+    filtered_comp_packages_graph, filtered_list = g.filter_versions(companion_packages_graph,
+                                                                    input_stack)
     assert len(filtered_comp_packages_graph) > 0
     assert len(filtered_list) > 0
 
@@ -252,15 +235,14 @@ def test_get_version_information(_mock1):
 
 def test_get_topics():
     """Test the function get topics."""
-    comp_list = GraphDB.get_topics_for_comp(
-        graph_resp['result']['data'], insights_resp[0]['companion_packages'])
+    comp_list = GraphDB.get_topics_for_comp(graph_resp['result']['data'],
+                                            insights_resp[0]['companion_packages'])
 
     assert comp_list is not None
     assert isinstance(comp_list, list)
 
 
-@mock.patch('src.v2.recommender.extract_user_stack_package_licenses',
-            return_value=[])
+@mock.patch('src.v2.recommender.extract_user_stack_package_licenses', return_value=[])
 @mock.patch('requests.Session.post', side_effect=mocked_response_license)
 def test_perform_license_analysis(_mock1, _mock2):
     """Test license analysis function."""
@@ -277,10 +259,7 @@ def test_perform_license_analysis(_mock1, _mock2):
 
 
 @mock.patch('src.v2.recommender.License.invoke_license_analysis_service',
-            return_value={
-                'status': 'successful',
-                'license_filter': {}
-            })
+            return_value={'status': 'successful', 'license_filter': {}})
 def test_apply_license_filter(_mock1):
     """Test the function apply_license_filter."""
     with open('tests/data/epv_list.json', 'r') as f:
@@ -292,11 +271,8 @@ def test_apply_license_filter(_mock1):
 
 def test_set_valid_cooccurrence_probability():
     """Test the function set_valid_cooccurrence_probability."""
-    input = [{
-        "ecosystem": "maven",
-        "name": "io.fabric8.funktion.connector:connector-smpp",
-        "cooccurrence_probability": 'nan'
-    }]
+    input = [{"ecosystem": "maven", "name": "io.fabric8.funktion.connector:connector-smpp",
+              "cooccurrence_probability": 'nan'}]
     components = set_valid_cooccurrence_probability(input)
     for component in components:
         assert component['cooccurrence_probability'] == 100

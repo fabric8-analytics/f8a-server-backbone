@@ -7,18 +7,19 @@ by stack-analyses endpoint
 import datetime
 import inspect
 import time
+import json
 import logging
 
-from abc import ABC
 from typing import Dict, List, Tuple, Set
 from src.settings import Settings
 from src.utils import (select_latest_version, server_create_analysis,
-                       format_date, persist_data_in_db, post_gremlin,
-                       GREMLIN_QUERY_SIZE)
-from src.v2.models import (StackAggregatorRequest, GitHubDetails,
-                           PackageDetails, VulnerabilityFields,
-                           StackAggregatorPackageData, Package, Audit,
-                           Ecosystem, StackAggregatorResult)
+                       persist_data_in_db, post_gremlin, GREMLIN_QUERY_SIZE,
+                       format_date)
+from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails,
+                           VulnerabilityFields,
+                           StackAggregatorPackageData,
+                           Package, Audit, Ecosystem,
+                           StackAggregatorResult)
 from src.v2.normalized_packages import NormalizedPackages
 from src.v2.license_service import (get_license_analysis_for_stack,
                                     get_license_service_request_payload)
@@ -57,67 +58,50 @@ def _get_github_details(package_node) -> GitHubDetails:
     date = format_date(package_node.get("gh_refreshed_on", ["N/A"])[0])
     github_details = {
         "dependent_projects":
-        package_node.get("libio_dependents_projects", [-1])[0],
-        "dependent_repos":
-        package_node.get("libio_dependents_repos", [-1])[0],
-        "total_releases":
-        package_node.get("libio_total_releases", [-1])[0],
+            package_node.get("libio_dependents_projects", [-1])[0],
+        "dependent_repos": package_node.get("libio_dependents_repos", [-1])[0],
+        "total_releases": package_node.get("libio_total_releases", [-1])[0],
         "latest_release_duration":
-        str(
-            datetime.datetime.fromtimestamp(
-                package_node.get("libio_latest_release", [1496302486.0])[0])),
-        "first_release_date":
-        "Apr 16, 2010",
+            str(datetime.datetime.fromtimestamp(package_node.get(
+                "libio_latest_release", [1496302486.0])[0])),
+        "first_release_date": "Apr 16, 2010",
         "issues": {
             "month": {
-                "opened": package_node.get("gh_issues_last_month_opened",
-                                           [-1])[0],
-                "closed": package_node.get("gh_issues_last_month_closed",
-                                           [-1])[0]
-            },
-            "year": {
-                "opened": package_node.get("gh_issues_last_year_opened",
-                                           [-1])[0],
-                "closed": package_node.get("gh_issues_last_year_closed",
-                                           [-1])[0]
-            }
-        },
+                "opened": package_node.get("gh_issues_last_month_opened", [-1])[0],
+                "closed": package_node.get("gh_issues_last_month_closed", [-1])[0]
+            }, "year": {
+                "opened": package_node.get("gh_issues_last_year_opened", [-1])[0],
+                "closed": package_node.get("gh_issues_last_year_closed", [-1])[0]
+            }},
         "pull_requests": {
             "month": {
-                "opened": package_node.get("gh_prs_last_month_opened",
-                                           [-1])[0],
+                "opened": package_node.get("gh_prs_last_month_opened", [-1])[0],
                 "closed": package_node.get("gh_prs_last_month_closed", [-1])[0]
-            },
-            "year": {
+            }, "year": {
                 "opened": package_node.get("gh_prs_last_year_opened", [-1])[0],
                 "closed": package_node.get("gh_prs_last_year_closed", [-1])[0]
-            }
-        },
-        "stargazers_count":
-        package_node.get("gh_stargazers", [-1])[0],
-        "forks_count":
-        package_node.get("gh_forks", [-1])[0],
-        "refreshed_on":
-        date,
-        "open_issues_count":
-        package_node.get("gh_open_issues_count", [-1])[0],
-        "contributors":
-        package_node.get("gh_contributors_count", [-1])[0],
-        "size":
-        "N/A"
+            }},
+        "stargazers_count": package_node.get("gh_stargazers", [-1])[0],
+        "forks_count": package_node.get("gh_forks", [-1])[0],
+        "refreshed_on": date,
+        "open_issues_count": package_node.get("gh_open_issues_count", [-1])[0],
+        "contributors": package_node.get("gh_contributors_count", [-1])[0],
+        "size": "N/A"
     }
     used_by = package_node.get("libio_usedby", [])
     used_by_list = []
     for epvs in used_by:
         slc = epvs.split(':')
-        used_by_dict = {'name': slc[0], 'stars': int(slc[1])}
+        used_by_dict = {
+            'name': slc[0],
+            'stars': int(slc[1])
+        }
         used_by_list.append(used_by_dict)
     github_details['used_by'] = used_by_list
     return GitHubDetails(**github_details)
 
 
-def _get_pkg_from_graph_version_node(
-        version_node) -> Tuple[Ecosystem, Package]:
+def _get_pkg_from_graph_version_node(version_node) -> Tuple[Ecosystem, Package]:
     """Create Package instance from version_node."""
     name = version_node.get("pname", [""])[0]
     version = version_node.get("version", [""])[0]
@@ -128,13 +112,12 @@ def _get_pkg_from_graph_version_node(
 # (fixme): This should be moved to v2/recommender
 def extract_user_stack_package_licenses(packages: NormalizedPackages):
     """Extract user stack package licenses."""
-    normalized_package_details = (Aggregator(
-        normalized_packages=packages).get_package_details_from_graph(packages))
+    normalized_package_details = (Aggregator(normalized_packages=packages).
+                                  get_package_details_from_graph(packages))
     return get_license_service_request_payload(normalized_package_details)
 
 
-def _get_packages_in_batch(dependencies: Tuple[Package],
-                           size: int) -> Tuple[Package]:
+def _get_packages_in_batch(dependencies: Tuple[Package], size: int) -> Tuple[Package]:
     """Take Package Tuple and slices it according to size."""
     for i in range(0, len(dependencies), size):
         yield dependencies[i:i + size]
@@ -151,7 +134,7 @@ def _get_snyk_package_link(ecosystem, package):
                                                      package=package)
 
 
-class Aggregator(ABC):
+class Aggregator():
     """Base class which contains common functionality related to aggregation."""
 
     def __init__(self,
@@ -189,33 +172,34 @@ class Aggregator(ABC):
         version_node = component.get("version", {})
         ecosystem, pkg = _get_pkg_from_graph_version_node(version_node)
         github_details = _get_github_details(pkg_node)
-        public_vulns, private_vulns = self._get_vulnerabilities(
-            component.get("vuln", {}))
-        recommended_latest_version = pkg_node.get("latest_non_cve_version",
-                                                  [""])[0]
+        public_vulns, private_vulns = self._get_vulnerabilities(component.get("vuln", {}))
+        recommended_latest_version = pkg_node.get("latest_non_cve_version", [""])[0]
         licenses = version_node.get("declared_licenses", [])
 
         latest_version = select_latest_version(
             pkg.version,
             pkg_node.get("libio_latest_version", [""])[0],
-            pkg_node.get("latest_version", [""])[0], pkg.name)
-        return pkg, self.create_package_details(
-            **pkg.dict(),
-            ecosystem=ecosystem,
-            latest_version=latest_version,
-            github=github_details,
-            licenses=licenses,
-            # (fixme) this is incorrect
-            url=_get_snyk_package_link(ecosystem, pkg.name),
-            private_vulnerabilities=private_vulns,
-            public_vulnerabilities=public_vulns,
-            recommended_version=recommended_latest_version)
+            pkg_node.get("latest_version", [""])[0],
+            pkg.name
+        )
+        return pkg, self.create_package_details(**pkg.dict(), ecosystem=ecosystem,
+                                                latest_version=latest_version,
+                                                github=github_details, licenses=licenses,
+                                                # (fixme) this is incorrect
+                                                url=_get_snyk_package_link(ecosystem,
+                                                                           pkg.name),
+                                                private_vulnerabilities=private_vulns,
+                                                public_vulnerabilities=public_vulns,
+                                                recommended_version=recommended_latest_version)
 
-    def _get_package_details_with_vulnerabilities(
-            self) -> List[Dict[str, object]]:
+    def _get_package_details_with_vulnerabilities(self) -> List[Dict[str, object]]:
         """Get package data from graph along with vulnerability."""
         time_start = time.time()
-        pkgs_with_vuln = {"result": {"data": []}}
+        pkgs_with_vuln = {
+            "result": {
+                "data": []
+            }
+        }
         query = """
                 epv = [];
                 packages.each {
@@ -238,36 +222,30 @@ class Aggregator(ABC):
             'packages': []
         }
         # call gremlin in batches of GREMLIN_QUERY_SIZE
-        for pkgs in _get_packages_in_batch(
-                self._normalized_packages.all_dependencies,
-                GREMLIN_QUERY_SIZE):
+        for pkgs in _get_packages_in_batch(self._normalized_packages.all_dependencies,
+                                           GREMLIN_QUERY_SIZE):
             # convert Tuple[Package] into List[{name:.., version:..}]
-            bindings['packages'] = [
-                pkg.dict(exclude={'dependencies'}) for pkg in pkgs
-            ]
+            bindings['packages'] = [pkg.dict(exclude={'dependencies'}) for pkg in pkgs]
 
             started_at = time.time()
 
             result = post_gremlin(query, bindings)
 
-            logger.info('%s took %0.2f secs for post_gremlin() batch request',
-                        self._request.external_request_id,
-                        time.time() - started_at)
+            logger.info(
+                '%s took %0.2f secs for post_gremlin() batch request',
+                self._request.external_request_id, time.time() - started_at)
             if result:
                 pkgs_with_vuln['result']['data'] += result['result']['data']
 
-        logger.info(
-            '%s took %0.2f secs for get_package_details_with_'
-            'vulnerabilities() for total_results %d',
-            self._request.external_request_id,
-            time.time() - time_start, len(pkgs_with_vuln['result']['data']))
+        logger.info('%s took %0.2f secs for get_package_details_with_'
+                    'vulnerabilities() for total_results %d', self._request.external_request_id,
+                    time.time() - time_start, len(pkgs_with_vuln['result']['data']))
         return pkgs_with_vuln['result']['data']
 
     def _get_denormalized_package_details(self) -> List[PackageDetails]:
         """Pack PackageDetails according to it's dependency graph structure."""
         package_details = []
-        for package, transitives in self._normalized_packages.dependency_graph.items(
-        ):
+        for package, transitives in self._normalized_packages.dependency_graph.items():
             package_detail = self._normalized_package_details.get(package)
             if package_detail:
                 package_detail = package_detail.copy()
@@ -275,8 +253,7 @@ class Aggregator(ABC):
                 continue  # pragma: no cover
             transitive_details = []
             for transitive in transitives:
-                transitive_detail = self._normalized_package_details.get(
-                    transitive)
+                transitive_detail = self._normalized_package_details.get(transitive)
                 if _has_vulnerability(transitive_detail):
                     transitive_detail = transitive_detail.copy()
                 else:
@@ -301,8 +278,7 @@ class Aggregator(ABC):
 
     def fetch_details(self):
         """Fetch package & vulnerability info from graph."""
-        self._normalized_package_details = self.get_package_details_from_graph(
-        )
+        self._normalized_package_details = self.get_package_details_from_graph()
 
     def get_result(self) -> StackAggregatorResult:
         """Aggregate stack data."""
@@ -313,9 +289,9 @@ class Aggregator(ABC):
 
         license_analysis = get_license_analysis_for_stack(package_details)
 
-        logger.info('%s took %0.2f secs for get_license_analysis_for_stack()',
-                    self._request.external_request_id,
-                    time.time() - started_at)
+        logger.info(
+            '%s took %0.2f secs for get_license_analysis_for_stack()',
+            self._request.external_request_id, time.time() - started_at)
         return self.create_result(**self._request.dict(exclude={'packages'}),
                                   analyzed_dependencies=package_details,
                                   unknown_dependencies=unknown_dependencies,
@@ -325,36 +301,30 @@ class Aggregator(ABC):
         """Create StackAggregatorPackageData."""
         return StackAggregatorPackageData(**kwargs)
 
-    def create_vulnerability(self,
-                             vuln_node: Dict[str, str]) -> VulnerabilityFields:
+    def create_vulnerability(self, vuln_node: Dict[str, str]) -> VulnerabilityFields:
         """Get fields associated with user."""
         return VulnerabilityFields(**_get_vulnerability_fields(vuln_node))
 
     def create_result(self, **kwargs) -> StackAggregatorResult:
         """Get StackAggregatorResult."""
-        return StackAggregatorResult(
-            **kwargs, registration_link=Settings().snyk_signin_url)
+        return StackAggregatorResult(**kwargs,
+                                     registration_link=Settings().snyk_signin_url)
 
 
 def initiate_unknown_package_ingestion(aggregator: Aggregator):
     """Ingestion of Unknown dependencies."""
     if Settings().disable_unknown_package_flow:
-        logger.warning('Skipping unknown flow %s',
-                       aggregator.get_all_unknown_packages())
+        logger.warning('Skipping unknown flow %s', aggregator.get_all_unknown_packages())
         return
 
     ecosystem = aggregator._normalized_packages.ecosystem
     try:
         for dep in aggregator.get_all_unknown_packages():
-            server_create_analysis(ecosystem,
-                                   dep.name,
-                                   dep.version,
-                                   api_flow=True,
-                                   force=False,
-                                   force_graph_sync=True)
+            server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
+                                   force=False, force_graph_sync=True)
     except Exception as e:  # pylint:disable=W0703,C0103
-        logger.error('Ingestion failed for {%s, %s, %s}', ecosystem, dep.name,
-                     dep.version)
+        logger.error('Ingestion failed for {%s, %s, %s}',
+                     ecosystem, dep.name, dep.version)
         logger.error(e)
 
 
@@ -378,22 +348,18 @@ class StackAggregator:
     def execute(request: Dict, persist=True):
         """Task code."""
         # (fixme): Use timestamp instead of str representation.
-        started_at = datetime.datetime.utcnow().strftime(
-            "%Y-%m-%dT%H:%M:%S.%f")
+        started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         aggregator = StackAggregator.process_request(request)
         output = aggregator.get_result()
-        output_dict = output.dict()
+        output_dict = json.loads(output.json())
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         # (fixme): Remove _ to make it as part of pydantic model.
-        output_dict["_audit"] = Audit(started_at=started_at,
-                                      ended_at=ended_at,
+        output_dict["_audit"] = Audit(started_at=started_at, ended_at=ended_at,
                                       version="v2").dict()
         if persist:
             persist_data_in_db(external_request_id=output.external_request_id,
-                               task_result=output_dict,
-                               worker='stack_aggregator_v2',
-                               started_at=started_at,
-                               ended_at=ended_at)
+                               task_result=output_dict, worker='stack_aggregator_v2',
+                               started_at=started_at, ended_at=ended_at)
             logger.info(
                 '%s Aggregation process completed, result persisted into RDS',
                 output.external_request_id)
@@ -403,8 +369,6 @@ class StackAggregator:
         # otherwise metric accumulator related handling has to be
         # customized for v2.
 
-        return {
-            'aggregation': 'success',
-            'external_request_id': output.external_request_id,
-            'result': output_dict
-        }
+        return {'aggregation': 'success',
+                'external_request_id': output.external_request_id,
+                'result': output_dict}
