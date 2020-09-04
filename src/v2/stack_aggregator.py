@@ -134,7 +134,7 @@ def _get_snyk_package_link(ecosystem, package):
                                                      package=package)
 
 
-class Aggregator():
+class Aggregator:
     """Base class which contains common functionality related to aggregation."""
 
     def __init__(self,
@@ -161,9 +161,9 @@ class Aggregator():
         private_vulns = []
         for vuln in vulnerability_nodes:
             if _is_private_vulnerability(vuln):
-                private_vulns.append(self.create_vulnerability(vuln))
+                private_vulns.append(VulnerabilityFields(**_get_vulnerability_fields(vuln)))
             else:
-                public_vulns.append(self.create_vulnerability(vuln))
+                public_vulns.append(VulnerabilityFields(**_get_vulnerability_fields(vuln)))
         return public_vulns, private_vulns
 
     def _get_package_details(self, component):
@@ -182,15 +182,15 @@ class Aggregator():
             pkg_node.get("latest_version", [""])[0],
             pkg.name
         )
-        return pkg, self.create_package_details(**pkg.dict(), ecosystem=ecosystem,
-                                                latest_version=latest_version,
-                                                github=github_details, licenses=licenses,
-                                                # (fixme) this is incorrect
-                                                url=_get_snyk_package_link(ecosystem,
-                                                                           pkg.name),
-                                                private_vulnerabilities=private_vulns,
-                                                public_vulnerabilities=public_vulns,
-                                                recommended_version=recommended_latest_version)
+        return pkg, StackAggregatorPackageData(**pkg.dict(), ecosystem=ecosystem,
+                                               latest_version=latest_version,
+                                               github=github_details, licenses=licenses,
+                                               # (fixme) this is incorrect
+                                               url=_get_snyk_package_link(ecosystem,
+                                                                          pkg.name),
+                                               private_vulnerabilities=private_vulns,
+                                               public_vulnerabilities=public_vulns,
+                                               recommended_version=recommended_latest_version)
 
     def _get_package_details_with_vulnerabilities(self) -> List[Dict[str, object]]:
         """Get package data from graph along with vulnerability."""
@@ -292,22 +292,10 @@ class Aggregator():
         logger.info(
             '%s took %0.2f secs for get_license_analysis_for_stack()',
             self._request.external_request_id, time.time() - started_at)
-        return self.create_result(**self._request.dict(exclude={'packages'}),
-                                  analyzed_dependencies=package_details,
-                                  unknown_dependencies=unknown_dependencies,
-                                  license_analysis=license_analysis)
-
-    def create_package_details(self, **kwargs) -> StackAggregatorPackageData:
-        """Create StackAggregatorPackageData."""
-        return StackAggregatorPackageData(**kwargs)
-
-    def create_vulnerability(self, vuln_node: Dict[str, str]) -> VulnerabilityFields:
-        """Get fields associated with user."""
-        return VulnerabilityFields(**_get_vulnerability_fields(vuln_node))
-
-    def create_result(self, **kwargs) -> StackAggregatorResult:
-        """Get StackAggregatorResult."""
-        return StackAggregatorResult(**kwargs,
+        return StackAggregatorResult(**self._request.dict(exclude={'packages'}),
+                                     analyzed_dependencies=package_details,
+                                     unknown_dependencies=unknown_dependencies,
+                                     license_analysis=license_analysis,
                                      registration_link=Settings().snyk_signin_url)
 
 
