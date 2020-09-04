@@ -7,7 +7,6 @@ by stack-analyses endpoint
 import datetime
 import inspect
 import time
-import json
 import logging
 
 from typing import Dict, List, Tuple, Set
@@ -339,7 +338,7 @@ class StackAggregator:
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         aggregator = StackAggregator.process_request(request)
         output = aggregator.get_result()
-        output_dict = json.loads(output.json())
+        output_dict = output.dict()
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         # (fixme): Remove _ to make it as part of pydantic model.
         output_dict["_audit"] = Audit(started_at=started_at, ended_at=ended_at,

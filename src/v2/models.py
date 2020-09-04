@@ -5,8 +5,6 @@
 
 from enum import Enum
 from typing import Any, Dict, List, Optional
-from uuid import UUID
-
 from pydantic import BaseModel, Field, validator
 
 
@@ -181,7 +179,7 @@ class Audit(BaseModel):  # noqa: D101
 
 class StackAggregatorResult(BaseModel):  # noqa: D101
     _audit: Optional['Audit'] = None
-    uuid: Optional[UUID] = None
+    uuid: Optional[str] = None
     external_request_id: Optional[str] = None
     registration_status: Optional[str] = None
     manifest_file_path: Optional[str] = None
@@ -198,7 +196,7 @@ class StackAggregatorResult(BaseModel):  # noqa: D101
 
 class StackAggregatorRequest(BaseModel):  # noqa: D101
     registration_status: str
-    uuid: UUID = None
+    uuid: str = None
     external_request_id: str
     show_transitive: Optional[bool] = Field(
         True,
@@ -216,7 +214,7 @@ class StackAggregatorRequest(BaseModel):  # noqa: D101
 
 class StackRecommendationResult(BaseModel):  # noqa: D101
     _audit: 'Audit' = None
-    uuid: UUID = None
+    uuid: str = None
     external_request_id: str
     manifest_file_path: str = None
     manifest_name: str = None
