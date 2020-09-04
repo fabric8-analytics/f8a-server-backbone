@@ -142,7 +142,7 @@ class PackageDetails(Package):  # noqa: D101
     url: Optional[str] = None
 
 
-class StackAggregatorPackageData(PackageDetails):  # noqa: D101
+class PackageDataWithVulnerabilities(PackageDetails):  # noqa: D101
     public_vulnerabilities: Optional[List['VulnerabilityFields']] = Field(
         None, description='Publicly known vulnerability details.'
     )
@@ -155,7 +155,7 @@ class StackAggregatorPackageData(PackageDetails):  # noqa: D101
         description=('Recommended package version which includes '
                      'fix for both public and private vulnerabilities.'),
     )
-    vulnerable_dependencies: Optional[List['StackAggregatorPackageData']] = Field(
+    vulnerable_dependencies: Optional[List['PackageDataWithVulnerabilities']] = Field(
         None, description='List of dependencies which are vulnerable.'
     )
 
@@ -188,7 +188,7 @@ class StackAggregatorResult(BaseModel):  # noqa: D101
     unknown_dependencies: Optional[List['Package']] = None
     license_analysis: Optional['LicenseAnalysis'] = None
     registration_link: str
-    analyzed_dependencies: Optional[List['StackAggregatorPackageData']] = Field(
+    analyzed_dependencies: Optional[List['PackageDataWithVulnerabilities']] = Field(
         None,
         description="All direct dependencies details regardless of it's vulnerability status\n",
     )
@@ -229,5 +229,5 @@ class RecommenderRequest(StackAggregatorRequest):  # noqa: D101
 
 
 Package.update_forward_refs()
-StackAggregatorPackageData.update_forward_refs()
+PackageDataWithVulnerabilities.update_forward_refs()
 RecommendedPackageData.update_forward_refs()

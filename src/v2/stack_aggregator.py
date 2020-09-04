@@ -16,7 +16,7 @@ from src.utils import (select_latest_version, server_create_analysis,
                        format_date)
 from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails,
                            VulnerabilityFields,
-                           StackAggregatorPackageData,
+                           PackageDataWithVulnerabilities,
                            Package, Audit, Ecosystem,
                            StackAggregatorResult)
 from src.v2.normalized_packages import NormalizedPackages
@@ -181,15 +181,15 @@ class Aggregator:
             pkg_node.get("latest_version", [""])[0],
             pkg.name
         )
-        return pkg, StackAggregatorPackageData(**pkg.dict(), ecosystem=ecosystem,
-                                               latest_version=latest_version,
-                                               github=github_details, licenses=licenses,
-                                               # (fixme) this is incorrect
-                                               url=_get_snyk_package_link(ecosystem,
-                                                                          pkg.name),
-                                               private_vulnerabilities=private_vulns,
-                                               public_vulnerabilities=public_vulns,
-                                               recommended_version=recommended_latest_version)
+        return pkg, PackageDataWithVulnerabilities(**pkg.dict(), ecosystem=ecosystem,
+                                                   latest_version=latest_version,
+                                                   github=github_details, licenses=licenses,
+                                                   # (fixme) this is incorrect
+                                                   url=_get_snyk_package_link(ecosystem,
+                                                                              pkg.name),
+                                                   private_vulnerabilities=private_vulns,
+                                                   public_vulnerabilities=public_vulns,
+                                                   recommended_version=recommended_latest_version)
 
     def _get_package_details_with_vulnerabilities(self) -> List[Dict[str, object]]:
         """Get package data from graph along with vulnerability."""
