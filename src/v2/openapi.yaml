@@ -428,8 +428,8 @@ components:
                 - https://snyk.io/vuln/pip:jinja2
           description: Details of the package
 
-    StackAggregatorPackageData:
-      title: StackAggregatorPackageData
+    PackageDataWithVulnerabilities:
+      title: PackageDataWithVulnerabilities
       allOf:
         - $ref: '#/components/schemas/PackageDetails'
         - type: object
@@ -453,7 +453,7 @@ components:
             vulnerable_dependencies:
               type: array
               items:
-                $ref: '#/components/schemas/StackAggregatorPackageData'
+                $ref: '#/components/schemas/PackageDataWithVulnerabilities'
               description: |
                 List of dependencies which are vulnerable.
           description: Details of the package for the given stack
@@ -587,7 +587,7 @@ components:
         analyzed_dependencies:
           type: array
           items:
-            $ref: '#/components/schemas/StackAggregatorPackageData'
+            $ref: '#/components/schemas/PackageDataWithVulnerabilities'
           description: |
             All direct dependencies details regardless of it's vulnerability status
       description: Stack analyses result data

@@ -6,10 +6,8 @@ from unittest import mock
 
 from src.v2 import stack_aggregator as sa
 from src.v2.stack_aggregator import StackAggregator
-from src.v2.models import (Package, BasicVulnerabilityFields,
-                           PremiumVulnerabilityFields,
-                           StackAggregatorResultForFreeTier,
-                           StackAggregatorResultForRegisteredUser,
+from src.v2.models import (Package, VulnerabilityFields,
+                           StackAggregatorResult,
                            StackAggregatorRequest)
 from src.v2.normalized_packages import NormalizedPackages
 
@@ -22,6 +20,8 @@ _FOO_UNKNOWN = Package(name='foo_unknown', version='0.0.0')
 
 def _request_body():
     return {
+        "registration_status": "REGISTERED",
+        "uuid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
         "manifest_name": "requirements.txt",
         "manifest_file_path": "/foo/bar",
         "external_request_id": "test_id",
@@ -67,7 +67,7 @@ def test_with_2_public_vuln(_mock_license, _mock_gremlin, monkeypatch):
     assert result['manifest_file_path'] == '/foo/bar'
 
     # check analyzed_dependencies
-    result = StackAggregatorResultForFreeTier(**result)
+    result = StackAggregatorResult(**result)
     assert result.registration_link == 'https://abc.io/login'
     assert len(result.analyzed_dependencies) == 2
     assert _FLASK in result.analyzed_dependencies
@@ -79,7 +79,7 @@ def test_with_2_public_vuln(_mock_license, _mock_gremlin, monkeypatch):
     assert len(result.analyzed_dependencies[django_index].public_vulnerabilities) == 2
     assert len(result.analyzed_dependencies[django_index].private_vulnerabilities) == 0
     assert isinstance(result.analyzed_dependencies[django_index].public_vulnerabilities[0],
-                      BasicVulnerabilityFields)
+                      VulnerabilityFields)
     flask_index = result.analyzed_dependencies.index(_FLASK)
     assert len(result.analyzed_dependencies[flask_index].public_vulnerabilities) == 0
     # check transitive vuln
@@ -108,7 +108,7 @@ def test_with_1_public_1_pvt_vuln(_mock_license, _mock_gremlin):
     assert result['external_request_id'] == 'test_id'
 
     # check analyzed_dependencies
-    result = StackAggregatorResultForFreeTier(**result)
+    result = StackAggregatorResult(**result)
     assert 'registration_link' in result.dict()
     assert len(result.analyzed_dependencies) == 2
     assert _FLASK in result.analyzed_dependencies
@@ -120,7 +120,7 @@ def test_with_1_public_1_pvt_vuln(_mock_license, _mock_gremlin):
     assert len(result.analyzed_dependencies[django_index].public_vulnerabilities) == 1
     assert len(result.analyzed_dependencies[django_index].private_vulnerabilities) == 1
     assert isinstance(result.analyzed_dependencies[django_index].public_vulnerabilities[0],
-                      BasicVulnerabilityFields)
+                      VulnerabilityFields)
     flask_index = result.analyzed_dependencies.index(_FLASK)
     assert len(result.analyzed_dependencies[flask_index].public_vulnerabilities) == 0
     assert len(result.analyzed_dependencies[flask_index].private_vulnerabilities) == 0
@@ -139,7 +139,7 @@ def test_with_2_public_vuln_for_registered(_mock_license, _mock_gremlin):
         _mock_gremlin.return_value = json.load(fin)
 
     payload = _request_body()
-    payload['registration_status'] = 'registered'
+    payload['registration_status'] = 'REGISTERED'
     resp = StackAggregator().execute(payload, persist=False)
     _mock_license.assert_called_once()
     _mock_gremlin.assert_called()
@@ -151,8 +151,8 @@ def test_with_2_public_vuln_for_registered(_mock_license, _mock_gremlin):
     assert result['_audit']['version'] == 'v2'
 
     # check analyzed_dependencies
-    result = StackAggregatorResultForRegisteredUser(**result)
-    assert 'registration_link' not in result.dict()
+    result = StackAggregatorResult(**result)
+    assert "registration_link" in result.dict()
     assert len(result.analyzed_dependencies) == 2
     assert _FLASK in result.analyzed_dependencies
     assert _DJANGO in result.analyzed_dependencies
@@ -162,7 +162,7 @@ def test_with_2_public_vuln_for_registered(_mock_license, _mock_gremlin):
     django_index = result.analyzed_dependencies.index(_DJANGO)
     assert len(result.analyzed_dependencies[django_index].public_vulnerabilities) == 2
     assert isinstance(result.analyzed_dependencies[django_index].public_vulnerabilities[0],
-                      PremiumVulnerabilityFields)
+                      VulnerabilityFields)
     flask_index = result.analyzed_dependencies.index(_FLASK)
     assert len(result.analyzed_dependencies[flask_index].public_vulnerabilities) == 0
     # check transitive vuln
@@ -213,7 +213,7 @@ def test_unknown_flow(_mock_license, _mock_gremlin, _mock_unknown):
     assert result['external_request_id'] == 'test_id'
 
     # check analyzed_dependencies
-    result = StackAggregatorResultForFreeTier(**result)
+    result = StackAggregatorResult(**result)
     assert len(result.analyzed_dependencies) == 2
     assert len(result.unknown_dependencies) == 1
 
@@ -280,9 +280,11 @@ def _gremlin_batch_test(_mock_gremlin, size: int):
     _mock_gremlin.return_value = None
     with mock.patch('src.v2.stack_aggregator.GREMLIN_QUERY_SIZE', size):
         _mock_gremlin.reset_mock()
-        sa.Freetier(request=StackAggregatorRequest(external_request_id='test_request_id',
-                    ecosystem='pypi', manifest_file_path='/tmp/bin', packages=[_DJANGO]),
-                    normalized_packages=packages).get_package_details_from_graph()
+        sa.Aggregator(request=StackAggregatorRequest(registration_status="REGISTERED",
+                      uuid="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                      external_request_id='test_request_id',
+                      ecosystem='pypi', manifest_file_path='/tmp/bin', packages=[_DJANGO]),
+                      normalized_packages=packages).get_package_details_from_graph()
         ith = 0
         last = 0
         for i, call in enumerate(_mock_gremlin.call_args_list, start=1):
@@ -303,9 +305,11 @@ def test_gremlin_batch_call(_mock_gremlin):
     # empty
     _mock_gremlin.return_value = None
     packages = NormalizedPackages([], 'pypi')
-    result = sa.Freetier(request=StackAggregatorRequest(external_request_id='test_request_id',
-                         ecosystem='pypi', manifest_file_path='/tmp/bin', packages=[_DJANGO]),
-                         normalized_packages=packages).get_package_details_from_graph()
+    result = sa.Aggregator(request=StackAggregatorRequest(registration_status="REGISTERED",
+                           uuid="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                           external_request_id='test_request_id',
+                           ecosystem='pypi', manifest_file_path='/tmp/bin', packages=[_DJANGO]),
+                           normalized_packages=packages).get_package_details_from_graph()
     assert result is not None
     assert isinstance(result, dict)
     _mock_gremlin.assert_not_called()

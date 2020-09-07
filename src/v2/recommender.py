@@ -465,8 +465,7 @@ class RecommendationTask:
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         audit = {'started_at': started_at, 'ended_at': ended_at, 'version': 'v2'}
 
-        recommendation = StackRecommendationResult(**recommendation,
-                                                   **request.dict()).dict()
+        recommendation = StackRecommendationResult(**recommendation, **request.dict()).dict()
         recommendation['_audit'] = audit
 
         if persist:

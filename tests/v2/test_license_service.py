@@ -4,7 +4,7 @@ import json
 from unittest import mock
 
 from src.v2 import license_service as la
-from src.v2.models import Package, PackageDetailsForFreeTier, LicenseAnalysis
+from src.v2.models import Package, PackageDataWithVulnerabilities, LicenseAnalysis
 
 
 def test_get_license_service_request_payload_empty():
@@ -16,14 +16,14 @@ def test_get_license_service_request_payload_empty():
 def _get_normalized_packages():
     flask = Package(name='flask', version='0.12')
     six = Package(name='six', version='3.1.1')
-    flask_details = PackageDetailsForFreeTier(**flask.dict(),
-                                              latest_version='1.1.2',
-                                              ecosystem='pypi',
-                                              licenses=['ABC'])
-    six_details = PackageDetailsForFreeTier(**six.dict(),
-                                            latest_version='3.5.0',
-                                            ecosystem='pypi',
-                                            licenses=['XYZ', 'ABC'])
+    flask_details = PackageDataWithVulnerabilities(**flask.dict(),
+                                                   latest_version='1.1.2',
+                                                   ecosystem='pypi',
+                                                   licenses=['ABC'])
+    six_details = PackageDataWithVulnerabilities(**six.dict(),
+                                                 latest_version='3.5.0',
+                                                 ecosystem='pypi',
+                                                 licenses=['XYZ', 'ABC'])
 
     return [flask_details, six_details]
 

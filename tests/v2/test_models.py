@@ -55,14 +55,16 @@ def test_pkg_hashing():
 
 def test_ecosystem_case_insensitivity():
     """Test ecosystem case insensitivity."""
-    request = StackAggregatorRequest(external_request_id='foo',
+    request = StackAggregatorRequest(registration_status="FREETIER",
+                                     external_request_id='foo',
                                      ecosystem='PyPI',
                                      manifest_name='requests.txt',
                                      manifest_file_path='foo.txt',
                                      packages=[])
     assert request.ecosystem == 'pypi'
 
-    request = StackAggregatorRequest(external_request_id='foo',
+    request = StackAggregatorRequest(registration_status="FREETIER",
+                                     external_request_id='foo',
                                      ecosystem='pypi',
                                      manifest_name='requests.txt',
                                      manifest_file_path='foo.txt',
@@ -70,7 +72,8 @@ def test_ecosystem_case_insensitivity():
     assert request.ecosystem == 'pypi'
 
     with pytest.raises(ValidationError):
-        StackAggregatorRequest(external_request_id='foo',
+        StackAggregatorRequest(registration_status="FREETIER",
+                               external_request_id='foo',
                                ecosystem='FOO',
                                manifest_name='requests.txt',
                                manifest_file_path='foo.txt',

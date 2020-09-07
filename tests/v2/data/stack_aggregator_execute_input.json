@@ -1,6 +1,7 @@
 {
-	"external_request_id": "some_external_request_id",
-	"show_transitive": "false",
+  "registration_status": "FREETIER",
+  "external_request_id": "some_external_request_id",
+  "show_transitive": "false",
   "packages": [{
     "name": "io.vertx:vertx-web",
     "version": "3.4.2"
