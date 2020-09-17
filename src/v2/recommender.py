@@ -386,7 +386,8 @@ class RecommendationTask:
             start = time.time()
             if request.ecosystem != 'golang':
                 # No Companion Rec. for Golang.
-                insights_response = self.call_insights_recommender(input_task_for_insights_recommender)
+                insights_response = self.call_insights_recommender(
+                    input_task_for_insights_recommender)
 
             logger.info('%s took %0.2f secs for call_insights_recommender()',
                         external_request_id, time.time() - start)

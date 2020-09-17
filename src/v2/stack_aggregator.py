@@ -351,7 +351,8 @@ class StackAggregator:
                 '%s Aggregation process completed, result persisted into RDS',
                 output.external_request_id)
 
-        if request.ecosystem != 'golang':
+        if request['ecosystem'] != 'golang':
+            # Don't Execute Unknown flow for Golang.
             initiate_unknown_package_ingestion(aggregator)
         # result attribute is added to keep a compatibility with v1
         # otherwise metric accumulator related handling has to be
