@@ -12,6 +12,7 @@ class Ecosystem(str, Enum):  # noqa: D101
     maven = 'maven'
     pypi = 'pypi'
     npm = 'npm'
+    golang = 'golang'
 
 
 class Severity(str, Enum):  # noqa: D101
