@@ -15,7 +15,7 @@ from collections import defaultdict
 from src.utils import (create_package_dict, get_session_retry, select_latest_version,
                        LICENSE_SCORING_URL_REST, convert_version_to_proper_semantic,
                        get_response_data, version_info_tuple, persist_data_in_db,
-                       is_quickstart_majority, post_gremlin)
+                       post_gremlin)
 from src.v2.models import RecommenderRequest, StackRecommendationResult
 from src.v2.stack_aggregator import extract_user_stack_package_licenses
 from src.v2.normalized_packages import NormalizedPackages
@@ -293,7 +293,6 @@ class RecommendationTask:
     def get_insights_url(payload):
         """Get the insights url based on the ecosystem."""
         if payload and 'ecosystem' in payload[0]:
-            quickstarts = False
             if payload[0]['ecosystem'] in RecommendationTask.chester_ecosystems:
                 INSIGHTS_SERVICE_HOST = os.getenv("CHESTER_SERVICE_HOST")
             elif payload[0]['ecosystem'] in RecommendationTask.pypi_ecosystems:
@@ -303,19 +302,11 @@ class RecommendationTask:
             else:
                 INSIGHTS_SERVICE_HOST = os.getenv("HPF_SERVICE_HOST") + "-" + payload[0][
                     'ecosystem']
-                if payload[0]['ecosystem'] == 'maven':
-                    quickstarts = is_quickstart_majority(payload[0]['package_list'])
-                if quickstarts:
-                    INSIGHTS_SERVICE_HOST = os.getenv("PGM_SERVICE_HOST") + "-" + payload[0][
-                        'ecosystem']
 
             INSIGHTS_URL_REST = "http://{host}:{port}".format(host=INSIGHTS_SERVICE_HOST,
-                                                              port=os.getenv("PGM_SERVICE_PORT"))
+                                                              port=os.getenv("SERVICE_PORT"))
 
-            if quickstarts:
-                insights_url = INSIGHTS_URL_REST + "/api/v1/schemas/kronos_scoring"
-            else:
-                insights_url = INSIGHTS_URL_REST + "/api/v1/companion_recommendation"
+            insights_url = INSIGHTS_URL_REST + "/api/v1/companion_recommendation"
 
             return insights_url
 

@@ -55,7 +55,7 @@ class TestRecommendationTask(TestCase):
                 'CHESTER_SERVICE_HOST': 'npm-insights',
                 'PYPI_SERVICE_HOST': 'pypi-insights',
                 'PGM_SERVICE_HOST': 'pgm',
-                'PGM_SERVICE_PORT': '6006',
+                'SERVICE_PORT': '6006',
                 'HPF_SERVICE_HOST': 'hpf-insights',
              }):
             # Test whether the correct service is called for NPM.
@@ -72,10 +72,6 @@ class TestRecommendationTask(TestCase):
             }])
             self.assertTrue('golang-insights' in called_url_json['url'])
             # Now test whether the correct service is called for maven.
-            called_url_json = RecommendationTask.call_insights_recommender(
-                [{"ecosystem": "maven", "package_list": []}])
-            self.assertTrue('pgm' in called_url_json['url'])
-
             called_url_json = RecommendationTask.call_insights_recommender(
                 [{"ecosystem": "maven", "package_list": ["org.slf4j:slf4j-api"]}])
             self.assertTrue('hpf-insights' in called_url_json['url'])
