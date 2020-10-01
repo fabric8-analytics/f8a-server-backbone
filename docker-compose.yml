@@ -27,7 +27,7 @@ services:
       LICENSE_SERVICE_PORT: "6162"
       PGM_SERVICE_HOST: "bayesian-kronos"
       CHESTER_SERVICE_HOST: "f8a-chester"
-      PGM_SERVICE_PORT : "6006"
+      SERVICE_PORT : "6006"
       POSTGRESQL_USER: "user"
       POSTGRESQL_PASSWORD: "password"
       POSTGRESQL_DATABASE: "dbname"

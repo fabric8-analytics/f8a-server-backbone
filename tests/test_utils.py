@@ -9,7 +9,7 @@ from src.utils import push_data, get_time_delta
 from src.utils import (
     convert_version_to_proper_semantic as cvs, GREMLIN_SERVER_URL_REST, format_date,
     version_info_tuple as vt, select_latest_version as slv,
-    get_osio_user_count, create_package_dict, is_quickstart_majority, post_http_request,
+    get_osio_user_count, create_package_dict, post_http_request,
     server_create_analysis, select_from_db, total_time_elapsed, post_gremlin,
     GremlinExeception, RequestException)
 
@@ -163,18 +163,6 @@ def test_create_package_dict(_mock_count):
     assert len(out) > 1
 
 
-def test_is_quickstart_majority():
-    """Test the function is_quickstart_majority."""
-    package_list = []
-    assert is_quickstart_majority(package_list)
-    package_list = ['io.vertx:vertx-core',
-                    'org.springframework.boot:spring-boot-starter-web',
-                    'org.slf4j:slf4j-api']
-    assert is_quickstart_majority(package_list)
-    package_list = ['org.slf4j:slf4j-api']
-    assert not is_quickstart_majority(package_list)
-
-
 @mock.patch('requests.Session.post', side_effect=mock_error_response)
 def test_post_http_request(_mock1):
     """Test error response for gremlin."""
@@ -262,7 +250,6 @@ if __name__ == '__main__':
     test_version_info_tuple()
     test_select_latest_version()
     test_get_osio_user_count()
-    test_is_quickstart_majority()
     test_post_http_request()
     test_create_package_dict()
     test_server_create_analysis()
