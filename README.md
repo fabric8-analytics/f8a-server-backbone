@@ -17,7 +17,6 @@ terms of
 - Companion Components
 
 It then persists the above data in the Database and returns a response.
-
 #### How to test:
 
 *  `./runtests.sh`
