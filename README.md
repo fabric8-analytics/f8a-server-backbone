@@ -10,7 +10,7 @@ Based on the contents of a given payload, it tries to aggregate the data from th
 It then persists the data in the Database and returns a response.
 
 ##### Recommendation
-Based on the contents of a given payload, it calls Kronos service and gets the recommendation in
+Based on the contents of a given payload, it calls insights service and gets the recommendation in
 terms of
 - Outliers
 - Alternate Components
