@@ -3,6 +3,7 @@
 from collections import defaultdict
 from typing import List, Tuple, Dict, Set
 from src.v2.models import Package, Ecosystem
+from f8a_utils.tree_generator import GolangDependencyTreeGenerator
 
 
 class NormalizedPackages:
@@ -15,6 +16,9 @@ class NormalizedPackages:
         self._dependency_graph: Dict[Package, Set[Package]] = defaultdict(set)
         for package in packages:
             # clone without dependencies field
+            if ecosystem == "golang":
+                package.name = package.name.split("@")[0]
+                _, package.version = GolangDependencyTreeGenerator.clean_version(package.version)
             package_clone = Package(name=package.name, version=package.version)
             self._dependency_graph[package_clone] = self._dependency_graph[package_clone] or set()
             for trans_package in package.dependencies or []:

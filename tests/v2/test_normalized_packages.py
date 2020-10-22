@@ -1,7 +1,21 @@
 """Tests for the v2 normalized package module."""
 
-from src.v2.models import Package
+from src.v2.models import Package, Ecosystem
 from src.v2.normalized_packages import NormalizedPackages
+
+
+def test_normalized_packages_golang():
+    """Test Normalised Golang Packages."""
+    pkg = Package(
+        name='github.com/pingcap/tidb/session@k8s.io/api',
+        version='v2.0.0-rc.3')
+    assert pkg is not None
+    normalized = NormalizedPackages([pkg], Ecosystem.golang)
+    assert normalized is not None
+    assert normalized.direct_dependencies is not None
+    assert len(normalized.direct_dependencies) == 1
+    # transitives must be empty
+    assert len(normalized.transitive_dependencies) == 0
 
 
 def test_normalized_packages_basic_direct():
