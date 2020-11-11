@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ master ]
+   
+jobs:
+  Code-Quality-Checks:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: 
+        scripts:
+          - run-linter
+          - check-docstyle
+          - detect-dead-code
+          - detect-common-errors
+          - measure-cyclomatic-complexity
+          - measure-maintainability-index    
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.6'
+    - name: ${{ matrix.scripts }}
+      run: bash ${{ matrix.scripts }}.sh;
+  Unit-Tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.6'
+    - name: Run Unit Tests
+      run: |
+        bash qa/actions-setup.sh;
+        PYTHONDONTWRITEBYTECODE=1 python3 "$(which pytest)" --cov=src/ --cov-report=xml --cov-fail-under=85 -vv tests/
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        token: 74b5a608-da00-4b26-aec8-8f7f47489f86 
+        file: ./coverage.xml   
