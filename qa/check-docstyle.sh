@@ -15,7 +15,7 @@ separate_files=$(cat ${SCRIPT_DIR}/files.txt)
 pass=0
 fail=0
 
-unction prepare_venv() {
+function prepare_venv() {
     VIRTUALENV="$(which virtualenv)"
     if [ $? -eq 1 ]; then
         # python34 which is in CentOS does not have virtualenv binary
