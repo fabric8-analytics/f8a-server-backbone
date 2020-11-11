@@ -10,6 +10,8 @@ import time
 import logging
 
 from typing import Dict, List, Tuple, Set
+from f8a_utils.gh_utils import GithubUtils
+
 from src.settings import Settings
 from src.utils import (select_latest_version, server_create_analysis,
                        persist_data_in_db, post_gremlin, GREMLIN_QUERY_SIZE,
@@ -151,8 +153,36 @@ class Aggregator:
         package_details: List[Tuple[Package, PackageDetails]] = []
         for pkg in graph_response:
             package_details.append(self._get_package_details(pkg))
+
+        if self._normalized_packages.ecosystem == 'golang':
+            psedo_pkgs_data, filtered_vulnerabilities = self.get_batch_sa_data_for_pseudo_version()
+            for pseudo_pkg in psedo_pkgs_data:
+                pseudo_pkg_details = self._get_golang_package_details(pseudo_pkg, filtered_vulnerabilities)
+                package_details.append(pseudo_pkg_details)
+
         # covert list of (pkg, package_details) into map
         return dict(package_details)
+
+    def _get_golang_package_details(self, pkg_node, filtered_vulnerabilities) -> Tuple[Package, PackageDetails]:
+        """Get Pseudo Golang Package Details."""
+        pkg_name = pkg_node.get('name', [None])[0]
+        ecosystem = pkg_node.get('ecosystem', [''])[0]
+        pkg = Package(name=pkg_name, version=self._normalized_packages.version_map[pkg_name])
+        latest_version = pkg_node.get('latest_version', [''])[0]
+        public_vulns, private_vulns = self._get_vulnerabilities(
+            filtered_vulnerabilities.get(pkg_name, []))
+        recommended_latest_version = pkg_node.get("latest_non_cve_version", [""])[0]
+        pkg_details = PackageDataWithVulnerabilities(**pkg.dict(),
+                                                     ecosystem=ecosystem,
+                                                     latest_version=latest_version,
+                                                     github={},
+                                                     licenses=[],
+                                                     url=_get_snyk_package_link(ecosystem, pkg_name),
+                                                     private_vulnerabilities=private_vulns,
+                                                     public_vulnerabilities=public_vulns,
+                                                     recommended_version=recommended_latest_version)
+
+        return pkg, pkg_details
 
     def _get_vulnerabilities(self, vulnerability_nodes):
         """Get list of vulnerabilities associated with a package."""
@@ -240,6 +270,125 @@ class Aggregator:
                     'vulnerabilities() for total_results %d', self._request.external_request_id,
                     time.time() - time_start, len(pkgs_with_vuln['result']['data']))
         return pkgs_with_vuln['result']['data']
+
+    def _get_module_vulnerabilities(self) -> List:
+        """Get package data from graph along with vulnerability."""
+        logger.info('Executing _get_module_vulnerabilities')
+        time_start = time.time()
+        pkgs_with_vuln = {
+            "result": {
+                "data": []
+            }
+        }
+        query = """
+                g.V()
+                .has('snyk_ecosystem', ecosystem)
+                .has('module_name', within(packages))
+                .valueMap()
+                """
+        # get rid of leading white spaces
+        query = inspect.cleandoc(query)
+        bindings = {
+            'ecosystem': self._normalized_packages.ecosystem,
+            'packages': []
+        }
+        # call gremlin in batches of GREMLIN_QUERY_SIZE
+        for pkgs in _get_packages_in_batch(self._normalized_packages.modules,
+                                           GREMLIN_QUERY_SIZE):
+            bindings['packages'] = list(pkgs)
+
+            started_at = time.time()
+
+            result = post_gremlin(query, bindings)
+
+            logger.info(
+                '%s took %0.2f secs for post_gremlin() batch request',
+                self._request.external_request_id, time.time() - started_at)
+            if result:
+                pkgs_with_vuln['result']['data'] += result['result']['data']
+
+        logger.info('%s took %0.2f secs for get_package_details_with_'
+                    'vulnerabilities() for total_results %d', self._request.external_request_id,
+                    time.time() - time_start, len(pkgs_with_vuln['result']['data']))
+        return pkgs_with_vuln['result']['data']
+
+    def _get_pseudo_package_details(self, vulnerabilities: Tuple) -> Dict:
+        """Get package data from graph along with vulnerability."""
+        logger.info('Executing _get_golang_package_details')
+        time_start = time.time()
+        pkgs_with_vuln = {
+            "result": {
+                "data": []
+            }
+        }
+        query = """
+                g.V().has('ecosystem', ecosystem)
+                .has('name', within(packages))
+                .valueMap()
+                """
+        # get rid of leading white spaces
+        query = inspect.cleandoc(query)
+        bindings = {
+            'ecosystem': self._normalized_packages.ecosystem,
+            'packages': []
+        }
+        # call gremlin in batches of GREMLIN_QUERY_SIZE
+        for pkgs in _get_packages_in_batch(vulnerabilities,
+                                           GREMLIN_QUERY_SIZE):
+            bindings['packages'] = list(pkgs)
+            started_at = time.time()
+            result = post_gremlin(query, bindings)
+
+            if result:
+                pkgs_with_vuln['result']['data'] += result['result']['data']
+
+        logger.info('%s took %0.2f secs for get_package_details_with_'
+                    'vulnerabilities() for total_results %d', self._request.external_request_id,
+                    time.time() - time_start, len(pkgs_with_vuln['result']['data']))
+        return pkgs_with_vuln
+
+    def _filter_vulnerable_packages(self, vulnerabilities: List) -> Dict:
+        """Filter out vulnerabilities whose commit sha is out of vuln_commit_rules."""
+        logger.info('Executing filter_vulnerable_packages')
+
+        filter_vulnerabilities = {}
+        gh = GithubUtils()
+        collected_cves = []
+        for vuln in vulnerabilities:
+            cve_id = vuln.get('snyk_cve_ids', [None])[0]
+            if cve_id in collected_cves:
+                # Avoid duplicate CVEs
+                continue
+            collected_cves.append(cve_id)
+            package_name = vuln.get('package_name', [None])[0]
+            vuln_rules = vuln.get('vuln_commit_date_rules', [None])[0]
+            pseudo_version = self._normalized_packages.version_map.get(package_name)
+            if not pseudo_version:
+                logger.info("Not a Pseudo Version.")
+                continue
+            time_stamp = gh.extract_timestamp(pseudo_version)
+            if all([vuln_rules, time_stamp, gh._is_commit_date_in_vuln_range(time_stamp, vuln_rules)]):
+                if package_name not in filter_vulnerabilities:
+                    filter_vulnerabilities[package_name] = []
+                filter_vulnerabilities[package_name].append(vuln)
+        return filter_vulnerabilities
+
+    def get_batch_sa_data_for_pseudo_version(self) -> Tuple[Dict, Dict]:
+        """Stack analyses call only for pseudo version applicable for golang."""
+        logger.info('Executing get_batch_sa_data_for_pseudo_version')
+        started_at = time.time()
+
+        # 1. Get All Vulnerabilities attached to Module
+        module_vulnerabilities = self._get_module_vulnerabilities()
+        # 2. Filter out all Vulnerabilities where commit sha is out of Vulnerability range.
+        filtered_vulnerabilities = self._filter_vulnerable_packages(module_vulnerabilities)
+        # 3. ADD Package Meta Data sourced from DB
+        pckg_response = self._get_pseudo_package_details(tuple(filtered_vulnerabilities.keys()))
+        # Merge the package and vulnerability data into response.
+        elapsed_time = time.time() - started_at
+        logger.info("It took %s to fetch pseudo version results.", elapsed_time)
+
+        return pckg_response['result']['data'], filtered_vulnerabilities
 
     def _get_denormalized_package_details(self) -> List[PackageDetails]:
         """Pack PackageDetails according to it's dependency graph structure."""
