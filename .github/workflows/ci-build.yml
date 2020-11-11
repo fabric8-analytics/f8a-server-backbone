@@ -23,7 +23,7 @@ jobs:
       with:
         python-version: '3.6'
     - name: ${{ matrix.scripts }}
-      run: bash ${{ matrix.scripts }}.sh;
+      run: bash qa${{ matrix.scripts }}.sh;
   Unit-Tests:
     runs-on: ubuntu-latest
     steps:
@@ -33,9 +33,7 @@ jobs:
       with:
         python-version: '3.6'
     - name: Run Unit Tests
-      run: |
-        bash qa/actions-setup.sh;
-        PYTHONDONTWRITEBYTECODE=1 python3 "$(which pytest)" --cov=src/ --cov-report=xml --cov-fail-under=85 -vv tests/
+      run: bash qa/actions-run-tests.sh;
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       with:
