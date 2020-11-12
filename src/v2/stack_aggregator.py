@@ -285,24 +285,21 @@ class Aggregator:
         query = """
                 g.V()
                 .has('snyk_ecosystem', ecosystem)
-                .has('module_name', within(packages))
+                .has('module_name', within(modules))
                 .valueMap()
                 """
         # get rid of leading white spaces
         query = inspect.cleandoc(query)
         bindings = {
             'ecosystem': self._normalized_packages.ecosystem,
-            'packages': []
+            'modules': []
         }
         # call gremlin in batches of GREMLIN_QUERY_SIZE
-        for pkgs in _get_packages_in_batch(self._normalized_packages.modules,
-                                           GREMLIN_QUERY_SIZE):
-            bindings['packages'] = list(pkgs)
-
+        for modules in _get_packages_in_batch(self._normalized_packages.modules,
+                                              GREMLIN_QUERY_SIZE):
+            bindings['modules'] = list(modules)
             started_at = time.time()
-
             result = post_gremlin(query, bindings)
-
             logger.info(
                 '%s took %0.2f secs for post_gremlin() batch request',
                 self._request.external_request_id, time.time() - started_at)

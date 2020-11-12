@@ -2,6 +2,9 @@
 import logging
 from collections import defaultdict
 from typing import List, Tuple, Dict, Set
+
+from werkzeug.exceptions import BadRequest
+
 from src.v2.models import Package, Ecosystem
 from f8a_utils.tree_generator import GolangDependencyTreeGenerator
 from f8a_utils.gh_utils import GithubUtils
@@ -13,6 +16,9 @@ gh = GithubUtils()
 
 def get_golang_metadata(package) -> Tuple[str, str, str, Dict]:
     """Clean Package Name, Pkg version & get Golang package_module and version_map."""
+    if "@" not in package.name:
+        raise BadRequest("Package name should be of format package@module.")
+
     package_name, package_module = package.name.split("@")
     _, package_version = GolangDependencyTreeGenerator.clean_version(package.version)
     version_map = {}
