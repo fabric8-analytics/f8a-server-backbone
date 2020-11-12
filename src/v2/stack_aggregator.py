@@ -311,8 +311,8 @@ class Aggregator:
                     time.time() - time_start, len(pkgs_with_vuln['result']['data']))
         return pkgs_with_vuln['result']['data']
 
-    def _get_pseudo_package_details(self, vulnerabilities: Tuple) -> Dict:
-        """Get package data from graph along with vulnerability."""
+    def _get_pseudo_package_details(self, vul_pkgs: Tuple) -> Dict:
+        """Get package data from pkg_node."""
         logger.info('Executing _get_golang_package_details')
         time_start = time.time()
         pkgs_with_vuln = {
@@ -332,7 +332,7 @@ class Aggregator:
             'packages': []
         }
         # call gremlin in batches of GREMLIN_QUERY_SIZE
-        for pkgs in _get_packages_in_batch(vulnerabilities,
+        for pkgs in _get_packages_in_batch(vul_pkgs,
                                            GREMLIN_QUERY_SIZE):
             bindings['packages'] = list(pkgs)
             started_at = time.time()

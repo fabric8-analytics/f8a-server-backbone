@@ -2,7 +2,7 @@
 
 import copy
 import json
-from unittest import mock
+from unittest import mock, TestCase
 
 from src.v2 import stack_aggregator as sa
 from src.v2.stack_aggregator import StackAggregator
@@ -38,6 +38,37 @@ def _request_body():
                 "version": "1.2.1"
             }
          ]
+    }
+
+
+def _go_request_body():
+    return {
+        "registration_status": "freetier",
+        "ecosystem": "golang",
+        "external_request_id": "abc",
+        "packages": [
+            {
+                "name": "github.com/gophish/gophish/controllers@github.com/gophish/gophish",
+                "version": "v0.0.0-20200827055948-64c3edbc241f",
+                "dependencies": [
+                    {
+                        "name": "github.com/gophish/gophish/"
+                                "controllersfdfdf@github.com/gophish/gophish",
+                        "version": "0.0.0-20200827055948-64c3edbc241f"
+                    }
+                ]
+            },
+            {
+                "name": "github.com/gophish/gophish/"
+                        "controllerssssssasas@github.com/gophish/gophish",
+                "version": "v0.0.0-20200827055948-64c3edbc241f",
+                "dependencies": [
+                ]
+            }
+        ],
+        "manifest_name": "golist.json",
+        "manifest_file_path": "/tmp/bin",
+        "show_transitive": True
     }
 
 
@@ -319,3 +350,46 @@ def test_gremlin_batch_call(_mock_gremlin):
     assert (2, 3, 2) == _gremlin_batch_test(_mock_gremlin, 3)
     assert (2, 4, 1) == _gremlin_batch_test(_mock_gremlin, 4)
     assert (1, 0, 5) == _gremlin_batch_test(_mock_gremlin, 5)
+
+
+class TestStackAggregator(TestCase):
+    """Test for the Stack Aggregator class."""
+
+    @mock.patch('src.v2.stack_aggregator.Aggregator._get_pseudo_package_details')
+    @mock.patch('src.v2.stack_aggregator.Aggregator._get_module_vulnerabilities')
+    @mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
+    @mock.patch('src.v2.stack_aggregator.post_gremlin')
+    def test_golang_pseudo_version(self, _mock_grem, _mock_lic, _mock_module, _mock_pseudo_pkg):
+        """Test Golang Pseudo Version functionality."""
+        with open("tests/v2/data/golang_module_vuls_graph_response.json", "r") as fin:
+            data = json.load(fin)
+            _mock_module.return_value = data['result']['data']
+
+        with open("tests/v2/data/golang_pkg_node_gremlin_response.json", "r") as fin:
+            data = json.load(fin)
+            _mock_pseudo_pkg.return_value = data
+
+        resp = StackAggregator().execute(_go_request_body(), persist=False)
+        _mock_module.assert_called_once()
+        _mock_pseudo_pkg.assert_called()
+        _mock_lic.assert_called_once()
+        _mock_grem.assert_called_once()
+        self.assertEqual(resp['aggregation'], 'success')
+        self.assertEqual(len(resp['result']['unknown_dependencies']), 1)
+        self.assertEqual(len(resp['result']['analyzed_dependencies']), 1)
+        self.assertEqual(len(resp['result']['analyzed_dependencies'][0]
+                             ['dependencies']), 1)
+        self.assertEqual(len(resp['result']['analyzed_dependencies'][0]
+                             ['public_vulnerabilities']), 1)
+        list_of_keys = resp['result'].get(
+            'analyzed_dependencies')[0]['public_vulnerabilities'][0].keys()
+        self.assertEqual(len(resp['result'].get('analyzed_dependencies')[0]
+                             ['public_vulnerabilities']), 1)
+        self.assertIn('exploit', list_of_keys)
+        self.assertIn('fixable', list_of_keys)
+        self.assertIn('severity', list_of_keys)
+        self.assertIn('fixed_in', list_of_keys)
+        self.assertEqual(len(resp['result'].get(
+            'analyzed_dependencies')[0]['private_vulnerabilities']), 0)
+        self.assertIsInstance(resp['result']['registration_link'], str)
+        self.assertEqual(resp['result']['ecosystem'], 'golang')
