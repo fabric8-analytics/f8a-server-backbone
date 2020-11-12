@@ -12,7 +12,7 @@ gh = GithubUtils()
 
 
 def get_golang_metadata(package) -> Tuple[str, str, str, Dict]:
-    """Returns Golang Module, version map and more"""
+    """Clean Package Name, Pkg version & get Golang package_module and version_map."""
     package_name, package_module = package.name.split("@")
     _, package_version = GolangDependencyTreeGenerator.clean_version(package.version)
     version_map = {}
@@ -34,7 +34,8 @@ class NormalizedPackages:
         for package in packages:
             # clone without dependencies field
             if ecosystem == 'golang':
-                package.name, package.version, go_package_module, go_version_map = get_golang_metadata(package)
+                package.name, package.version, \
+                    go_package_module, go_version_map = get_golang_metadata(package)
                 self._modules.append(go_package_module)
                 self._version_map.update(go_version_map)
 
@@ -42,7 +43,8 @@ class NormalizedPackages:
             self._dependency_graph[package_clone] = self._dependency_graph[package_clone] or set()
             for trans_package in package.dependencies or []:
                 if ecosystem == 'golang':
-                    trans_package.name, trans_package.version, go_package_module, go_version_map = get_golang_metadata(trans_package)
+                    trans_package.name, trans_package.version, \
+                        go_package_module, go_version_map = get_golang_metadata(trans_package)
                     self._modules.append(go_package_module)
                     self._version_map.update(go_version_map)
                 trans_clone = Package(name=trans_package.name, version=trans_package.version)
@@ -59,7 +61,7 @@ class NormalizedPackages:
 
     @property
     def modules(self) -> Tuple:
-        """Unique Tuple of Package Modules."""
+        """Get Tuple of Package Modules."""
         return tuple(set(self._modules))
 
     @property

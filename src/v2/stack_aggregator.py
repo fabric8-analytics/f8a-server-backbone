@@ -157,30 +157,32 @@ class Aggregator:
         if self._normalized_packages.ecosystem == 'golang':
             psedo_pkgs_data, filtered_vulnerabilities = self.get_batch_sa_data_for_pseudo_version()
             for pseudo_pkg in psedo_pkgs_data:
-                pseudo_pkg_details = self._get_golang_package_details(pseudo_pkg, filtered_vulnerabilities)
+                pseudo_pkg_details = self._get_golang_package_details(
+                    pseudo_pkg, filtered_vulnerabilities)
                 package_details.append(pseudo_pkg_details)
 
         # covert list of (pkg, package_details) into map
         return dict(package_details)
 
-    def _get_golang_package_details(self, pkg_node, filtered_vulnerabilities) -> Tuple[Package, PackageDetails]:
+    def _get_golang_package_details(self, pkg_node, filtered_vul) -> Tuple[Package, PackageDetails]:
         """Get Pseudo Golang Package Details."""
         pkg_name = pkg_node.get('name', [None])[0]
         ecosystem = pkg_node.get('ecosystem', [''])[0]
         pkg = Package(name=pkg_name, version=self._normalized_packages.version_map[pkg_name])
         latest_version = pkg_node.get('latest_version', [''])[0]
         public_vulns, private_vulns = self._get_vulnerabilities(
-            filtered_vulnerabilities.get(pkg_name, []))
+            filtered_vul.get(pkg_name, []))
         recommended_latest_version = pkg_node.get("latest_non_cve_version", [""])[0]
-        pkg_details = PackageDataWithVulnerabilities(**pkg.dict(),
-                                                     ecosystem=ecosystem,
-                                                     latest_version=latest_version,
-                                                     github={},
-                                                     licenses=[],
-                                                     url=_get_snyk_package_link(ecosystem, pkg_name),
-                                                     private_vulnerabilities=private_vulns,
-                                                     public_vulnerabilities=public_vulns,
-                                                     recommended_version=recommended_latest_version)
+        pkg_details = PackageDataWithVulnerabilities(
+            **pkg.dict(),
+            ecosystem=ecosystem,
+            latest_version=latest_version,
+            github={},
+            licenses=[],
+            url=_get_snyk_package_link(ecosystem, pkg_name),
+            private_vulnerabilities=private_vulns,
+            public_vulnerabilities=public_vulns,
+            recommended_version=recommended_latest_version)
 
         return pkg, pkg_details
 
@@ -338,12 +340,13 @@ class Aggregator:
             bindings['packages'] = list(pkgs)
             started_at = time.time()
             result = post_gremlin(query, bindings)
-
+            elapsed_time = time.time() - started_at
+            logger.info("It took %s to fetch _get_pseudo_package_details per call.", elapsed_time)
             if result:
                 pkgs_with_vuln['result']['data'] += result['result']['data']
 
-        logger.info('%s took %0.2f secs for get_package_details_with_'
-                    'vulnerabilities() for total_results %d', self._request.external_request_id,
+        logger.info('%s took %0.2f secs for g_get_pseudo_package_details '
+                    'for total_results %d', self._request.external_request_id,
                     time.time() - time_start, len(pkgs_with_vuln['result']['data']))
         return pkgs_with_vuln
 
@@ -367,7 +370,8 @@ class Aggregator:
                 logger.info("Not a Pseudo Version.")
                 continue
             time_stamp = gh.extract_timestamp(pseudo_version)
-            if all([vuln_rules, time_stamp, gh._is_commit_date_in_vuln_range(time_stamp, vuln_rules)]):
+            if all([vuln_rules, time_stamp,
+                    gh._is_commit_date_in_vuln_range(time_stamp, vuln_rules)]):
                 if package_name not in filter_vulnerabilities:
                     filter_vulnerabilities[package_name] = []
                 filter_vulnerabilities[package_name].append(vuln)
@@ -384,7 +388,6 @@ class Aggregator:
         filtered_vulnerabilities = self._filter_vulnerable_packages(module_vulnerabilities)
         # 3. ADD Package Meta Data sourced from DB
         pckg_response = self._get_pseudo_package_details(tuple(filtered_vulnerabilities.keys()))
-        # Merge the package and vulnerability data into response.
         elapsed_time = time.time() - started_at
         logger.info("It took %s to fetch pseudo version results.", elapsed_time)
 
