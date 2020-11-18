@@ -147,6 +147,7 @@ class Aggregator:
         self._normalized_packages = normalized_packages
         self._normalized_package_details = None
         self._result = None
+        self.filtered_vul = {}
 
     def get_package_details_from_graph(self) -> Dict[Package, PackageDetails]:
         """Get dependency data from graph."""
@@ -156,23 +157,22 @@ class Aggregator:
             package_details.append(self._get_package_details(pkg))
 
         if self._normalized_packages.ecosystem == 'golang':
-            psedo_pkgs_data, filtered_vulnerabilities = self.get_batch_sa_data_for_pseudo_version()
+            psedo_pkgs_data = self.get_batch_sa_data_for_pseudo_version()
             for pseudo_pkg in psedo_pkgs_data:
-                pseudo_pkg_details = self._get_golang_package_details(
-                    pseudo_pkg, filtered_vulnerabilities)
+                pseudo_pkg_details = self._get_golang_package_details(pseudo_pkg)
                 package_details.append(pseudo_pkg_details)
 
         # covert list of (pkg, package_details) into map
         return dict(package_details)
 
-    def _get_golang_package_details(self, pkg_node, filtered_vul) -> Tuple[Package, PackageDetails]:
+    def _get_golang_package_details(self, pkg_node) -> Tuple[Package, PackageDetails]:
         """Get Pseudo Golang Package Details."""
         pkg_name = pkg_node.get('name', [None])[0]
         ecosystem = pkg_node.get('ecosystem', [''])[0]
         pkg = Package(name=pkg_name, version=self._normalized_packages.version_map[pkg_name])
         latest_version = pkg_node.get('latest_version', [''])[0]
         public_vulns, private_vulns = self._get_vulnerabilities(
-            filtered_vul.get(pkg_name, []))
+            self.filtered_vul.get(pkg_name, []))
         recommended_latest_version = pkg_node.get("latest_non_cve_version", [""])[0]
         pkg_details = PackageDataWithVulnerabilities(
             **pkg.dict(),
@@ -342,7 +342,7 @@ class Aggregator:
         module_vulnerabilities = module_vulnerabilities['result']['data']
 
         # 2. Filter out all Vulnerabilities where commit sha is out of Vulnerability range.
-        filtered_vulnerabilities = self._filter_vulnerable_packages(module_vulnerabilities)
+        self.filtered_vul = self._filter_vulnerable_packages(module_vulnerabilities)
 
         # 3. ADD Package Meta Data sourced from DB
         get_vulnerable_pkg_query = """
@@ -351,11 +351,11 @@ class Aggregator:
                 .valueMap()
                 """
         pckg_response = self._get_data_from_db(
-            tuple(filtered_vulnerabilities.keys()), get_vulnerable_pkg_query, 'pckg_response')
+            tuple(self.filtered_vul.keys()), get_vulnerable_pkg_query, 'pckg_response')
         elapsed_time = time.time() - started_at
         logger.info("It took %s to fetch pseudo version results.", elapsed_time)
 
-        return pckg_response['result']['data'], filtered_vulnerabilities
+        return pckg_response['result']['data']
 
     def _get_denormalized_package_details(self) -> List[PackageDetails]:
         """Pack PackageDetails according to it's dependency graph structure."""
