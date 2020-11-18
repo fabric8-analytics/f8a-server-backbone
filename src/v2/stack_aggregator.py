@@ -374,15 +374,62 @@ class StackAggregator:
 class GoAggregator(Aggregator):
     """GoAggregator is a Superset of Aggregator with Golang Added func."""
 
-    def __init__(self,
-                 request: StackAggregatorRequest = None,
+    def __init__(self, request: StackAggregatorRequest = None,
                  normalized_packages: GoNormalizedPackages = None):
         """Initialize common fields."""
-        self._request = request
+        super().__init__(request, normalized_packages)
         self._normalized_packages = normalized_packages
-        self._normalized_package_details = None
-        self._result = None
         self.filtered_vul = {}
+
+    def _get_package_details_with_vulnerabilities(self) -> List[Dict[str, object]]:
+        """Get package data from graph along with vulnerability."""
+        time_start = time.time()
+        pkgs_with_vuln = {
+            "result": {
+                "data": []
+            }
+        }
+        query = """
+                epv = [];
+                packages.each {
+                    g.V().has('pecosystem', ecosystem).
+                    has('pname', it.name).
+                    has('version', it.version).as('version', 'vuln').
+                    select('version').in('has_version').dedup().as('package').
+                    select('package', 'version', 'vuln').
+                    by(valueMap()).
+                    by(valueMap()).
+                    by(out('has_snyk_cve').valueMap().fold()).
+                    fill(epv);
+                }
+                epv;
+                """
+        # get rid of leading white spaces
+        query = inspect.cleandoc(query)
+        bindings = {
+            'ecosystem': self._normalized_packages.ecosystem,
+            'packages': []
+        }
+        # call gremlin in batches of GREMLIN_QUERY_SIZE
+        for pkgs in _get_packages_in_batch(self._normalized_packages.all_deps_without_pseudo,
+                                           GREMLIN_QUERY_SIZE):
+            # convert Tuple[Package] into List[{name:.., version:..}]
+            bindings['packages'] = [pkg.dict(exclude={'dependencies'}) for pkg in pkgs]
+
+            started_at = time.time()
+
+            result = post_gremlin(query, bindings)
+
+            logger.info(
+                '%s took %0.2f secs for post_gremlin() batch request',
+                self._request.external_request_id, time.time() - started_at)
+            if result:
+                pkgs_with_vuln['result']['data'] += result['result']['data']
+
+        logger.info('%s took %0.2f secs for get_package_details_with_'
+                    'vulnerabilities() for total_results %d', self._request.external_request_id,
+                    time.time() - time_start, len(pkgs_with_vuln['result']['data']))
+        return pkgs_with_vuln['result']['data']
 
     def get_package_details_from_graph(self) -> Dict[Package, PackageDetails]:
         """Get dependency data from graph."""
@@ -391,7 +438,7 @@ class GoAggregator(Aggregator):
         for pkg in graph_response:
             package_details.append(self._get_package_details(pkg))
 
-        psedo_pkgs_data = self.get_batch_sa_data_for_pseudo_version()
+        psedo_pkgs_data = self._get_batch_sa_data_for_pseudo_version()
         for pseudo_pkg in psedo_pkgs_data:
             pseudo_pkg_details = self._get_golang_package_details(pseudo_pkg)
             package_details.append(pseudo_pkg_details)
@@ -471,19 +518,21 @@ class GoAggregator(Aggregator):
 
         return pkg, pkg_details
 
-    def get_batch_sa_data_for_pseudo_version(self) -> Tuple[Dict, Dict]:
+    def _get_batch_sa_data_for_pseudo_version(self) -> List:
         """Stack analyses call only for pseudo version applicable for golang."""
         logger.info('Executing get_batch_sa_data_for_pseudo_version')
-        started_at = time.time()
-
-        # 1. Get All Vulnerabilities attached to Module
         get_modules_query = """
-                g.V()
-                .has('snyk_ecosystem', ecosystem)
-                .has('module_name', within(modules))
-                .valueMap()
-                """
-
+                        g.V().has('snyk_ecosystem', ecosystem)
+                        .has('module_name', within(modules))
+                        .valueMap()
+                        """
+        get_vulnerable_pkg_query = """
+                        g.V().has('ecosystem', ecosystem)
+                        .has('name', within(packages))
+                        .valueMap()
+                        """
+        started_at = time.time()
+        # 1. Get All Vulnerabilities attached to Module
         module_vulnerabilities = self._get_data_from_db(
             self._normalized_packages.modules, get_modules_query, 'module_vulnerabilities')
         module_vulnerabilities = module_vulnerabilities['result']['data']
@@ -492,11 +541,6 @@ class GoAggregator(Aggregator):
         self.filtered_vul = self._filter_vulnerable_packages(module_vulnerabilities)
 
         # 3. ADD Package Meta Data sourced from DB
-        get_vulnerable_pkg_query = """
-                g.V().has('ecosystem', ecosystem)
-                .has('name', within(packages))
-                .valueMap()
-                """
         pckg_response = self._get_data_from_db(
             tuple(self.filtered_vul.keys()), get_vulnerable_pkg_query, 'pckg_response')
         elapsed_time = time.time() - started_at
