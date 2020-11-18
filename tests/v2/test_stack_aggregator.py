@@ -363,7 +363,7 @@ class TestStackAggregator(TestCase):
             with open("tests/v2/data/golang_module_vuls_graph_response.json", "r") as fin:
                 return json.load(fin)
 
-    @mock.patch('src.v2.stack_aggregator.Aggregator._get_data_from_db',
+    @mock.patch('src.v2.stack_aggregator.GoAggregator._get_data_from_db',
                 side_effect=_mocked_get_data_from_db, autospec=True)
     @mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
     @mock.patch('src.v2.stack_aggregator.post_gremlin')
