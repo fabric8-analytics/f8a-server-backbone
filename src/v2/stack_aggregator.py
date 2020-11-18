@@ -273,31 +273,24 @@ class Aggregator:
                     time.time() - time_start, len(pkgs_with_vuln['result']['data']))
         return pkgs_with_vuln['result']['data']
 
-    def _get_module_vulnerabilities(self) -> List:
+    def _get_data_from_db(self, packages, query, caller=None) -> Dict:
         """Get package data from graph along with vulnerability."""
-        logger.info('Executing _get_module_vulnerabilities')
+        logger.info('Executing _get_data_from_db.')
         time_start = time.time()
         pkgs_with_vuln = {
             "result": {
                 "data": []
             }
         }
-        query = """
-                g.V()
-                .has('snyk_ecosystem', ecosystem)
-                .has('module_name', within(modules))
-                .valueMap()
-                """
         # get rid of leading white spaces
         query = inspect.cleandoc(query)
         bindings = {
             'ecosystem': self._normalized_packages.ecosystem,
-            'modules': []
+            'packages': []
         }
         # call gremlin in batches of GREMLIN_QUERY_SIZE
-        for modules in _get_packages_in_batch(self._normalized_packages.modules,
-                                              GREMLIN_QUERY_SIZE):
-            bindings['modules'] = list(modules)
+        for packages in _get_packages_in_batch(packages, GREMLIN_QUERY_SIZE):
+            bindings['packages'] = list(packages)
             started_at = time.time()
             result = post_gremlin(query, bindings)
             logger.info(
@@ -306,45 +299,9 @@ class Aggregator:
             if result:
                 pkgs_with_vuln['result']['data'] += result['result']['data']
 
-        logger.info('%s took %0.2f secs for get_package_details_with_'
-                    'vulnerabilities() for total_results %d', self._request.external_request_id,
-                    time.time() - time_start, len(pkgs_with_vuln['result']['data']))
-        return pkgs_with_vuln['result']['data']
-
-    def _get_pseudo_package_details(self, vul_pkgs: Tuple) -> Dict:
-        """Get package data from pkg_node."""
-        logger.info('Executing _get_golang_package_details')
-        time_start = time.time()
-        pkgs_with_vuln = {
-            "result": {
-                "data": []
-            }
-        }
-        query = """
-                g.V().has('ecosystem', ecosystem)
-                .has('name', within(packages))
-                .valueMap()
-                """
-        # get rid of leading white spaces
-        query = inspect.cleandoc(query)
-        bindings = {
-            'ecosystem': self._normalized_packages.ecosystem,
-            'packages': []
-        }
-        # call gremlin in batches of GREMLIN_QUERY_SIZE
-        for pkgs in _get_packages_in_batch(vul_pkgs,
-                                           GREMLIN_QUERY_SIZE):
-            bindings['packages'] = list(pkgs)
-            started_at = time.time()
-            result = post_gremlin(query, bindings)
-            elapsed_time = time.time() - started_at
-            logger.info("It took %s to fetch _get_pseudo_package_details per call.", elapsed_time)
-            if result:
-                pkgs_with_vuln['result']['data'] += result['result']['data']
-
-        logger.info('%s took %0.2f secs for g_get_pseudo_package_details '
+        logger.info('%s took %0.2f secs for %s'
                     'for total_results %d', self._request.external_request_id,
-                    time.time() - time_start, len(pkgs_with_vuln['result']['data']))
+                    time.time() - time_start, caller, len(pkgs_with_vuln['result']['data']))
         return pkgs_with_vuln
 
     def _filter_vulnerable_packages(self, vulnerabilities: List) -> Dict:
@@ -380,11 +337,28 @@ class Aggregator:
         started_at = time.time()
 
         # 1. Get All Vulnerabilities attached to Module
-        module_vulnerabilities = self._get_module_vulnerabilities()
+        get_modules_query = """
+                g.V()
+                .has('snyk_ecosystem', ecosystem)
+                .has('module_name', within(modules))
+                .valueMap()
+                """
+
+        module_vulnerabilities = self._get_data_from_db(
+            self._normalized_packages.modules, get_modules_query, 'module_vulnerabilities')
+        module_vulnerabilities = module_vulnerabilities['result']['data']
+
         # 2. Filter out all Vulnerabilities where commit sha is out of Vulnerability range.
         filtered_vulnerabilities = self._filter_vulnerable_packages(module_vulnerabilities)
+
         # 3. ADD Package Meta Data sourced from DB
-        pckg_response = self._get_pseudo_package_details(tuple(filtered_vulnerabilities.keys()))
+        get_vulnerable_pkg_query = """
+                g.V().has('ecosystem', ecosystem)
+                .has('name', within(packages))
+                .valueMap()
+                """
+        pckg_response = self._get_data_from_db(
+            tuple(filtered_vulnerabilities.keys()), get_vulnerable_pkg_query, 'pckg_response')
         elapsed_time = time.time() - started_at
         logger.info("It took %s to fetch pseudo version results.", elapsed_time)
 

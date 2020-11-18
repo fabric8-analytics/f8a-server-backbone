@@ -355,23 +355,22 @@ def test_gremlin_batch_call(_mock_gremlin):
 class TestStackAggregator(TestCase):
     """Test for the Stack Aggregator class."""
 
-    @mock.patch('src.v2.stack_aggregator.Aggregator._get_pseudo_package_details')
-    @mock.patch('src.v2.stack_aggregator.Aggregator._get_module_vulnerabilities')
+    def _mocked_get_data_from_db(*args):
+        if args[3] == 'pckg_response':
+            with open("tests/v2/data/golang_pkg_node_gremlin_response.json", "r") as fin:
+                return json.load(fin)
+        elif args[3] == 'module_vulnerabilities':
+            with open("tests/v2/data/golang_module_vuls_graph_response.json", "r") as fin:
+                return json.load(fin)
+
+    @mock.patch('src.v2.stack_aggregator.Aggregator._get_data_from_db',
+                side_effect=_mocked_get_data_from_db, autospec=True)
     @mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
     @mock.patch('src.v2.stack_aggregator.post_gremlin')
-    def test_golang_pseudo_version(self, _mock_grem, _mock_lic, _mock_module, _mock_pseudo_pkg):
+    def test_golang_pseudo_version(self, _mock_grem, _mock_lic, _mock_get_data_from_db):
         """Test Golang Pseudo Version functionality."""
-        with open("tests/v2/data/golang_module_vuls_graph_response.json", "r") as fin:
-            data = json.load(fin)
-            _mock_module.return_value = data['result']['data']
-
-        with open("tests/v2/data/golang_pkg_node_gremlin_response.json", "r") as fin:
-            data = json.load(fin)
-            _mock_pseudo_pkg.return_value = data
-
         resp = StackAggregator().execute(_go_request_body(), persist=False)
-        _mock_module.assert_called_once()
-        _mock_pseudo_pkg.assert_called()
+        _mock_get_data_from_db.assert_called()
         _mock_lic.assert_called_once()
         _mock_grem.assert_called_once()
         self.assertEqual(resp['aggregation'], 'success')
