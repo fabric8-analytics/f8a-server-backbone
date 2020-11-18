@@ -379,11 +379,9 @@ class TestStackAggregator(TestCase):
         self.assertEqual(len(resp['result']['analyzed_dependencies'][0]
                              ['dependencies']), 1)
         self.assertEqual(len(resp['result']['analyzed_dependencies'][0]
-                             ['public_vulnerabilities']), 1)
+                             ['public_vulnerabilities']), 3)
         list_of_keys = resp['result'].get(
             'analyzed_dependencies')[0]['public_vulnerabilities'][0].keys()
-        self.assertEqual(len(resp['result'].get('analyzed_dependencies')[0]
-                             ['public_vulnerabilities']), 1)
         self.assertIn('exploit', list_of_keys)
         self.assertIn('fixable', list_of_keys)
         self.assertIn('severity', list_of_keys)

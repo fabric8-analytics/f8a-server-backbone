@@ -310,13 +310,7 @@ class Aggregator:
 
         filter_vulnerabilities = {}
         gh = GithubUtils()
-        collected_cves = []
         for vuln in vulnerabilities:
-            cve_id = vuln.get('snyk_cve_ids', [None])[0]
-            if cve_id in collected_cves:
-                # Avoid duplicate CVEs
-                continue
-            collected_cves.append(cve_id)
             package_name = vuln.get('package_name', [None])[0]
             vuln_rules = vuln.get('vuln_commit_date_rules', [None])[0]
             pseudo_version = self._normalized_packages.version_map.get(package_name)
