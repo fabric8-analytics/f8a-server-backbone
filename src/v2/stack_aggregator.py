@@ -8,6 +8,7 @@ import datetime
 import inspect
 import time
 import logging
+from collections import defaultdict
 
 from typing import Dict, List, Tuple, Set
 from f8a_utils.gh_utils import GithubUtils
@@ -308,7 +309,7 @@ class Aggregator:
         """Filter out vulnerabilities whose commit sha is out of vuln_commit_rules."""
         logger.info('Executing filter_vulnerable_packages')
 
-        filter_vulnerabilities = {}
+        filter_vulnerabilities = defaultdict(list)
         gh = GithubUtils()
         for vuln in vulnerabilities:
             package_name = vuln.get('package_name', [None])[0]
@@ -320,8 +321,6 @@ class Aggregator:
             time_stamp = gh.extract_timestamp(pseudo_version)
             if all([vuln_rules, time_stamp,
                     gh._is_commit_date_in_vuln_range(time_stamp, vuln_rules)]):
-                if package_name not in filter_vulnerabilities:
-                    filter_vulnerabilities[package_name] = []
                 filter_vulnerabilities[package_name].append(vuln)
         return filter_vulnerabilities
 
