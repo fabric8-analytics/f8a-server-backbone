@@ -301,22 +301,21 @@ class Aggregator:
                                      license_analysis=license_analysis,
                                      registration_link=Settings().snyk_signin_url)
 
+    def initiate_unknown_package_ingestion(self):
+        """Ingestion of Unknown dependencies."""
+        if Settings().disable_unknown_package_flow:
+            logger.warning('Skipping unknown flow %s', self.get_all_unknown_packages())
+            return
 
-def initiate_unknown_package_ingestion(aggregator: Aggregator):
-    """Ingestion of Unknown dependencies."""
-    if Settings().disable_unknown_package_flow:
-        logger.warning('Skipping unknown flow %s', aggregator.get_all_unknown_packages())
-        return
-
-    ecosystem = aggregator._normalized_packages.ecosystem
-    try:
-        for dep in aggregator.get_all_unknown_packages():
-            server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
-                                   force=False, force_graph_sync=True)
-    except Exception as e:  # pylint:disable=W0703,C0103
-        logger.error('Ingestion failed for {%s, %s, %s}',
-                     ecosystem, dep.name, dep.version)
-        logger.error(e)
+        ecosystem = self._normalized_packages.ecosystem
+        try:
+            for dep in self.get_all_unknown_packages():
+                server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
+                                       force=False, force_graph_sync=True)
+        except Exception as e:  # pylint:disable=W0703,C0103
+            logger.error('Ingestion failed for {%s, %s, %s}',
+                         ecosystem, dep.name, dep.version)
+            logger.error(e)
 
 
 class StackAggregator:
@@ -359,9 +358,7 @@ class StackAggregator:
                 '%s Aggregation process completed, result persisted into RDS',
                 output.external_request_id)
 
-        if request['ecosystem'] != 'golang':
-            # Don't Execute Unknown flow for Golang.
-            initiate_unknown_package_ingestion(aggregator)
+        aggregator.initiate_unknown_package_ingestion()
         # result attribute is added to keep a compatibility with v1
         # otherwise metric accumulator related handling has to be
         # customized for v2.
@@ -381,6 +378,13 @@ class GoAggregator(Aggregator):
         self._normalized_packages = normalized_packages
         self.filtered_vul = {}
 
+    def initiate_unknown_package_ingestion(self):
+        """Ingestion of Unknown dependencies."""
+        if Settings().disable_unknown_package_flow:
+            logger.warning('Skipping unknown flow %s', self.get_all_unknown_packages())
+            return
+        logger.error('Ingestion is Not active for Golang.')
+
     def _get_package_details_with_vulnerabilities(self) -> List[Dict[str, object]]:
         """Get package data from graph along with vulnerability."""
         get_package_details_with_vul_query = """
@@ -399,7 +403,7 @@ class GoAggregator(Aggregator):
                 epv;
                 """
         packages = self._normalized_packages.all_deps_without_pseudo
-        data = self._get_data_from_db(
+        data = self._get_data_from_graph(
             packages, get_package_details_with_vul_query, '_get_pkg_details_with_vuls')
         return data['result']['data']
 
@@ -410,7 +414,7 @@ class GoAggregator(Aggregator):
         for pkg in graph_response:
             package_details.append(self._get_package_details(pkg))
 
-        psedo_pkgs_data = self._get_batch_sa_data_for_pseudo_version()
+        psedo_pkgs_data = self._get_package_details_from_graph_for_pseudo_versions()
         for pseudo_pkg in psedo_pkgs_data:
             pseudo_pkg_details = self._get_golang_package_details(pseudo_pkg)
             package_details.append(pseudo_pkg_details)
@@ -418,7 +422,7 @@ class GoAggregator(Aggregator):
         # covert list of (pkg, package_details) into map
         return dict(package_details)
 
-    def _get_data_from_db(self, packages, query, caller=None) -> Dict:
+    def _get_data_from_graph(self, packages, query, caller=None) -> Dict:
         """Get package data from graph along with vulnerability."""
         logger.info('Executing _get_data_from_db.')
         time_start = time.time()
@@ -490,7 +494,7 @@ class GoAggregator(Aggregator):
 
         return pkg, pkg_details
 
-    def _get_batch_sa_data_for_pseudo_version(self) -> List:
+    def _get_package_details_from_graph_for_pseudo_versions(self) -> List:
         """Stack analyses call only for pseudo version applicable for golang."""
         logger.info('Executing get_batch_sa_data_for_pseudo_version')
         get_modules_query = """
@@ -505,7 +509,7 @@ class GoAggregator(Aggregator):
                         """
         started_at = time.time()
         # 1. Get All Vulnerabilities attached to Module
-        module_vulnerabilities = self._get_data_from_db(
+        module_vulnerabilities = self._get_data_from_graph(
             self._normalized_packages.modules, get_modules_query, 'module_vulnerabilities')
         module_vulnerabilities = module_vulnerabilities['result']['data']
 
@@ -513,7 +517,7 @@ class GoAggregator(Aggregator):
         self.filtered_vul = self._filter_vulnerable_packages(module_vulnerabilities)
 
         # 3. ADD Package Meta Data sourced from DB
-        pckg_response = self._get_data_from_db(
+        pckg_response = self._get_data_from_graph(
             tuple(self.filtered_vul.keys()), get_vulnerable_pkg_query, 'pckg_response')
         elapsed_time = time.time() - started_at
         logger.info("It took %s to fetch pseudo version results.", elapsed_time)

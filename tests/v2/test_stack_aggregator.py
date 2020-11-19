@@ -366,7 +366,7 @@ class TestStackAggregator(TestCase):
             with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
                 return json.load(fin)
 
-    @mock.patch('src.v2.stack_aggregator.GoAggregator._get_data_from_db',
+    @mock.patch('src.v2.stack_aggregator.GoAggregator._get_data_from_graph',
                 side_effect=_mocked_get_data_from_db, autospec=True)
     @mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
     def test_golang_pseudo_version(self, _mock_lic, _mock_get_data_from_db):

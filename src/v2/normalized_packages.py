@@ -69,14 +69,14 @@ class GoNormalizedPackages(NormalizedPackages):
         self._dependency_graph: Dict[Package, Set[Package]] = defaultdict(set)
         self._modules = []
         self._version_map = {}
-        self.gh = GithubUtils()
+        gh = GithubUtils()
         self.pseudo = set()
         for package in packages:
             # clone without dependencies field
             package.name, package.version, \
                 go_package_module = self.get_golang_metadata(package)
             package_clone = Package(name=package.name, version=package.version)
-            if self.gh.is_pseudo_version(package.version):
+            if gh.is_pseudo_version(package.version):
                 self._modules.append(go_package_module)
                 self._version_map[package.name] = package.version
                 self.pseudo.add(package_clone)
@@ -85,7 +85,7 @@ class GoNormalizedPackages(NormalizedPackages):
                 trans_package.name, trans_package.version, \
                     trans_module = self.get_golang_metadata(trans_package)
                 trans_clone = Package(name=trans_package.name, version=trans_package.version)
-                if self.gh.is_pseudo_version(trans_package.version):
+                if gh.is_pseudo_version(trans_package.version):
                     self._modules.append(trans_module)
                     self._version_map[trans_package.name] = trans_package.version
                     self.pseudo.add(package_clone)
@@ -97,7 +97,7 @@ class GoNormalizedPackages(NormalizedPackages):
         self._all_except_pseudo = self._all.difference(self.pseudo)
 
     @property
-    def modules(self) -> Tuple:
+    def modules(self) -> Tuple[str]:
         """Get Tuple of Package Modules."""
         return tuple(set(self._modules))
 
