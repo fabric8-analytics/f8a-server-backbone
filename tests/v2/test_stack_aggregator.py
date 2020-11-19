@@ -362,17 +362,18 @@ class TestStackAggregator(TestCase):
         elif args[3] == 'module_vulnerabilities':
             with open("tests/v2/data/golang_module_vuls_graph_response.json", "r") as fin:
                 return json.load(fin)
+        elif args[3] == '_get_pkg_details_with_vuls':
+            with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
+                return json.load(fin)
 
     @mock.patch('src.v2.stack_aggregator.GoAggregator._get_data_from_db',
                 side_effect=_mocked_get_data_from_db, autospec=True)
     @mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
-    @mock.patch('src.v2.stack_aggregator.post_gremlin')
-    def test_golang_pseudo_version(self, _mock_grem, _mock_lic, _mock_get_data_from_db):
+    def test_golang_pseudo_version(self, _mock_lic, _mock_get_data_from_db):
         """Test Golang Pseudo Version functionality."""
         resp = StackAggregator().execute(_go_request_body(), persist=False)
         _mock_get_data_from_db.assert_called()
         _mock_lic.assert_called_once()
-        _mock_grem.assert_called_once()
         self.assertEqual(resp['aggregation'], 'success')
         self.assertEqual(len(resp['result']['unknown_dependencies']), 1)
         self.assertEqual(len(resp['result']['analyzed_dependencies']), 1)

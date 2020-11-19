@@ -383,13 +383,7 @@ class GoAggregator(Aggregator):
 
     def _get_package_details_with_vulnerabilities(self) -> List[Dict[str, object]]:
         """Get package data from graph along with vulnerability."""
-        time_start = time.time()
-        pkgs_with_vuln = {
-            "result": {
-                "data": []
-            }
-        }
-        query = """
+        get_package_details_with_vul_query = """
                 epv = [];
                 packages.each {
                     g.V().has('pecosystem', ecosystem).
@@ -404,32 +398,10 @@ class GoAggregator(Aggregator):
                 }
                 epv;
                 """
-        # get rid of leading white spaces
-        query = inspect.cleandoc(query)
-        bindings = {
-            'ecosystem': self._normalized_packages.ecosystem,
-            'packages': []
-        }
-        # call gremlin in batches of GREMLIN_QUERY_SIZE
-        for pkgs in _get_packages_in_batch(self._normalized_packages.all_deps_without_pseudo,
-                                           GREMLIN_QUERY_SIZE):
-            # convert Tuple[Package] into List[{name:.., version:..}]
-            bindings['packages'] = [pkg.dict(exclude={'dependencies'}) for pkg in pkgs]
-
-            started_at = time.time()
-
-            result = post_gremlin(query, bindings)
-
-            logger.info(
-                '%s took %0.2f secs for post_gremlin() batch request',
-                self._request.external_request_id, time.time() - started_at)
-            if result:
-                pkgs_with_vuln['result']['data'] += result['result']['data']
-
-        logger.info('%s took %0.2f secs for get_package_details_with_'
-                    'vulnerabilities() for total_results %d', self._request.external_request_id,
-                    time.time() - time_start, len(pkgs_with_vuln['result']['data']))
-        return pkgs_with_vuln['result']['data']
+        packages = self._normalized_packages.all_deps_without_pseudo
+        data = self._get_data_from_db(
+            packages, get_package_details_with_vul_query, '_get_pkg_details_with_vuls')
+        return data['result']['data']
 
     def get_package_details_from_graph(self) -> Dict[Package, PackageDetails]:
         """Get dependency data from graph."""
