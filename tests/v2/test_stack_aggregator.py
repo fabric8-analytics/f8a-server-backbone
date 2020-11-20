@@ -2,7 +2,7 @@
 
 import copy
 import json
-from unittest import mock
+from unittest import mock, TestCase
 
 from src.v2 import stack_aggregator as sa
 from src.v2.stack_aggregator import StackAggregator
@@ -38,6 +38,37 @@ def _request_body():
                 "version": "1.2.1"
             }
          ]
+    }
+
+
+def _go_request_body():
+    return {
+        "registration_status": "freetier",
+        "ecosystem": "golang",
+        "external_request_id": "abc",
+        "packages": [
+            {
+                "name": "github.com/gophish/gophish/controllers@github.com/gophish/gophish",
+                "version": "v0.0.0-20200827055948-64c3edbc241f",
+                "dependencies": [
+                    {
+                        "name": "github.com/gophish/gophish/"
+                                "controllersfdfdf@github.com/gophish/gophish",
+                        "version": "0.0.0-20200827055948-64c3edbc241f"
+                    }
+                ]
+            },
+            {
+                "name": "github.com/gophish/gophish/"
+                        "controllerssssssasas@github.com/gophish/gophish",
+                "version": "v0.0.0-20200827055948-64c3edbc241f",
+                "dependencies": [
+                ]
+            }
+        ],
+        "manifest_name": "golist.json",
+        "manifest_file_path": "/tmp/bin",
+        "show_transitive": True
     }
 
 
@@ -319,3 +350,75 @@ def test_gremlin_batch_call(_mock_gremlin):
     assert (2, 3, 2) == _gremlin_batch_test(_mock_gremlin, 3)
     assert (2, 4, 1) == _gremlin_batch_test(_mock_gremlin, 4)
     assert (1, 0, 5) == _gremlin_batch_test(_mock_gremlin, 5)
+
+
+class TestStackAggregator(TestCase):
+    """Test for the Stack Aggregator class."""
+
+    def _mocked_get_data_from_db(*args):
+        if args[3] == 'pckg_response':
+            with open("tests/v2/data/golang_pkg_node_gremlin_response.json", "r") as fin:
+                return json.load(fin)
+        elif args[3] == 'module_vulnerabilities':
+            with open("tests/v2/data/golang_module_vuls_graph_response.json", "r") as fin:
+                return json.load(fin)
+        elif args[3] == '_get_pkg_details_with_vuls':
+            with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
+                return json.load(fin)
+
+    @mock.patch('src.v2.stack_aggregator.GoAggregator._get_data_from_graph',
+                side_effect=_mocked_get_data_from_db, autospec=True)
+    @mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
+    def test_golang_pseudo_version(self, _mock_lic, _mock_get_data_from_db):
+        """Test Golang Pseudo Version functionality."""
+        resp = StackAggregator().execute(_go_request_body(), persist=False)
+        _mock_get_data_from_db.assert_called()
+        _mock_lic.assert_called_once()
+        self.assertEqual(resp['aggregation'], 'success')
+        self.assertEqual(len(resp['result']['unknown_dependencies']), 1)
+        self.assertEqual(len(resp['result']['analyzed_dependencies']), 1)
+        self.assertEqual(len(resp['result']['analyzed_dependencies'][0]
+                             ['dependencies']), 1)
+        self.assertEqual(len(resp['result']['analyzed_dependencies'][0]
+                             ['public_vulnerabilities']), 3)
+
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][0]['cve_ids'], ['CVE-2020-24711'])
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][0]['title'], 'Denial of Service (DoS)')
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][0]['fixed_in'], ['0.11.0'])
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][0]['id'],
+                         'SNYK-GOLANG-GITHUBCOMGOPHISHGOPHISHCONTROLLERS-1023587')
+
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][1]['cve_ids'], ['CVE-2020-24711'])
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][1]['title'], 'Denial of Service (DoS)')
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][1]['fixed_in'], ['0.11.0'])
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][1]['id'],
+                         'SNYK-GOLANG-GITHUBCOMGOPHISHGOPHISHCONTROLLERS-1023585')
+
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][2]['cve_ids'], ['CVE-2020-24711'])
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][2]['title'], 'Denial of Service (DoS)')
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][2]['fixed_in'], ['0.11.0'])
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][2]['id'],
+                         'SNYK-GOLANG-GITHUBCOMGOPHISHGOPHISHCONTROLLERS-1023589')
+
+        list_of_keys = resp['result'].get(
+            'analyzed_dependencies')[0]['public_vulnerabilities'][0].keys()
+        self.assertIn('exploit', list_of_keys)
+        self.assertIn('fixable', list_of_keys)
+        self.assertIn('severity', list_of_keys)
+        self.assertIn('fixed_in', list_of_keys)
+        self.assertEqual(len(resp['result'].get(
+            'analyzed_dependencies')[0]['private_vulnerabilities']), 0)
+        self.assertIsInstance(resp['result']['registration_link'], str)
+        self.assertEqual(resp['result']['ecosystem'], 'golang')

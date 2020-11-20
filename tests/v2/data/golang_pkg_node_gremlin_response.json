@@ -1,0 +1,36 @@
+{
+    "requestId": "87ae352d-488f-4560-bbf9-8a4578ddbbcb",
+    "status": {
+        "message": "",
+        "code": 200,
+        "attributes": {}
+    },
+    "result": {
+        "data": [
+            {
+                "last_updated": [
+                    1.604910943476259E9
+                ],
+                "ecosystem": [
+                    "golang"
+                ],
+                "latest_version": [
+                    "0.11.0"
+                ],
+                "name": [
+                    "github.com/gophish/gophish/controllers"
+                ],
+                "vertex_label": [
+                    "Package"
+                ],
+                "latest_non_cve_version": [
+                    "0.11.0"
+                ],
+                "gh_link": [
+                    "https://github.com/gophish/gophish"
+                ]
+            }
+        ],
+        "meta": {}
+    }
+}
