@@ -381,6 +381,37 @@ class TestStackAggregator(TestCase):
                              ['dependencies']), 1)
         self.assertEqual(len(resp['result']['analyzed_dependencies'][0]
                              ['public_vulnerabilities']), 3)
+
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][0]['cve_ids'], ['CVE-2020-24711'])
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][0]['title'], 'Denial of Service (DoS)')
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][0]['fixed_in'], ['0.11.0'])
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][0]['id'],
+                         'SNYK-GOLANG-GITHUBCOMGOPHISHGOPHISHCONTROLLERS-1023587')
+
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][1]['cve_ids'], ['CVE-2020-24711'])
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][1]['title'], 'Denial of Service (DoS)')
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][1]['fixed_in'], ['0.11.0'])
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][1]['id'],
+                         'SNYK-GOLANG-GITHUBCOMGOPHISHGOPHISHCONTROLLERS-1023585')
+
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][2]['cve_ids'], ['CVE-2020-24711'])
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][2]['title'], 'Denial of Service (DoS)')
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][2]['fixed_in'], ['0.11.0'])
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]
+                         ['public_vulnerabilities'][2]['id'],
+                         'SNYK-GOLANG-GITHUBCOMGOPHISHGOPHISHCONTROLLERS-1023589')
+
         list_of_keys = resp['result'].get(
             'analyzed_dependencies')[0]['public_vulnerabilities'][0].keys()
         self.assertIn('exploit', list_of_keys)

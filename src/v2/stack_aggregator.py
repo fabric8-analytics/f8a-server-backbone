@@ -499,7 +499,7 @@ class GoAggregator(Aggregator):
         logger.debug('Executing get_batch_sa_data_for_pseudo_version')
         get_modules_query = """
                         g.V().has('snyk_ecosystem', ecosystem)
-                        .has('module_name', within(modules))
+                        .has('module_name', within(packages))
                         .valueMap()
                         """
         get_vulnerable_pkg_query = """

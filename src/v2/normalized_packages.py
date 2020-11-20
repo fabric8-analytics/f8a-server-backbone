@@ -101,16 +101,19 @@ def clean_and_get_pkgs(packages) -> Tuple[List[Package], List[str]]:
     """Clean and get golang packages."""
     all_packages: List[Package] = []
     all_modules: List[str] = []
+    gh = GithubUtils()
     for direct in packages:
         pkg_name, pkg_mod = get_golang_metadata(direct)
         _, package_version = GolangDependencyTreeGenerator.clean_version(direct.version)
         pkg = Package(name=pkg_name, version=package_version, dependencies=[])
-        all_modules.append(pkg_mod)
+        if gh.is_pseudo_version(package_version):
+            all_modules.append(pkg_mod)
         for trans_pkg in direct.dependencies or []:
             trans_name, trans_mod = get_golang_metadata(trans_pkg)
             _, trans_version = GolangDependencyTreeGenerator.clean_version(trans_pkg.version)
             trans = Package(name=trans_name, version=trans_version)
-            all_modules.append(trans_mod)
             pkg.dependencies.append(trans)
+            if gh.is_pseudo_version(trans_version):
+                all_modules.append(trans_mod)
         all_packages.append(pkg)
     return all_packages, all_modules
