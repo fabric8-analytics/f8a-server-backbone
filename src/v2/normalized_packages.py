@@ -1,13 +1,10 @@
 """Abstraction for various response models used in V2 implementation."""
-import logging
 from collections import defaultdict
 from typing import List, Tuple, Dict, Set
 
 from src.v2.models import Package, Ecosystem
 from f8a_utils.tree_generator import GolangDependencyTreeGenerator
 from f8a_utils.gh_utils import GithubUtils
-
-logger = logging.getLogger(__name__)
 
 
 class NormalizedPackages:
@@ -66,15 +63,10 @@ class GoNormalizedPackages(NormalizedPackages):
         self._version_map = {}
         gh = GithubUtils()
         self.pseudo = set()
-        for package in packages:
-            # clone without dependencies field
+        for package in self.all_dependencies:
             if gh.is_pseudo_version(package.version):
                 self._version_map[package.name] = package.version
                 self.pseudo.add(package)
-            for trans_package in package.dependencies or []:
-                if gh.is_pseudo_version(trans_package.version):
-                    self._version_map[trans_package.name] = trans_package.version
-                    self.pseudo.add(trans_package)
         # unfold set of Package into flat set of Package
         self._all_except_pseudo = self._all.difference(self.pseudo)
 

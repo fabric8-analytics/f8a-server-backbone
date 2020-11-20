@@ -464,7 +464,7 @@ class GoAggregator(Aggregator):
             vuln_rules = vuln.get('vuln_commit_date_rules', [None])[0]
             pseudo_version = self._normalized_packages.version_map.get(package_name)
             if not pseudo_version:
-                logger.info("Not a Pseudo Version.")
+                logger.debug("Not a Pseudo Version.")
                 continue
             time_stamp = gh.extract_timestamp(pseudo_version)
             if all([vuln_rules, time_stamp,
@@ -496,7 +496,7 @@ class GoAggregator(Aggregator):
 
     def _get_package_details_from_graph_for_pseudo_versions(self) -> List:
         """Stack analyses call only for pseudo version applicable for golang."""
-        logger.info('Executing get_batch_sa_data_for_pseudo_version')
+        logger.debug('Executing get_batch_sa_data_for_pseudo_version')
         get_modules_query = """
                         g.V().has('snyk_ecosystem', ecosystem)
                         .has('module_name', within(modules))
