@@ -403,6 +403,7 @@ class GoAggregator(Aggregator):
                 epv;
                 """
         packages = self._normalized_packages.all_deps_without_pseudo
+        packages = [pkg.dict(exclude={'dependencies'}) for pkg in packages]
         data = self._get_data_from_graph(
             packages, get_package_details_with_vul_query, '_get_pkg_details_with_vuls')
         return data['result']['data']
