@@ -19,9 +19,9 @@ terms of
 It then persists the above data in the Database and returns a response.
 #### How to test:
 
-*  `./runtests.sh`
+-  `./runtests.sh`
 
-* curl localhost:<SERVICE_PORT>/api/v1/readiness should return `{}` with status 200
+- curl localhost:<SERVICE_PORT>/api/v1/readiness should return `{}` with status 200
 
 #### Payload Information
 ```
