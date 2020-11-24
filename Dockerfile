@@ -1,7 +1,7 @@
 FROM registry.centos.org/centos/centos:7
 
 ENV F8A_WORKER_VERSION=fefc764 \
-    F8A_UTIL_VERSION=24f8858
+    F8A_UTIL_VERSION=098d3d6
 LABEL name="f8analytics backbone services" \
       description="Stack aggregation and recommendation service." \
       git-sha="46e443d" \

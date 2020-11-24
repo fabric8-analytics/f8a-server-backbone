@@ -8,8 +8,11 @@ import datetime
 import inspect
 import time
 import logging
+from collections import defaultdict
 
 from typing import Dict, List, Tuple, Set
+from f8a_utils.gh_utils import GithubUtils
+
 from src.settings import Settings
 from src.utils import (select_latest_version, server_create_analysis,
                        persist_data_in_db, post_gremlin, GREMLIN_QUERY_SIZE,
@@ -19,7 +22,7 @@ from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails
                            PackageDataWithVulnerabilities,
                            Package, Audit, Ecosystem,
                            StackAggregatorResult)
-from src.v2.normalized_packages import NormalizedPackages
+from src.v2.normalized_packages import NormalizedPackages, GoNormalizedPackages
 from src.v2.license_service import (get_license_analysis_for_stack,
                                     get_license_service_request_payload)
 
@@ -151,6 +154,7 @@ class Aggregator:
         package_details: List[Tuple[Package, PackageDetails]] = []
         for pkg in graph_response:
             package_details.append(self._get_package_details(pkg))
+
         # covert list of (pkg, package_details) into map
         return dict(package_details)
 
@@ -297,22 +301,21 @@ class Aggregator:
                                      license_analysis=license_analysis,
                                      registration_link=Settings().snyk_signin_url)
 
+    def initiate_unknown_package_ingestion(self):
+        """Ingestion of Unknown dependencies."""
+        if Settings().disable_unknown_package_flow:
+            logger.warning('Skipping unknown flow %s', self.get_all_unknown_packages())
+            return
 
-def initiate_unknown_package_ingestion(aggregator: Aggregator):
-    """Ingestion of Unknown dependencies."""
-    if Settings().disable_unknown_package_flow:
-        logger.warning('Skipping unknown flow %s', aggregator.get_all_unknown_packages())
-        return
-
-    ecosystem = aggregator._normalized_packages.ecosystem
-    try:
-        for dep in aggregator.get_all_unknown_packages():
-            server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
-                                   force=False, force_graph_sync=True)
-    except Exception as e:  # pylint:disable=W0703,C0103
-        logger.error('Ingestion failed for {%s, %s, %s}',
-                     ecosystem, dep.name, dep.version)
-        logger.error(e)
+        ecosystem = self._normalized_packages.ecosystem
+        try:
+            for dep in self.get_all_unknown_packages():
+                server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
+                                       force=False, force_graph_sync=True)
+        except Exception as e:  # pylint:disable=W0703,C0103
+            logger.error('Ingestion failed for {%s, %s, %s}',
+                         ecosystem, dep.name, dep.version)
+            logger.error(e)
 
 
 class StackAggregator:
@@ -322,12 +325,16 @@ class StackAggregator:
     def process_request(request: Dict) -> Aggregator:
         """Task code."""
         request = StackAggregatorRequest(**request)
-        normalized_packages = NormalizedPackages(request.packages,
-                                                 request.ecosystem)
-        # Always generate regitered user report for the given stack, API server
+
+        # Always generate registered user report for the given stack, API server
         # shall filter the report fields based on registration status.
         # This will avoid analysis of stack upon user registration.
-        aggregator = Aggregator(request, normalized_packages)
+        if request.ecosystem == 'golang':
+            normalized_packages = GoNormalizedPackages(request.packages, request.ecosystem)
+            aggregator = GoAggregator(request, normalized_packages)
+        else:
+            normalized_packages = NormalizedPackages(request.packages, request.ecosystem)
+            aggregator = Aggregator(request, normalized_packages)
         aggregator.fetch_details()
         return aggregator
 
@@ -351,9 +358,7 @@ class StackAggregator:
                 '%s Aggregation process completed, result persisted into RDS',
                 output.external_request_id)
 
-        if request['ecosystem'] != 'golang':
-            # Don't Execute Unknown flow for Golang.
-            initiate_unknown_package_ingestion(aggregator)
+        aggregator.initiate_unknown_package_ingestion()
         # result attribute is added to keep a compatibility with v1
         # otherwise metric accumulator related handling has to be
         # customized for v2.
@@ -361,3 +366,161 @@ class StackAggregator:
         return {'aggregation': 'success',
                 'external_request_id': output.external_request_id,
                 'result': output_dict}
+
+
+class GoAggregator(Aggregator):
+    """GoAggregator is a Superset of Aggregator with Golang Added func."""
+
+    def __init__(self, request: StackAggregatorRequest = None,
+                 normalized_packages: GoNormalizedPackages = None):
+        """Initialize common fields."""
+        super().__init__(request, normalized_packages)
+        self._normalized_packages = normalized_packages
+        self.filtered_vul = {}
+
+    def initiate_unknown_package_ingestion(self):
+        """Ingestion of Unknown dependencies."""
+        if Settings().disable_unknown_package_flow:
+            logger.warning('Skipping unknown flow %s', self.get_all_unknown_packages())
+            return
+        logger.error('Ingestion is Not active for Golang.')
+
+    def _get_package_details_with_vulnerabilities(self) -> List[Dict[str, object]]:
+        """Get package data from graph along with vulnerability."""
+        get_package_details_with_vul_query = """
+                epv = [];
+                packages.each {
+                    g.V().has('pecosystem', ecosystem).
+                    has('pname', it.name).
+                    has('version', it.version).as('version', 'vuln').
+                    select('version').in('has_version').dedup().as('package').
+                    select('package', 'version', 'vuln').
+                    by(valueMap()).
+                    by(valueMap()).
+                    by(out('has_snyk_cve').valueMap().fold()).
+                    fill(epv);
+                }
+                epv;
+                """
+        packages = self._normalized_packages.all_deps_without_pseudo
+        packages = [pkg.dict(exclude={'dependencies'}) for pkg in packages]
+        data = self._get_data_from_graph(
+            packages, get_package_details_with_vul_query, '_get_pkg_details_with_vuls')
+        return data['result']['data']
+
+    def get_package_details_from_graph(self) -> Dict[Package, PackageDetails]:
+        """Get dependency data from graph."""
+        graph_response = self._get_package_details_with_vulnerabilities()
+        package_details: List[Tuple[Package, PackageDetails]] = []
+        for pkg in graph_response:
+            package_details.append(self._get_package_details(pkg))
+
+        psedo_pkgs_data = self._get_package_details_from_graph_for_pseudo_versions()
+        for pseudo_pkg in psedo_pkgs_data:
+            pseudo_pkg_details = self._get_golang_package_details(pseudo_pkg)
+            package_details.append(pseudo_pkg_details)
+
+        # covert list of (pkg, package_details) into map
+        return dict(package_details)
+
+    def _get_data_from_graph(self, packages, query, caller=None) -> Dict:
+        """Get package data from graph along with vulnerability."""
+        logger.info('Executing _get_data_from_db.')
+        time_start = time.time()
+        pkgs_with_vuln = {
+            "result": {
+                "data": []
+            }
+        }
+        # get rid of leading white spaces
+        query = inspect.cleandoc(query)
+        bindings = {
+            'ecosystem': self._normalized_packages.ecosystem,
+            'packages': []
+        }
+        # call gremlin in batches of GREMLIN_QUERY_SIZE
+        for packages in _get_packages_in_batch(packages, GREMLIN_QUERY_SIZE):
+            bindings['packages'] = list(packages)
+            started_at = time.time()
+            result = post_gremlin(query, bindings)
+            logger.info(
+                '%s took %0.2f secs for post_gremlin() batch request',
+                self._request.external_request_id, time.time() - started_at)
+            if result:
+                pkgs_with_vuln['result']['data'] += result['result']['data']
+
+        logger.info('%s took %0.2f secs for %s'
+                    'for total_results %d', self._request.external_request_id,
+                    time.time() - time_start, caller, len(pkgs_with_vuln['result']['data']))
+        return pkgs_with_vuln
+
+    def _filter_vulnerable_packages(self, vulnerabilities: List) -> Dict:
+        """Filter out vulnerabilities whose commit sha is out of vuln_commit_rules."""
+        logger.info('Executing filter_vulnerable_packages')
+
+        filter_vulnerabilities = defaultdict(list)
+        gh = GithubUtils()
+        for vuln in vulnerabilities:
+            package_name = vuln.get('package_name', [None])[0]
+            vuln_rules = vuln.get('vuln_commit_date_rules', [None])[0]
+            pseudo_version = self._normalized_packages.version_map.get(package_name)
+            if not pseudo_version:
+                logger.debug("Not a Pseudo Version.")
+                continue
+            time_stamp = gh.extract_timestamp(pseudo_version)
+            if all([vuln_rules, time_stamp,
+                    gh._is_commit_date_in_vuln_range(time_stamp, vuln_rules)]):
+                filter_vulnerabilities[package_name].append(vuln)
+        return filter_vulnerabilities
+
+    def _get_golang_package_details(self, pkg_node) -> Tuple[Package, PackageDetails]:
+        """Get Pseudo Golang Package Details."""
+        pkg_name = pkg_node.get('name', [None])[0]
+        ecosystem = pkg_node.get('ecosystem', [''])[0]
+        pkg = Package(name=pkg_name, version=self._normalized_packages.version_map[pkg_name])
+        latest_version = pkg_node.get('latest_version', [''])[0]
+        public_vulns, private_vulns = self._get_vulnerabilities(
+            self.filtered_vul.get(pkg_name, []))
+        recommended_latest_version = pkg_node.get("latest_non_cve_version", [""])[0]
+        pkg_details = PackageDataWithVulnerabilities(
+            **pkg.dict(),
+            ecosystem=ecosystem,
+            latest_version=latest_version,
+            github={},
+            licenses=[],
+            url=_get_snyk_package_link(ecosystem, pkg_name),
+            private_vulnerabilities=private_vulns,
+            public_vulnerabilities=public_vulns,
+            recommended_version=recommended_latest_version)
+
+        return pkg, pkg_details
+
+    def _get_package_details_from_graph_for_pseudo_versions(self) -> List:
+        """Stack analyses call only for pseudo version applicable for golang."""
+        logger.debug('Executing get_batch_sa_data_for_pseudo_version')
+        get_modules_query = """
+                        g.V().has('snyk_ecosystem', ecosystem)
+                        .has('module_name', within(packages))
+                        .valueMap()
+                        """
+        get_vulnerable_pkg_query = """
+                        g.V().has('ecosystem', ecosystem)
+                        .has('name', within(packages))
+                        .valueMap()
+                        """
+        started_at = time.time()
+        # 1. Get All Vulnerabilities attached to Module
+        module_vulnerabilities = self._get_data_from_graph(
+            self._normalized_packages.modules, get_modules_query, 'module_vulnerabilities')
+        module_vulnerabilities = module_vulnerabilities['result']['data']
+
+        # 2. Filter out all Vulnerabilities where commit sha is out of Vulnerability range.
+        self.filtered_vul = self._filter_vulnerable_packages(module_vulnerabilities)
+
+        # 3. ADD Package Meta Data sourced from DB
+        pckg_response = self._get_data_from_graph(
+            tuple(self.filtered_vul.keys()), get_vulnerable_pkg_query, 'pckg_response')
+        elapsed_time = time.time() - started_at
+        logger.info("It took %s to fetch pseudo version results.", elapsed_time)
+
+        return pckg_response['result']['data']
