@@ -382,6 +382,8 @@ class TestStackAggregator(TestCase):
         self.assertEqual(len(resp['result']['analyzed_dependencies'][0]
                              ['public_vulnerabilities']), 3)
 
+        self.assertEqual(resp['result']['analyzed_dependencies'][0]['url'],
+                         'https://snyk.io/vuln/golang:github.com%2Fgophish%2Fgophish%2Fcontrollers')
         self.assertEqual(resp['result']['analyzed_dependencies'][0]
                          ['public_vulnerabilities'][0]['cve_ids'], ['CVE-2020-24711'])
         self.assertEqual(resp['result']['analyzed_dependencies'][0]

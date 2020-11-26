@@ -9,6 +9,7 @@ import inspect
 import time
 import logging
 from collections import defaultdict
+from urllib.parse import quote
 
 from typing import Dict, List, Tuple, Set
 from f8a_utils.gh_utils import GithubUtils
@@ -130,10 +131,10 @@ def _has_vulnerability(pkg: PackageDetails) -> bool:
 
 
 # (fixme) link to snyk package should be identified during ingestion.
-def _get_snyk_package_link(ecosystem, package):
+def _get_snyk_package_link(ecosystem: str, package: str) -> str:
     ecosystem = Settings().snyk_ecosystem_map.get(ecosystem, ecosystem)
     return Settings().snyk_package_url_format.format(ecosystem=ecosystem,
-                                                     package=package)
+                                                     package=quote(package, safe=''))
 
 
 class Aggregator:
