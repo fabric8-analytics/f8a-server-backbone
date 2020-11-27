@@ -1,6 +1,6 @@
 set -e
 pip install -U pip
-pip install -r requirements.txt
+pip install -r tests/requirements.txt
 
 export DEPLOYMENT_PREFIX="${USER}"
 export WORKER_ADMINISTRATION_REGION=api
