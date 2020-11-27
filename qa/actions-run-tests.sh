@@ -1,11 +1,6 @@
+set -e
 pip install -U pip
 pip install -r requirements.txt
-pip install git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@fefc764
-pip install git+https://github.com/fabric8-analytics/fabric8-analytics-utils.git@24f8858
-pip install git+https://git@github.com/fabric8-analytics/fabric8-analytics-version-comparator.git#egg=f8a_version_comparator
-pip install pytest
-pip install pytest-cov
-pip install radon==3.0.1
 
 export DEPLOYMENT_PREFIX="${USER}"
 export WORKER_ADMINISTRATION_REGION=api
