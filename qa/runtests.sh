@@ -42,7 +42,7 @@ function prepare_venv() {
     fi
     printf "%sPython virtual environment initialized%s\n" "${YELLOW}" "${NORMAL}"
     pip3 install -U pip
-    pip3 install -r test/requirements.txt
+    pip3 install -r tests/requirements.txt
 
 }
 
