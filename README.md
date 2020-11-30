@@ -1,5 +1,6 @@
 # f8a-server-backbone
-[![Build Status](https://ci.centos.org/job/devtools-f8a-server-backbone-f8a-build-master/badge/icon)](https://ci.centos.org/job/devtools-f8a-server-backbone-f8a-build-master/)
+![CI](https://github.com/fabric8-analytics/f8a-server-backbone/workflows/CI/badge.svg?branch=master)
+[![codecov](https://codecov.io/gh/fabric8-analytics/f8a-server-backbone/branch/master/graph/badge.svg?token=qi833miGbI)](https://codecov.io/gh/fabric8-analytics/f8a-server-backbone)
 
 Server backbone service based on a given stack components does two tasks.
  - Stack Aggregation

@@ -1,0 +1,47 @@
+name: CI
+
+on:
+   push:
+    branches: [ master ]
+   pull_request:
+    branches: [ master ]
+   
+jobs:
+  Code-Quality-Checks:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: 
+        scripts:
+          - run-linter
+          - check-docstyle
+          - detect-dead-code
+          - detect-common-errors
+          - measure-cyclomatic-complexity
+          - measure-maintainability-index    
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.6'
+    - name: Install virtualenv
+      run: pip install -U pip && pip install virtualenv
+    - name: ${{ matrix.scripts }}
+      run: bash qa/${{ matrix.scripts }}.sh;
+  Unit-Tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.6'
+    - name: Install Test Dependencies
+      run: pip install -U pip && pip install -r tests/requirements.txt
+    - name: Run Unit Tests
+      run: DEPLOYMENT_PREFIX=${USER} WORKER_ADMINISTRATION_REGION=api SENTRY_DSN='' POSTGRESQL_USER="user" POSTGRESQL_PASSWORD="password" POSTGRESQL_DATABASE="dbname" PGBOUNCER_SERVICE_HOST="bayesian-pgbouncer" py.test --cov=src/ --cov-report=xml --cov-fail-under=85 -vv tests/
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml   
