@@ -1,6 +1,5 @@
 # f8a-server-backbone
-![CI](https://github.com/fabric8-analytics/f8a-server-backbone/workflows/CI/badge.svg)
-![CI Build / Push Image](https://github.com/fabric8-analytics/f8a-server-backbone/workflows/CI%20Build%20/%20Push%20Image/badge.svg)
+![CI](https://github.com/fabric8-analytics/f8a-server-backbone/workflows/CI/badge.svg?branch=master)
 [![codecov](https://codecov.io/gh/fabric8-analytics/f8a-server-backbone/branch/master/graph/badge.svg?token=qi833miGbI)](https://codecov.io/gh/fabric8-analytics/f8a-server-backbone)
 
 Server backbone service based on a given stack components does two tasks.
