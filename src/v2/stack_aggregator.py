@@ -384,7 +384,16 @@ class GoAggregator(Aggregator):
         if Settings().disable_unknown_package_flow:
             logger.warning('Skipping unknown flow %s', self.get_all_unknown_packages())
             return
-        logger.error('Ingestion is Not active for Golang.')
+
+        ecosystem = self._normalized_packages.ecosystem
+        try:
+            for dep in self.get_all_unknown_packages():
+                server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
+                                       force=False, force_graph_sync=True)
+        except Exception as e:  # pylint:disable=W0703,C0103
+            logger.error('Ingestion failed for {%s, %s, %s}',
+                         ecosystem, dep.name, dep.version)
+            logger.error(e)
 
     def _get_package_details_with_vulnerabilities(self) -> List[Dict[str, object]]:
         """Get package data from graph along with vulnerability."""
