@@ -39,7 +39,7 @@ jobs:
     - name: Install Test Dependencies
       run: pip install -U pip && pip install -r tests/requirements.txt
     - name: Run Unit Tests
-      run: DEPLOYMENT_PREFIX=${USER} WORKER_ADMINISTRATION_REGION=api SENTRY_DSN='' POSTGRESQL_USER="user" POSTGRESQL_PASSWORD="password" POSTGRESQL_DATABASE="dbname" PGBOUNCER_SERVICE_HOST="bayesian-pgbouncer" py.test --cov=src/ --cov-report=xml --cov-fail-under=92 -vv tests/
+      run: DEPLOYMENT_PREFIX=${USER} WORKER_ADMINISTRATION_REGION=api SENTRY_DSN='' POSTGRESQL_USER="user" POSTGRESQL_PASSWORD="password" POSTGRESQL_DATABASE="dbname" PGBOUNCER_SERVICE_HOST="bayesian-pgbouncer" py.test --cov=src/ --cov-report=xml --cov-fail-under=85 -vv tests/
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       with:
