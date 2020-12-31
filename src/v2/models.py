@@ -230,5 +230,6 @@ class RecommenderRequest(StackAggregatorRequest):  # noqa: D101
 
 
 Package.update_forward_refs()
+PackageDetails.update_forward_refs()
 PackageDataWithVulnerabilities.update_forward_refs()
 RecommendedPackageData.update_forward_refs()

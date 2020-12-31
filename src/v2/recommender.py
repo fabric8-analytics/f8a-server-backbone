@@ -32,6 +32,7 @@ class GraphDB:
         """Fetch the version information for each of the packages.
 
         Also remove EPVs with CVEs and ones not present in Graph
+g.V().has('ecosystem', ecosystem).has('name',within(name)).as('package', 'version').select('package', 'version').by(valueMap()).by(values('latest_version', 'latest_non_cve_version').fold().as('vers').V().has('pname', within(name)).has('version').where(within('vers')).by('version').by().fold())
         """
         str_query = "data=[]; "
         for package in input_list:
@@ -176,7 +177,6 @@ class GraphDB:
                             'cooccurrence_count', 0)
 
         return comp_list
-
 
 class License:
     """License Analytics Class."""
