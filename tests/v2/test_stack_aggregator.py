@@ -203,7 +203,7 @@ def test_with_2_public_vuln_for_registered(_mock_license, _mock_gremlin):
                vulnerable_dependencies[0].public_vulnerabilities) == 2
 
 
-@mock.patch('src.v2.stack_aggregator.server_create_analysis')
+@mock.patch('src.v2.stack_aggregator.unknown_package_flow')
 @mock.patch('src.v2.stack_aggregator.post_gremlin')
 def test_unknown_flow_with_disabled_flag(_mock_gremlin, _mock_unknown, monkeypatch):
     """Test unknown flow."""
@@ -220,7 +220,7 @@ def test_unknown_flow_with_disabled_flag(_mock_gremlin, _mock_unknown, monkeypat
     _mock_unknown.assert_not_called()
 
 
-@mock.patch('src.v2.stack_aggregator.server_create_analysis')
+@mock.patch('src.v2.stack_aggregator.unknown_package_flow')
 @mock.patch('src.v2.stack_aggregator.post_gremlin')
 @mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
 def test_unknown_flow(_mock_license, _mock_gremlin, _mock_unknown):

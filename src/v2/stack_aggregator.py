@@ -13,9 +13,10 @@ from urllib.parse import quote
 
 from typing import Dict, List, Tuple, Set
 from f8a_utils.gh_utils import GithubUtils
+from f8a_utils.ingestion_utils import unknown_package_flow
 
 from src.settings import Settings
-from src.utils import (select_latest_version, server_create_analysis,
+from src.utils import (select_latest_version,
                        persist_data_in_db, post_gremlin, GREMLIN_QUERY_SIZE,
                        format_date)
 from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails,
@@ -26,9 +27,11 @@ from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails
 from src.v2.normalized_packages import NormalizedPackages, GoNormalizedPackages
 from src.v2.license_service import (get_license_analysis_for_stack,
                                     get_license_service_request_payload)
+from collections import namedtuple
 
 logger = logging.getLogger(__name__)
 _TRUE = ['true', True, 1, '1']
+_PACKAGE = namedtuple("Package", ["package", "version"])
 
 
 def _is_private_vulnerability(vulnerability_node):
@@ -309,13 +312,18 @@ class Aggregator:
             return
 
         ecosystem = self._normalized_packages.ecosystem
+        pkg_list = self.get_all_unknown_packages()
         try:
-            for dep in self.get_all_unknown_packages():
-                server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
-                                       force=False, force_graph_sync=True)
-        except Exception as e:  # pylint:disable=W0703,C0103
-            logger.error('Ingestion failed for {%s, %s, %s}',
-                         ecosystem, dep.name, dep.version)
+            if pkg_list:
+                # Converting tuple keys as utils expects different key names
+                pkg_list_temp = set()
+                for pkg in pkg_list:
+                    pkg_list_temp.add(_PACKAGE(package=pkg.name, version=pkg.version))
+
+                logger.info('Initializing unknown pakage ingestion for eco {} and Packages {}.'
+                            .format(ecosystem, pkg_list))
+                unknown_package_flow(ecosystem, pkg_list_temp)
+        except Exception as e:
             logger.error(e)
 
 
@@ -384,7 +392,21 @@ class GoAggregator(Aggregator):
         if Settings().disable_unknown_package_flow:
             logger.warning('Skipping unknown flow %s', self.get_all_unknown_packages())
             return
-        logger.error('Ingestion is Not active for Golang.')
+
+        ecosystem = self._normalized_packages.ecosystem
+        pkg_list = self.get_all_unknown_packages()
+        try:
+            if pkg_list:
+                # Converting tuple keys as utils expects different key names
+                pkg_list_temp = set()
+                for pkg in pkg_list:
+                    pkg_list_temp.add(_PACKAGE(package=pkg.name, version=pkg.version))
+
+                logger.info('Initializing unknown pakage ingestion for eco {} and Packages {}.'
+                            .format(ecosystem, pkg_list_temp))
+                unknown_package_flow(ecosystem, pkg_list_temp)
+        except Exception as e:
+            logger.error(e)
 
     def _get_package_details_with_vulnerabilities(self) -> List[Dict[str, object]]:
         """Get package data from graph along with vulnerability."""
