@@ -314,15 +314,11 @@ class Aggregator:
         ecosystem = self._normalized_packages.ecosystem
         pkg_list = self.get_all_unknown_packages()
         try:
-            if pkg_list:
-                # Converting tuple keys as utils expects different key names
-                pkg_list_temp = set()
-                for pkg in pkg_list:
-                    pkg_list_temp.add(_PACKAGE(package=pkg.name, version=pkg.version))
-
-                logger.info('Initializing unknown pakage ingestion for eco {} and Packages {}.'
-                            .format(ecosystem, pkg_list))
-                unknown_package_flow(ecosystem, pkg_list_temp)
+            unknown_pkgs = set(map(lambda pkg: _PACKAGE(package=pkg.name,
+                                                        version=pkg.version), pkg_list))
+            unknown_package_flow(ecosystem, unknown_pkgs)
+            logger.debug('Unknown ingestion executed for %s packages in %s ecosystem',
+                         len(pkg_list), ecosystem)
         except Exception as e:
             logger.error(e)
 
@@ -396,15 +392,11 @@ class GoAggregator(Aggregator):
         ecosystem = self._normalized_packages.ecosystem
         pkg_list = self.get_all_unknown_packages()
         try:
-            if pkg_list:
-                # Converting tuple keys as utils expects different key names
-                pkg_list_temp = set()
-                for pkg in pkg_list:
-                    pkg_list_temp.add(_PACKAGE(package=pkg.name, version=pkg.version))
-
-                logger.info('Initializing unknown pakage ingestion for eco {} and Packages {}.'
-                            .format(ecosystem, pkg_list_temp))
-                unknown_package_flow(ecosystem, pkg_list_temp)
+            unknown_pkgs = set(map(lambda pkg: _PACKAGE(package=pkg.name,
+                                                        version=pkg.version), pkg_list))
+            unknown_package_flow(ecosystem, unknown_pkgs)
+            logger.debug('Unknown ingestion executed for %s packages in %s ecosystem',
+                         len(pkg_list), ecosystem)
         except Exception as e:
             logger.error(e)
 
