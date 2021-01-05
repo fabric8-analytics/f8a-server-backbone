@@ -28,6 +28,8 @@ logger = logging.getLogger(__name__)
 
 
 class InsightsRequest(BaseModel):
+    """InsightsRequest payload model."""
+
     ecosystem: Ecosystem
     transitive_stack: List[str] = []
     package_list: List[str]
@@ -43,10 +45,17 @@ class InsightsWithEmptyPackageException(Exception):
     """Exception for empty request packages."""
 
 
+def _prepare_insights_url(host: str) -> str:
+    assert host
+    url = "http://{host}:{port}".format(host=host, port=Settings().service_port)
+    endpoint = "{url}/api/v1/companion_recommendation".format(url=url)
+    return endpoint
+
+
 ECOSYSTEM_TO_SERVICE_HOST = {
-    "pypi": Settings().pypi_service_host,
-    "npm": Settings().chester_service_host,
-    "maven": Settings().maven_service_host,
+    "pypi": _prepare_insights_url(Settings().pypi_service_host),
+    "npm": _prepare_insights_url(Settings().chester_service_host),
+    "maven": _prepare_insights_url(Settings().maven_service_host),
 }
 
 
@@ -54,23 +63,14 @@ class RecommendationTask:
     """Recommendation task."""
 
     @staticmethod
-    def get_url(payload: InsightsRequest):
-        """Get the insights url based on the ecosystem."""
-
-        host = ECOSYSTEM_TO_SERVICE_HOST.get(payload.ecosystem)
-        assert host
-        url = "http://{host}:{port}".format(host=host, port=Settings().service_port)
-        endpoint = "{url}/api/v1/companion_recommendation".format(url=url)
-        return endpoint
-
-    @staticmethod
-    def call(payload: InsightsRequest):
+    def _call(payload: InsightsRequest):
         """Call the PGM model.
 
         Calls the PGM model with the normalized manifest information to get
         the relevant packages.
         """
-        insights_url = RecommendationTask.get_url(payload)
+        insights_url = ECOSYSTEM_TO_SERVICE_HOST.get(payload.ecosystem, None)
+        assert insights_url
         try:
             response = get_session_retry().post(insights_url, json=[payload.dict()])
             response.raise_for_status()
@@ -80,22 +80,24 @@ class RecommendationTask:
             json_response = response.json()
             return json_response
 
-    def get_insights_response(self, normalized_packages: NormalizedPackages):
-        package_list = [epv.name for epv in normalized_packages.direct_dependencies]
+    def _get_insights_response(self, normalized_packages: NormalizedPackages):
+        package_list = list(
+            map(lambda epv: epv.name, normalized_packages.direct_dependencies)
+        )
         if not package_list:
             raise InsightsWithEmptyPackageException("Request package list is empty")
 
         insights_payload = InsightsRequest(
             ecosystem=normalized_packages.ecosystem,
-            transitive_stack=[
-                epv.name for epv in normalized_packages.transitive_dependencies
-            ],
+            transitive_stack=list(
+                map(lambda epv: epv.name, normalized_packages.transitive_dependencies)
+            ),
             package_list=package_list,
         )
         # Call PGM and get the response
-        return self.call(insights_payload)
+        return self._call(insights_payload)
 
-    def get_package_details(self, insights_response) -> Dict[str, PackageDetails]:
+    def _get_package_details(self, insights_response) -> Dict[str, PackageDetails]:
         packages = list(
             map(
                 lambda x: x.get("package_name"),
@@ -125,21 +127,13 @@ class RecommendationTask:
 
         return dict(map(map_package, result["result"]["data"]))
 
-    def _empty_package(self, name: str, ecosystem: str) -> PackageDetails:
-        return PackageDetails(
-            name=name, version="n/a", ecosystem=ecosystem, latest_version="n/a"
-        )
-
-    def get_recommended_package_details(
+    def _get_recommended_package_details(
         self, insights_response
     ) -> List[RecommendedPackageData]:
-        package_details = self.get_package_details(insights_response)
-        ecosystem = insights_response["ecosystem"]
+        package_details = self._get_package_details(insights_response)
 
         def map_response(r):
-            package_detail = package_details.get(
-                r["package_name"], self._empty_package(r["package_name"], ecosystem)
-            )
+            package_detail = package_details[r["package_name"]]
             return RecommendedPackageData(
                 **package_detail.dict(),
                 cooccurrence_probability=r.get("cooccurrence_probability", 0),
@@ -147,9 +141,20 @@ class RecommendationTask:
                 topic_list=r.get("topic_list", [])
             )
 
-        return list(map(map_response, insights_response["companion_packages"]))
+        # remove recommended packages which are not in database.
+        recommended_packages = filter(
+            lambda r: package_details.get(r["package_name"]),
+            insights_response["companion_packages"],
+        )
+        # map to RecommendedPackageData
+        recommended_packages = map(map_response, recommended_packages)
+        # remove packages which has empty version string.
+        recommended_packages = filter(
+            lambda pkg: pkg.version != "", recommended_packages
+        )
+        return list(recommended_packages)
 
-    def execute(self, arguments=None, persist=True, check_license=False):
+    def execute(self, arguments=None, persist=True, check_license=False): # noqa: F841
         """Execute task."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         request = RecommenderRequest(**arguments)
@@ -160,7 +165,7 @@ class RecommendationTask:
         external_request_id = request.external_request_id
 
         normalized_packages = NormalizedPackages(request.packages, request.ecosystem)
-        insights_response = self.get_insights_response(normalized_packages)
+        insights_response = self._get_insights_response(normalized_packages)
 
         result = StackRecommendationResult(
             **arguments,

@@ -152,11 +152,11 @@ def get_package_details(component: Dict) -> PackageDataWithVulnerabilities:
                                                latest_version=latest_version,
                                                github=github_details, licenses=licenses,
                                                # (fixme) this is incorrect
-                                               url=get_snyk_package_link(ecosystem,
-                                                                          pkg.name),
+                                               url=get_snyk_package_link(ecosystem, pkg.name),
                                                private_vulnerabilities=private_vulns,
                                                public_vulnerabilities=public_vulns,
                                                recommended_version=recommended_latest_version)
+
 
 def _get_packages_in_batch(dependencies: Tuple[Package], size: int) -> Tuple[Package]:
     """Take Package Tuple and slices it according to size."""
@@ -170,6 +170,7 @@ def _has_vulnerability(pkg: PackageDetails) -> bool:
 
 # (fixme) link to snyk package should be identified during ingestion.
 def get_snyk_package_link(ecosystem: str, package: str) -> str:
+    """Prepare snyk package link based on ecosystem and package name."""
     ecosystem = Settings().snyk_ecosystem_map.get(ecosystem, ecosystem)
     return Settings().snyk_package_url_format.format(ecosystem=ecosystem,
                                                      package=quote(package, safe=''))
@@ -196,8 +197,6 @@ class Aggregator:
 
         # covert list of (pkg, package_details) into map
         return dict(package_details)
-
-
 
     def _get_package_details_with_vulnerabilities(self) -> List[Dict[str, object]]:
         """Get package data from graph along with vulnerability."""

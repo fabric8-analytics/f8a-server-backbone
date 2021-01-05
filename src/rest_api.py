@@ -1,9 +1,10 @@
 """Implementation of the REST API for the backbone service."""
 
-import os
-import logging
 import flask
+import logging
+import os
 import time
+
 from f8a_worker.setup_celery import init_selinon
 from flask import Flask, request
 from flask_cors import CORS
@@ -11,9 +12,9 @@ from raven.contrib.flask import Sentry
 
 from src.recommender import RecommendationTask as RecommendationTaskV1
 from src.stack_aggregator import StackAggregator as StackAggregatorV1
+from src.utils import push_data, total_time_elapsed
 from src.v2.recommender import RecommendationTask as RecommendationTaskV2
 from src.v2.stack_aggregator import StackAggregator as StackAggregatorV2
-from src.utils import push_data, total_time_elapsed, get_time_delta
 
 logger = logging.getLogger(__name__)
 
