@@ -154,7 +154,7 @@ class RecommendationTask:
         )
         return list(recommended_packages)
 
-    def execute(self, arguments=None, persist=True, check_license=False): # noqa: F841
+    def execute(self, arguments=None, persist=True, check_license=False):  # noqa: F841
         """Execute task."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         request = RecommenderRequest(**arguments)
@@ -169,7 +169,7 @@ class RecommendationTask:
 
         result = StackRecommendationResult(
             **arguments,
-            companion=self.get_recommended_package_details(insights_response[0]),
+            companion=self._get_recommended_package_details(insights_response[0]),
             usage_outliers=[]
         )
 
