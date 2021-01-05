@@ -11,7 +11,7 @@ from raven.contrib.flask import Sentry
 
 from src.recommender import RecommendationTask as RecommendationTaskV1
 from src.stack_aggregator import StackAggregator as StackAggregatorV1
-from src.v2.recommender_v2 import RecommendationTask as RecommendationTaskV2
+from src.v2.recommender import RecommendationTask as RecommendationTaskV2
 from src.v2.stack_aggregator import StackAggregator as StackAggregatorV2
 from src.utils import push_data, total_time_elapsed, get_time_delta
 

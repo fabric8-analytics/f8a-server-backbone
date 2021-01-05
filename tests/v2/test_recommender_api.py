@@ -57,7 +57,7 @@ class _Response:
             raise Exception("not 200")
 
 
-@mock.patch("src.v2.recommender_v2.post_gremlin", return_value={"result": {"data": []}})
+@mock.patch("src.v2.recommender.post_gremlin", return_value={"result": {"data": []}})
 @mock.patch("requests.Session.post", return_value=_Response(404, {}))
 def test_npm_recommendation_response_with_insight_error(
     _mock_insight_response, _mock_gremlin, client
@@ -78,7 +78,7 @@ def test_npm_recommendation_response_with_insight_error(
     assert response.status_code == 500
 
 
-@mock.patch("src.v2.recommender_v2.post_gremlin", return_value={"result": {"data": []}})
+@mock.patch("src.v2.recommender.post_gremlin", return_value={"result": {"data": []}})
 @mock.patch("requests.Session.post", return_value=_Response(404, {}))
 def test_npm_recommendation_response_with_empty_package_request(
     _mock_insight_response, _mock_gremlin, client
@@ -99,7 +99,7 @@ def test_npm_recommendation_response_with_empty_package_request(
     assert response.status_code == 500
 
 
-@mock.patch("src.v2.recommender_v2.post_gremlin", return_value={"result": {"data": []}})
+@mock.patch("src.v2.recommender.post_gremlin", return_value={"result": {"data": []}})
 @mock.patch(
     "requests.Session.post",
     return_value=_Response(
@@ -114,7 +114,7 @@ def test_npm_recommendation_response_with_empty_package_request(
         ],
     ),
 )
-@mock.patch("src.v2.recommender_v2.persist_data_in_db")
+@mock.patch("src.v2.recommender.persist_data_in_db")
 def test_npm_recommendation_response_with_empty_insight_response(
     _mock_insight_response, _mock_gremlin, _mock_persist_db, client
 ):
@@ -149,7 +149,7 @@ def test_npm_recommendation_response_with_empty_insight_response(
     }
 
 
-@mock.patch("src.v2.recommender_v2.post_gremlin", return_value={"result": {"data": []}})
+@mock.patch("src.v2.recommender.post_gremlin", return_value={"result": {"data": []}})
 @mock.patch(
     "requests.Session.post",
     return_value=_Response(
@@ -295,7 +295,7 @@ def test_npm_recommendation_response_with_empty_graph(
 
 
 @mock.patch(
-    "src.v2.recommender_v2.post_gremlin",
+    "src.v2.recommender.post_gremlin",
     return_value={
         "result": {
             "data": [
