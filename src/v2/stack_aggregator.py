@@ -65,9 +65,9 @@ def get_github_details(package_node) -> GitHubDetails:
         "dependent_repos": package_node.get("libio_dependents_repos", [-1])[0],
         "total_releases": package_node.get("libio_total_releases", [-1])[0],
         "latest_release_duration":
-            str(datetime.datetime.fromtimestamp(package_node.get(
+            str(datetime.datetime.utcfromtimestamp(package_node.get(
                 "libio_latest_release", [1496302486.0])[0])),
-        "first_release_date": "Apr 16, 2010",
+        "watchers": package_node.get("gh_subscribers_count", [-1])[0],
         "issues": {
             "month": {
                 "opened": package_node.get("gh_issues_last_month_opened", [-1])[0],

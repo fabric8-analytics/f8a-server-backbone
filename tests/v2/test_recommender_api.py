@@ -404,13 +404,13 @@ def test_recommendation_response_with_2_packages_from_graph(
                     "contributors": "238",
                     "dependent_projects": "48988",
                     "dependent_repos": "893994",
-                    "first_release_date": "Apr 16, 2010",
+                    "first_release_date": None,
                     "forks_count": "8571",
                     "issues": {
                         "month": {"closed": 18, "opened": 18},
                         "year": {"closed": -1, "opened": -1},
                     },
-                    "latest_release_duration": "2018-10-27 08:42:11",
+                    "latest_release_duration": "2018-10-27 03:12:11",
                     "open_issues_count": "155",
                     "pull_requests": {
                         "month": {"closed": 0, "opened": 3},
@@ -431,7 +431,7 @@ def test_recommendation_response_with_2_packages_from_graph(
                         {"name": "socketio/socket.io", "stars": "38209"},
                         {"name": "webpack/webpack", "stars": "35429"},
                     ],
-                    "watchers": None,
+                    "watchers": "1799",
                 },
                 "latest_version": "4.17.1",
                 "licenses": [],
@@ -439,7 +439,7 @@ def test_recommendation_response_with_2_packages_from_graph(
                 "topic_list": ["accepts"],
                 "url": "https://snyk.io/vuln/npm:express",
                 "version": "4.17.1",
-            },
+            }
         ],
         "external_request_id": "foo",
         "manifest_file_path": "/foo.bar",

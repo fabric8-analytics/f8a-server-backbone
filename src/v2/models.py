@@ -120,7 +120,6 @@ class UsedByItem(BaseModel):  # noqa: D101
 
 class GitHubDetails(BaseModel):  # noqa: D101
     watchers: Optional[str] = None
-    first_release_date: Optional[str] = None
     total_releases: Optional[str] = None
     issues: Optional[Dict[str, Any]] = None
     pull_requests: Optional[Dict[str, Any]] = None

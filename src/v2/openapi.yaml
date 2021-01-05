@@ -360,8 +360,6 @@ components:
         watchers:
           type: string
           example: "100K"
-        first_release_date:
-          type: string
         total_releases:
           type: string
           example: "12"
