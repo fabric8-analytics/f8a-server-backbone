@@ -404,7 +404,6 @@ def test_recommendation_response_with_2_packages_from_graph(
                     "contributors": "238",
                     "dependent_projects": "48988",
                     "dependent_repos": "893994",
-                    "first_release_date": None,
                     "forks_count": "8571",
                     "issues": {
                         "month": {"closed": 18, "opened": 18},
