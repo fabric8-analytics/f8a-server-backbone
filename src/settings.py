@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     pypi_service_host: str = 'not_set'
     golang_service_host: str = 'not_set'
     hpf_service_host: str = 'not_set'
+    maven_service_host: str = 'not_set'
     service_port: int = 6006
     unknown_packages_threshold: float = 0.3
     max_companion_packages: int = 5
