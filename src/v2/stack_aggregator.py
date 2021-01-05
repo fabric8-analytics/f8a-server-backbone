@@ -13,7 +13,8 @@ from urllib.parse import quote
 
 from typing import Dict, List, Tuple, Set
 from f8a_utils.gh_utils import GithubUtils
-from f8a_utils.ingestion_utils import unknown_package_flow, Package
+from f8a_utils.ingestion_utils import unknown_package_flow, \
+    Package as P
 
 from src.settings import Settings
 from src.utils import (select_latest_version,
@@ -311,8 +312,8 @@ class Aggregator:
 
         ecosystem = self._normalized_packages.ecosystem
         pkg_list = self.get_all_unknown_packages()
-        unknown_pkgs = set(map(lambda pkg: Package(package=pkg.name,
-                                                   version=pkg.version), pkg_list))
+        unknown_pkgs = set(map(lambda pkg: P(package=pkg.name,
+                                             version=pkg.version), pkg_list))
         try:
             unknown_package_flow(ecosystem, unknown_pkgs)
         except Exception as e:
@@ -390,8 +391,8 @@ class GoAggregator(Aggregator):
 
         ecosystem = self._normalized_packages.ecosystem
         pkg_list = self.get_all_unknown_packages()
-        unknown_pkgs = set(map(lambda pkg: Package(package=pkg.name,
-                                                   version=pkg.version), pkg_list))
+        unknown_pkgs = set(map(lambda pkg: P(package=pkg.name,
+                                             version=pkg.version), pkg_list))
         try:
             unknown_package_flow(ecosystem, unknown_pkgs)
         except Exception as e:
