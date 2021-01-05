@@ -13,8 +13,8 @@ from urllib.parse import quote
 
 from typing import Dict, List, Tuple, Set
 from f8a_utils.gh_utils import GithubUtils
-from f8a_utils.ingestion_utils import unknown_package_flow, \
-    Package as P
+from f8a_utils.ingestion_utils import (unknown_package_flow,
+                                       Package as P)
 
 from src.settings import Settings
 from src.utils import (select_latest_version,
