@@ -5,7 +5,7 @@ from unittest import mock
 from src.v2.models import RecommenderRequest, Package
 from tests.v2.data import (
     npm_insights_response_for_request,
-    graph_package_response_for_npm_express_winston,
+    graph_package_response_for_npm_express_winston_moment,
 )
 
 
@@ -198,7 +198,7 @@ def test_recommendation_response_with_empty_graph(
 
 @mock.patch(
     "src.v2.recommender.post_gremlin",
-    return_value=graph_package_response_for_npm_express_winston.DATA,
+    return_value=graph_package_response_for_npm_express_winston_moment.DATA,
 )
 @mock.patch(
     "requests.Session.post",
@@ -271,7 +271,51 @@ def test_recommendation_response_with_2_packages_from_graph(
                 "topic_list": ["accepts"],
                 "url": "https://snyk.io/vuln/npm:express",
                 "version": "4.17.1",
-            }
+            },
+            {
+                "cooccurrence_count": 0,
+                "cooccurrence_probability": 51.04134789351682,
+                "dependencies": None,
+                "ecosystem": "npm",
+                "github": {
+                    "contributors": "30",
+                    "dependent_projects": "6413",
+                    "dependent_repos": "35152",
+                    "forks_count": "1129",
+                    "issues": {
+                        "month": {"closed": -1, "opened": -1},
+                        "year": {"closed": -1, "opened": -1},
+                    },
+                    "latest_release_duration": "2018-06-12 16:31:26",
+                    "open_issues_count": "236",
+                    "pull_requests": {
+                        "month": {"closed": -1, "opened": -1},
+                        "year": {"closed": -1, "opened": -1},
+                    },
+                    "size": "N/A",
+                    "stargazers_count": "12020",
+                    "total_releases": "73",
+                    "used_by": [
+                        {"name": "amir20/phantomjs-node", "stars": "2884"},
+                        {"name": "angular/angular.js", "stars": "56712"},
+                        {"name": "angular/angular", "stars": "26987"},
+                        {"name": "angular/material2", "stars": "10337"},
+                        {"name": "apidoc/apidoc", "stars": "4685"},
+                        {"name": "cyclejs/cyclejs", "stars": "7180"},
+                        {"name": "flatiron/prompt", "stars": "1142"},
+                        {"name": "foreverjs/forever", "stars": "9868"},
+                        {"name": "ionic-team/ionic-native", "stars": "1384"},
+                        {"name": "ionic-team/ionic", "stars": "30889"},
+                    ],
+                    "watchers": "224",
+                },
+                "latest_version": "3.2.1",
+                "licenses": [],
+                "name": "winston",
+                "topic_list": ["async"],
+                "url": "https://snyk.io/vuln/npm:winston",
+                "version": "3.2.1",
+            },
         ],
         "external_request_id": "foo",
         "manifest_file_path": "/foo.bar",
