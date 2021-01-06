@@ -3,6 +3,10 @@ import json
 from unittest import mock
 
 from src.v2.models import RecommenderRequest, Package
+from tests.v2.data import (
+    npm_insights_response_for_request,
+    graph_package_response_for_npm_express_winston,
+)
 
 
 def get_json_from_response(response):
@@ -158,48 +162,7 @@ def test_recommendation_response_with_empty_insight_response(
     "requests.Session.post",
     return_value=_Response(
         200,
-        [
-            {
-                "companion_packages": [
-                    {
-                        "cooccurrence_probability": 52.50463667254613,
-                        "package_name": "express",
-                        "topic_list": [
-                            "accepts",
-                        ],
-                    },
-                    {
-                        "cooccurrence_probability": 51.04134789351682,
-                        "package_name": "winston",
-                        "topic_list": [
-                            "async",
-                        ],
-                    },
-                    {
-                        "cooccurrence_probability": 49.54337206255131,
-                        "package_name": "moment",
-                        "topic_list": [],
-                    },
-                    {
-                        "cooccurrence_probability": 49.18425744667468,
-                        "package_name": "colors",
-                        "topic_list": [],
-                    },
-                    {
-                        "cooccurrence_probability": 47.72579254602449,
-                        "package_name": "commander",
-                        "topic_list": [],
-                    },
-                ],
-                "ecosystem": "npm",
-                "missing_packages": [],
-                "package_to_topic_dict": {
-                    "request": [
-                        "aws-sign2",
-                    ]
-                },
-            }
-        ],
+        npm_insights_response_for_request.DATA,
     ),
 )
 def test_recommendation_response_with_empty_graph(
@@ -235,143 +198,13 @@ def test_recommendation_response_with_empty_graph(
 
 @mock.patch(
     "src.v2.recommender.post_gremlin",
-    return_value={
-        "result": {
-            "data": [
-                {
-                    "gh_issues_last_month_opened": [18],
-                    "gh_prs_last_year_closed": [61],
-                    "libio_usedby": [
-                        "Automattic/mongoose:14372",
-                        "ReactTraining/react-router:27232",
-                        "angular/angular.js:57749",
-                        "angular/angular:31547",
-                        "facebook/jest:14465",
-                        "facebook/react:84669",
-                        "postcss/autoprefixer:14331",
-                        "reactjs/redux:36922",
-                        "socketio/socket.io:38209",
-                        "webpack/webpack:35429",
-                    ],
-                    "ecosystem": ["npm"],
-                    "gh_subscribers_count": [1799],
-                    "gh_contributors_count": [238],
-                    "latest_version_last_updated": ["20201120"],
-                    "vertex_label": ["Package"],
-                    "libio_dependents_repos": ["893994"],
-                    "latest_non_cve_version": ["4.17.1"],
-                    "gh_issues_last_year_opened": [-1],
-                    "gh_issues_last_month_closed": [18],
-                    "gh_open_issues_count": [155],
-                    "libio_dependents_projects": ["48988"],
-                    "latest_version": ["4.17.1"],
-                    "tokens": ["express"],
-                    "package_relative_used": ["not used"],
-                    "gh_stargazers": [51280],
-                    "gh_forks": [8571],
-                    "package_dependents_count": [-1],
-                    "gh_prs_last_month_opened": [3],
-                    "gh_issues_last_year_closed": [-1],
-                    "last_updated": [1.6087431764215431e9],
-                    "gh_prs_last_month_closed": [0],
-                    "topics": ["express", "javascript", "nodejs", "server"],
-                    "libio_total_releases": ["291"],
-                    "gh_refreshed_on": ["2020-12-23 16:28:34"],
-                    "gh_prs_last_year_opened": [75],
-                    "name": ["express"],
-                    "libio_latest_version": ["5.0.0-alpha.7"],
-                    "libio_latest_release": [1.540609931e9],
-                },
-                {
-                    "gh_issues_last_month_opened": [-1],
-                    "gh_prs_last_year_closed": [-1],
-                    "libio_usedby": [
-                        "amir20/phantomjs-node:2884",
-                        "angular/angular.js:56712",
-                        "angular/angular:26987",
-                        "angular/material2:10337",
-                        "apidoc/apidoc:4685",
-                        "cyclejs/cyclejs:7180",
-                        "flatiron/prompt:1142",
-                        "foreverjs/forever:9868",
-                        "ionic-team/ionic-native:1384",
-                        "ionic-team/ionic:30889",
-                    ],
-                    "ecosystem": ["npm"],
-                    "gh_subscribers_count": [224],
-                    "gh_contributors_count": [30],
-                    "vertex_label": ["Package"],
-                    "libio_dependents_repos": ["35152"],
-                    "gh_issues_last_year_opened": [-1],
-                    "gh_issues_last_month_closed": [-1],
-                    "gh_open_issues_count": [236],
-                    "libio_dependents_projects": ["6413"],
-                    "latest_version": ["3.2.1"],
-                    "tokens": ["winston"],
-                    "package_relative_used": ["not used"],
-                    "gh_stargazers": [12020],
-                    "gh_forks": [1129],
-                    "package_dependents_count": [-1],
-                    "gh_prs_last_month_opened": [-1],
-                    "gh_issues_last_year_closed": [-1],
-                    "last_updated": [1.560302668156725e9],
-                    "gh_prs_last_month_closed": [-1],
-                    "libio_total_releases": ["73"],
-                    "gh_prs_last_year_opened": [-1],
-                    "name": ["winston"],
-                    "libio_latest_version": ["3.0.0"],
-                    "libio_latest_release": [1.528821086e9],
-                },
-            ],
-        }
-    },
+    return_value=graph_package_response_for_npm_express_winston.DATA,
 )
 @mock.patch(
     "requests.Session.post",
     return_value=_Response(
         200,
-        [
-            {
-                "companion_packages": [
-                    {
-                        "cooccurrence_probability": 52.50463667254613,
-                        "package_name": "express",
-                        "topic_list": [
-                            "accepts",
-                        ],
-                    },
-                    {
-                        "cooccurrence_probability": 51.04134789351682,
-                        "package_name": "winston",
-                        "topic_list": [
-                            "async",
-                        ],
-                    },
-                    {
-                        "cooccurrence_probability": 49.54337206255131,
-                        "package_name": "moment",
-                        "topic_list": [],
-                    },
-                    {
-                        "cooccurrence_probability": 49.18425744667468,
-                        "package_name": "colors",
-                        "topic_list": [],
-                    },
-                    {
-                        "cooccurrence_probability": 47.72579254602449,
-                        "package_name": "commander",
-                        "topic_list": [],
-                    },
-                ],
-                "ecosystem": "npm",
-                "missing_packages": [],
-                "package_to_topic_dict": {
-                    "request": [
-                        "aws-sign2",
-                    ]
-                },
-            }
-        ],
+        npm_insights_response_for_request.DATA,
     ),
 )
 def test_recommendation_response_with_2_packages_from_graph(
