@@ -221,7 +221,6 @@ class StackRecommendationResult(BaseModel):  # noqa: D101
     registration_status: str
     recommendation_status: 'RecommendationStatus' = 'success'
     companion: List['RecommendedPackageData']
-    usage_outliers: List[Dict[str, Any]]
 
 
 class RecommenderRequest(StackAggregatorRequest):  # noqa: D101

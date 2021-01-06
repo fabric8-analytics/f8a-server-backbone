@@ -6,6 +6,7 @@ sourcing.
 
 import datetime
 import logging
+import time
 from typing import List, Dict
 
 from pydantic import BaseModel
@@ -18,10 +19,8 @@ from src.settings import Settings
 from src.v2.models import (
     RecommenderRequest,
     StackRecommendationResult,
-    PackageDetails,
     Ecosystem,
     RecommendedPackageData,
-    Package,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,7 +51,7 @@ def _prepare_insights_url(host: str) -> str:
     return endpoint
 
 
-ECOSYSTEM_TO_SERVICE_HOST = {
+ECOSYSTEM_TO_INSIGHTS_URL = {
     "pypi": _prepare_insights_url(Settings().pypi_service_host),
     "npm": _prepare_insights_url(Settings().chester_service_host),
     "maven": _prepare_insights_url(Settings().maven_service_host),
@@ -69,15 +68,22 @@ class RecommendationTask:
         Calls the PGM model with the normalized manifest information to get
         the relevant packages.
         """
-        insights_url = ECOSYSTEM_TO_SERVICE_HOST.get(payload.ecosystem, None)
+        insights_url = ECOSYSTEM_TO_INSIGHTS_URL.get(payload.ecosystem, None)
         assert insights_url
         try:
+            started_at = time.time()
             response = get_session_retry().post(insights_url, json=[payload.dict()])
             response.raise_for_status()
         except Exception as e:
             raise InsightsCallException() from e
         else:
             json_response = response.json()
+            logger.info(
+                "Recommendation [%s] req.pkgs [%d] elapsed time [%0.2f] sec",
+                payload.ecosystem.value,
+                len(payload.package_list),
+                time.time() - started_at,
+            )
             return json_response
 
     def _get_insights_response(self, normalized_packages: NormalizedPackages):
@@ -97,67 +103,64 @@ class RecommendationTask:
         # Call PGM and get the response
         return self._call(insights_payload)
 
-    def _get_package_details(self, insights_response) -> Dict[str, PackageDetails]:
-        packages = list(
+    def _get_recommended_package_details(
+        self, insights_response
+    ) -> List[RecommendedPackageData]:
+        companion_packages = insights_response.get("companion_packages", [])
+        package_to_stats_map = dict(
             map(
-                lambda x: x.get("package_name"),
-                insights_response.get("companion_packages", []),
+                lambda x: (x.get("package_name"), x),
+                companion_packages,
             )
         )
+        packages = list(package_to_stats_map.keys())
         ecosystem = insights_response["ecosystem"]
         query = (
             """g.V().has('ecosystem', ecosystem).has('name', within(name)).valueMap()"""
         )
+        started_at = time.time()
         result = post_gremlin(
             query=query, bindings={"ecosystem": ecosystem, "name": packages}
         )
+        logger.info(
+            "graph req.pkgs [%d] elapsed time [%0.2f] sec",
+            len(packages),
+            time.time() - started_at,
+        )
 
-        def map_package(data):
-            name = data.get("name", [""])[0]
+        def extract_version(data):
             # all versions are not vulnerable if latest_non_cve_version doesn't exist.
             # all versions are vulnerable if latest_non_cve_version is empty.
             recommended_version = data.get(
                 "latest_non_cve_version", data.get("latest_version", [""])
             )
             version = recommended_version[0] if len(recommended_version) else ""
-            pkg = Package(name=name, version=version)
-            return name, PackageDetails(
-                **pkg.dict(),
+            return version
+
+        def has_valid_version(data):
+            return extract_version(data) != ""
+
+        def get_recommendation_statistics(package_name: str) -> Dict[str, str]:
+            # below dict has cooccurrence_probability, cooccurrence_count, topic_list
+            return package_to_stats_map[package_name]
+
+        def map_to_recommendation_package_data(data):
+            name = data.get("name", [""])[0]
+            version = extract_version(data)
+            return RecommendedPackageData(
+                name=name,
+                version=version,
                 github=get_github_details(data),
                 licenses=data.get("declared_licenses", []),
                 ecosystem=ecosystem,
                 url=get_snyk_package_link(ecosystem, name),
-                latest_version=data.get("latest_version", [""])[0]
+                latest_version=data.get("latest_version", [""])[0],
+                # join stats from insight
+                **get_recommendation_statistics(name),
             )
 
-        return dict(map(map_package, result["result"]["data"]))
-
-    def _get_recommended_package_details(
-        self, insights_response
-    ) -> List[RecommendedPackageData]:
-        package_details = self._get_package_details(insights_response)
-
-        def map_response(r):
-            package_detail = package_details[r["package_name"]]
-            return RecommendedPackageData(
-                **package_detail.dict(),
-                cooccurrence_probability=r.get("cooccurrence_probability", 0),
-                cooccurrence_count=r.get("cooccurrence_count", 0),
-                topic_list=r.get("topic_list", [])
-            )
-
-        # remove recommended packages which are not in database.
-        recommended_packages = filter(
-            lambda r: package_details.get(r["package_name"]),
-            insights_response["companion_packages"],
-        )
-        # map to RecommendedPackageData
-        recommended_packages = map(map_response, recommended_packages)
-        # remove packages which has empty version string.
-        recommended_packages = filter(
-            lambda pkg: pkg.version != "", recommended_packages
-        )
-        return list(recommended_packages)
+        valid_packages = filter(has_valid_version, result["result"]["data"])
+        return list(map(map_to_recommendation_package_data, valid_packages))
 
     def execute(self, arguments=None, persist=True, check_license=False):  # noqa: F841
         """Execute task."""
@@ -167,15 +170,12 @@ class RecommendationTask:
             logging.warning("Recommendation is yet to be implemented for golang")
             return {}
 
-        external_request_id = request.external_request_id
-
         normalized_packages = NormalizedPackages(request.packages, request.ecosystem)
         insights_response = self._get_insights_response(normalized_packages)
 
         result = StackRecommendationResult(
             **arguments,
             companion=self._get_recommended_package_details(insights_response[0]),
-            usage_outliers=[]
         )
 
         recommendation = result.dict()
@@ -186,9 +186,10 @@ class RecommendationTask:
             "version": "v2",
         }
 
+        external_request_id = request.external_request_id
         if persist:
             persist_data_in_db(
-                external_request_id=request.external_request_id,
+                external_request_id=external_request_id,
                 task_result=recommendation,
                 worker="recommendation_v2",
                 started_at=started_at,

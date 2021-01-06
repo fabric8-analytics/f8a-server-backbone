@@ -485,7 +485,6 @@ components:
         - recommendation_status
         - companion
         - manifest_file_path
-        - usage_outliers
       properties:
         _audit:
           $ref: '#/components/schemas/Audit'
@@ -511,11 +510,6 @@ components:
         manifest_file_path:
           type: string
           example: pom.xml
-        usage_outliers:
-          type: array
-          items:
-            type: object
-            properties: {}
       description: Application stack recommendations
 
     Audit:
