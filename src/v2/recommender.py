@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from src.utils import get_session_retry, persist_data_in_db, post_gremlin
 from src.v2.stack_aggregator import get_github_details, get_snyk_package_link
 from src.v2.normalized_packages import NormalizedPackages
-from src.settings import Settings
+from src.settings import RecommenderSettings
 
 from src.v2.models import (
     RecommenderRequest,
@@ -32,8 +32,10 @@ class InsightsRequest(BaseModel):
     ecosystem: Ecosystem
     transitive_stack: List[str] = []
     package_list: List[str]
-    unknown_packages_ratio_threshold: float = Settings().unknown_packages_threshold
-    comp_package_count_threshold: int = Settings().max_companion_packages
+    unknown_packages_ratio_threshold: float = (
+        RecommenderSettings().unknown_packages_threshold
+    )
+    comp_package_count_threshold: int = RecommenderSettings().max_companion_packages
 
 
 class InsightsCallException(Exception):
@@ -46,15 +48,17 @@ class InsightsWithEmptyPackageException(Exception):
 
 def _prepare_insights_url(host: str) -> str:
     assert host
-    url = "http://{host}:{port}".format(host=host, port=Settings().service_port)
+    url = "http://{host}:{port}".format(
+        host=host, port=RecommenderSettings().service_port
+    )
     endpoint = "{url}/api/v1/companion_recommendation".format(url=url)
     return endpoint
 
 
 ECOSYSTEM_TO_INSIGHTS_URL = {
-    "pypi": _prepare_insights_url(Settings().pypi_service_host),
-    "npm": _prepare_insights_url(Settings().chester_service_host),
-    "maven": _prepare_insights_url(Settings().maven_service_host),
+    "pypi": _prepare_insights_url(RecommenderSettings().pypi_service_host),
+    "npm": _prepare_insights_url(RecommenderSettings().chester_service_host),
+    "maven": _prepare_insights_url(RecommenderSettings().maven_service_host),
 }
 
 
