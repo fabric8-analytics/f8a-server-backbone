@@ -173,7 +173,7 @@ def get_snyk_package_link(ecosystem: str, package: str) -> str:
     """Prepare snyk package link based on ecosystem and package name."""
     ecosystem = AggregatorSettings().snyk_ecosystem_map.get(ecosystem, ecosystem)
     return AggregatorSettings().snyk_package_url_format.format(ecosystem=ecosystem,
-                                                     package=quote(package, safe=''))
+                                                               package=quote(package, safe=''))
 
 
 class Aggregator:
