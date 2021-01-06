@@ -116,7 +116,9 @@ class RecommendationTask:
             name = data.get("name", [""])[0]
             # all versions are not vulnerable if latest_non_cve_version doesn't exist.
             # all versions are vulnerable if latest_non_cve_version is empty.
-            recommended_version = data.get("latest_non_cve_version", data.get("latest_version", [""]))
+            recommended_version = data.get(
+                "latest_non_cve_version", data.get("latest_version", [""])
+            )
             version = recommended_version[0] if len(recommended_version) else ""
             pkg = Package(name=name, version=version)
             return name, PackageDetails(
