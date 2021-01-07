@@ -120,7 +120,6 @@ class UsedByItem(BaseModel):  # noqa: D101
 
 class GitHubDetails(BaseModel):  # noqa: D101
     watchers: Optional[str] = None
-    first_release_date: Optional[str] = None
     total_releases: Optional[str] = None
     issues: Optional[Dict[str, Any]] = None
     pull_requests: Optional[Dict[str, Any]] = None
@@ -222,7 +221,7 @@ class StackRecommendationResult(BaseModel):  # noqa: D101
     registration_status: str
     recommendation_status: 'RecommendationStatus' = 'success'
     companion: List['RecommendedPackageData']
-    usage_outliers: List[Dict[str, Any]]
+    usage_outliers: List[Dict[str, Any]] = []
 
 
 class RecommenderRequest(StackAggregatorRequest):  # noqa: D101
@@ -230,5 +229,6 @@ class RecommenderRequest(StackAggregatorRequest):  # noqa: D101
 
 
 Package.update_forward_refs()
+PackageDetails.update_forward_refs()
 PackageDataWithVulnerabilities.update_forward_refs()
 RecommendedPackageData.update_forward_refs()

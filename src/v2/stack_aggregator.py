@@ -14,7 +14,7 @@ from urllib.parse import quote
 from typing import Dict, List, Tuple, Set
 from f8a_utils.gh_utils import GithubUtils
 
-from src.settings import Settings
+from src.settings import AggregatorSettings
 from src.utils import (select_latest_version, server_create_analysis,
                        persist_data_in_db, post_gremlin, GREMLIN_QUERY_SIZE,
                        format_date)
@@ -56,7 +56,7 @@ def _get_vulnerability_fields(vuln_node: Dict[str, str]):
     }
 
 
-def _get_github_details(package_node) -> GitHubDetails:
+def get_github_details(package_node) -> GitHubDetails:
     """Get fields associated with Github statistics of a package node."""
     date = format_date(package_node.get("gh_refreshed_on", ["N/A"])[0])
     github_details = {
@@ -65,9 +65,9 @@ def _get_github_details(package_node) -> GitHubDetails:
         "dependent_repos": package_node.get("libio_dependents_repos", [-1])[0],
         "total_releases": package_node.get("libio_total_releases", [-1])[0],
         "latest_release_duration":
-            str(datetime.datetime.fromtimestamp(package_node.get(
+            str(datetime.datetime.utcfromtimestamp(package_node.get(
                 "libio_latest_release", [1496302486.0])[0])),
-        "first_release_date": "Apr 16, 2010",
+        "watchers": package_node.get("gh_subscribers_count", [-1])[0],
         "issues": {
             "month": {
                 "opened": package_node.get("gh_issues_last_month_opened", [-1])[0],
@@ -120,6 +120,44 @@ def extract_user_stack_package_licenses(packages: NormalizedPackages):
     return get_license_service_request_payload(normalized_package_details)
 
 
+def _get_vulnerabilities(vulnerability_nodes):
+    """Get list of vulnerabilities associated with a package."""
+    public_vulns = []
+    private_vulns = []
+    for vuln in vulnerability_nodes:
+        if _is_private_vulnerability(vuln):
+            private_vulns.append(VulnerabilityFields(**_get_vulnerability_fields(vuln)))
+        else:
+            public_vulns.append(VulnerabilityFields(**_get_vulnerability_fields(vuln)))
+    return public_vulns, private_vulns
+
+
+def get_package_details(component: Dict) -> PackageDataWithVulnerabilities:
+    """Extract package details from given graph response."""
+    pkg_node = component.get("package", {})
+    version_node = component.get("version", {})
+    ecosystem, pkg = _get_pkg_from_graph_version_node(version_node)
+    github_details = get_github_details(pkg_node)
+    public_vulns, private_vulns = _get_vulnerabilities(component.get("vuln", {}))
+    recommended_latest_version = pkg_node.get("latest_non_cve_version", [""])[0]
+    licenses = version_node.get("declared_licenses", [])
+
+    latest_version = select_latest_version(
+        pkg.version,
+        pkg_node.get("libio_latest_version", [""])[0],
+        pkg_node.get("latest_version", [""])[0],
+        pkg.name
+    )
+    return pkg, PackageDataWithVulnerabilities(**pkg.dict(), ecosystem=ecosystem,
+                                               latest_version=latest_version,
+                                               github=github_details, licenses=licenses,
+                                               # (fixme) this is incorrect
+                                               url=get_snyk_package_link(ecosystem, pkg.name),
+                                               private_vulnerabilities=private_vulns,
+                                               public_vulnerabilities=public_vulns,
+                                               recommended_version=recommended_latest_version)
+
+
 def _get_packages_in_batch(dependencies: Tuple[Package], size: int) -> Tuple[Package]:
     """Take Package Tuple and slices it according to size."""
     for i in range(0, len(dependencies), size):
@@ -131,10 +169,11 @@ def _has_vulnerability(pkg: PackageDetails) -> bool:
 
 
 # (fixme) link to snyk package should be identified during ingestion.
-def _get_snyk_package_link(ecosystem: str, package: str) -> str:
-    ecosystem = Settings().snyk_ecosystem_map.get(ecosystem, ecosystem)
-    return Settings().snyk_package_url_format.format(ecosystem=ecosystem,
-                                                     package=quote(package, safe=''))
+def get_snyk_package_link(ecosystem: str, package: str) -> str:
+    """Prepare snyk package link based on ecosystem and package name."""
+    ecosystem = AggregatorSettings().snyk_ecosystem_map.get(ecosystem, ecosystem)
+    return AggregatorSettings().snyk_package_url_format.format(ecosystem=ecosystem,
+                                                               package=quote(package, safe=''))
 
 
 class Aggregator:
@@ -154,47 +193,10 @@ class Aggregator:
         graph_response = self._get_package_details_with_vulnerabilities()
         package_details: List[Tuple[Package, PackageDetails]] = []
         for pkg in graph_response:
-            package_details.append(self._get_package_details(pkg))
+            package_details.append(get_package_details(pkg))
 
         # covert list of (pkg, package_details) into map
         return dict(package_details)
-
-    def _get_vulnerabilities(self, vulnerability_nodes):
-        """Get list of vulnerabilities associated with a package."""
-        public_vulns = []
-        private_vulns = []
-        for vuln in vulnerability_nodes:
-            if _is_private_vulnerability(vuln):
-                private_vulns.append(VulnerabilityFields(**_get_vulnerability_fields(vuln)))
-            else:
-                public_vulns.append(VulnerabilityFields(**_get_vulnerability_fields(vuln)))
-        return public_vulns, private_vulns
-
-    def _get_package_details(self, component):
-        """Extract package details from given graph response."""
-        pkg_node = component.get("package", {})
-        version_node = component.get("version", {})
-        ecosystem, pkg = _get_pkg_from_graph_version_node(version_node)
-        github_details = _get_github_details(pkg_node)
-        public_vulns, private_vulns = self._get_vulnerabilities(component.get("vuln", {}))
-        recommended_latest_version = pkg_node.get("latest_non_cve_version", [""])[0]
-        licenses = version_node.get("declared_licenses", [])
-
-        latest_version = select_latest_version(
-            pkg.version,
-            pkg_node.get("libio_latest_version", [""])[0],
-            pkg_node.get("latest_version", [""])[0],
-            pkg.name
-        )
-        return pkg, PackageDataWithVulnerabilities(**pkg.dict(), ecosystem=ecosystem,
-                                                   latest_version=latest_version,
-                                                   github=github_details, licenses=licenses,
-                                                   # (fixme) this is incorrect
-                                                   url=_get_snyk_package_link(ecosystem,
-                                                                              pkg.name),
-                                                   private_vulnerabilities=private_vulns,
-                                                   public_vulnerabilities=public_vulns,
-                                                   recommended_version=recommended_latest_version)
 
     def _get_package_details_with_vulnerabilities(self) -> List[Dict[str, object]]:
         """Get package data from graph along with vulnerability."""
@@ -300,11 +302,11 @@ class Aggregator:
                                      analyzed_dependencies=package_details,
                                      unknown_dependencies=unknown_dependencies,
                                      license_analysis=license_analysis,
-                                     registration_link=Settings().snyk_signin_url)
+                                     registration_link=AggregatorSettings().snyk_signin_url)
 
     def initiate_unknown_package_ingestion(self):
         """Ingestion of Unknown dependencies."""
-        if Settings().disable_unknown_package_flow:
+        if AggregatorSettings().disable_unknown_package_flow:
             logger.warning('Skipping unknown flow %s', self.get_all_unknown_packages())
             return
 
@@ -381,7 +383,7 @@ class GoAggregator(Aggregator):
 
     def initiate_unknown_package_ingestion(self):
         """Ingestion of Unknown dependencies."""
-        if Settings().disable_unknown_package_flow:
+        if AggregatorSettings().disable_unknown_package_flow:
             logger.warning('Skipping unknown flow %s', self.get_all_unknown_packages())
             return
         logger.error('Ingestion is Not active for Golang.')
@@ -414,7 +416,7 @@ class GoAggregator(Aggregator):
         graph_response = self._get_package_details_with_vulnerabilities()
         package_details: List[Tuple[Package, PackageDetails]] = []
         for pkg in graph_response:
-            package_details.append(self._get_package_details(pkg))
+            package_details.append(get_package_details(pkg))
 
         psedo_pkgs_data = self._get_package_details_from_graph_for_pseudo_versions()
         for pseudo_pkg in psedo_pkgs_data:
@@ -480,7 +482,7 @@ class GoAggregator(Aggregator):
         ecosystem = pkg_node.get('ecosystem', [''])[0]
         pkg = Package(name=pkg_name, version=self._normalized_packages.version_map[pkg_name])
         latest_version = pkg_node.get('latest_version', [''])[0]
-        public_vulns, private_vulns = self._get_vulnerabilities(
+        public_vulns, private_vulns = _get_vulnerabilities(
             self.filtered_vul.get(pkg_name, []))
         recommended_latest_version = pkg_node.get("latest_non_cve_version", [""])[0]
         pkg_details = PackageDataWithVulnerabilities(
@@ -489,7 +491,7 @@ class GoAggregator(Aggregator):
             latest_version=latest_version,
             github={},
             licenses=[],
-            url=_get_snyk_package_link(ecosystem, pkg_name),
+            url=get_snyk_package_link(ecosystem, pkg_name),
             private_vulnerabilities=private_vulns,
             public_vulnerabilities=public_vulns,
             recommended_version=recommended_latest_version)
