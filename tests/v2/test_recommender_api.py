@@ -151,6 +151,7 @@ def test_recommendation_response_with_empty_insight_response(
             "manifest_name": None,
             "recommendation_status": "success",
             "registration_status": "FREETIER",
+            "usage_outliers": [],
             "uuid": None,
         },
     }
@@ -190,6 +191,7 @@ def test_recommendation_response_with_empty_graph(
         "manifest_name": None,
         "recommendation_status": "success",
         "registration_status": "FREETIER",
+        "usage_outliers": [],
         "uuid": None,
     }
 
@@ -320,5 +322,6 @@ def test_recommendation_response_with_2_packages_from_graph(
         "manifest_name": None,
         "recommendation_status": "success",
         "registration_status": "FREETIER",
+        "usage_outliers": [],
         "uuid": None,
     }
