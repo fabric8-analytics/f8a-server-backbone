@@ -13,8 +13,7 @@ from urllib.parse import quote
 
 from typing import Dict, List, Tuple, Set
 from f8a_utils.gh_utils import GithubUtils
-from f8a_utils.ingestion_utils import (unknown_package_flow,
-                                       Package as P)
+from f8a_utils.ingestion_utils import unknown_package_flow
 
 from src.settings import Settings
 from src.utils import (select_latest_version,
@@ -28,6 +27,7 @@ from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails
 from src.v2.normalized_packages import NormalizedPackages, GoNormalizedPackages
 from src.v2.license_service import (get_license_analysis_for_stack,
                                     get_license_service_request_payload)
+from f8a_utils import ingestion_utils
 
 logger = logging.getLogger(__name__)
 _TRUE = ['true', True, 1, '1']
@@ -306,14 +306,10 @@ class Aggregator:
 
     def initiate_unknown_package_ingestion(self):
         """Ingestion of Unknown dependencies."""
-        if Settings().disable_unknown_package_flow:
-            logger.warning('Skipping unknown flow %s', self.get_all_unknown_packages())
-            return
-
         ecosystem = self._normalized_packages.ecosystem
         pkg_list = self.get_all_unknown_packages()
-        unknown_pkgs = set(map(lambda pkg: P(package=pkg.name,
-                                             version=pkg.version), pkg_list))
+        unknown_pkgs = set(map(lambda pkg: ingestion_utils.Package(package=pkg.name,
+                                                                   version=pkg.version), pkg_list))
         try:
             unknown_package_flow(ecosystem, unknown_pkgs)
         except Exception as e:
@@ -385,14 +381,10 @@ class GoAggregator(Aggregator):
 
     def initiate_unknown_package_ingestion(self):
         """Ingestion of Unknown dependencies."""
-        if Settings().disable_unknown_package_flow:
-            logger.warning('Skipping unknown flow %s', self.get_all_unknown_packages())
-            return
-
         ecosystem = self._normalized_packages.ecosystem
         pkg_list = self.get_all_unknown_packages()
-        unknown_pkgs = set(map(lambda pkg: P(package=pkg.name,
-                                             version=pkg.version), pkg_list))
+        unknown_pkgs = set(map(lambda pkg: ingestion_utils.Package(package=pkg.name,
+                                                                   version=pkg.version), pkg_list))
         try:
             unknown_package_flow(ecosystem, unknown_pkgs)
         except Exception as e:
