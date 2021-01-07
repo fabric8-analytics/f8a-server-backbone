@@ -170,16 +170,19 @@ class RecommendationTask:
         """Execute task."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         request = RecommenderRequest(**arguments)
-        if request.ecosystem == "golang":
-            logging.warning("Recommendation is yet to be implemented for golang")
-            return {}
-
-        normalized_packages = NormalizedPackages(request.packages, request.ecosystem)
-        insights_response = self._get_insights_response(normalized_packages)
+        if request.ecosystem != "golang":
+            normalized_packages = NormalizedPackages(
+                request.packages, request.ecosystem
+            )
+            insights_response = self._get_insights_response(normalized_packages)
+            companion = self._get_recommended_package_details(insights_response[0])
+        else:
+            companion = []
+            logging.warning("Recommendation is not yet implemented for golang")
 
         result = StackRecommendationResult(
             **arguments,
-            companion=self._get_recommended_package_details(insights_response[0]),
+            companion=companion,
         )
 
         recommendation = result.dict()
