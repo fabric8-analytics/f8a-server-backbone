@@ -99,7 +99,7 @@ def get_osio_user_count(ecosystem, name, version):
         'gremlin': str_gremlin
     }
 
-    json_response = post_http_request(url=SETTINGS.gremlin_base_url, payload=payload)
+    json_response = post_http_request(url=SETTINGS.gremlin_url, payload=payload)
     return json_response.get('result').get('data', ['-1'])[0]
 
 
@@ -325,7 +325,7 @@ def post_gremlin(query: str, bindings: Dict = None) -> Dict:
     if bindings:
         payload['bindings'] = bindings
     try:
-        response = get_session_retry().post(url=SETTINGS.gremlin_base_url, json=payload)
+        response = get_session_retry().post(url=SETTINGS.gremlin_url, json=payload)
         response.raise_for_status()
     except Exception as e:
         logger.error(traceback.format_exc())

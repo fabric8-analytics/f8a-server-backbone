@@ -159,7 +159,7 @@ def get_license_service_request_payload(package_details: List[PackageDetails]):
 def get_license_analysis_for_stack(
         package_details: List[PackageDetails]) -> LicenseAnalysis:  # pylint:disable=R0914
     """Create LicenseAnalysis from license server."""
-    license_url = AGGREGATOR_SETTINGS.license_base_url + "/api/v1/stack_license"
+    license_url = AGGREGATOR_SETTINGS.license_analysis_base_url + "/api/v1/stack_license"
 
     # form payload for license service request
     payload = {

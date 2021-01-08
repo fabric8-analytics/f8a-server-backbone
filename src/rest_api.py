@@ -54,7 +54,7 @@ def _recommender(handler):
 
     input_json = request.get_json()
     external_request_id = input_json['external_request_id']
-    logger.info('%s recommender/ request with payload: %s', external_request_id, input_json)
+    logger.info('%s recommender/ request', external_request_id)
 
     try:
         check_license = request.args.get('check_license', 'false') == 'true'
@@ -96,8 +96,7 @@ def _stack_aggregator(handler):
     }
 
     external_request_id = input_json['external_request_id']
-    logger.info('%s stack_aggregator/ request with payload: %s',
-                external_request_id, input_json)
+    logger.info('%s stack_aggregator/ request', external_request_id)
 
     try:
         persist = request.args.get('persist', 'true') == 'true'

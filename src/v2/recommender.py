@@ -52,9 +52,9 @@ def _prepare_insights_url(base_url: AnyHttpUrl) -> AnyHttpUrl:
 
 
 ECOSYSTEM_TO_INSIGHTS_URL = {
-    "pypi": _prepare_insights_url(RECOMMENDER_SETTINGS.pypi_service_host),
-    "npm": _prepare_insights_url(RECOMMENDER_SETTINGS.npm_service_host),
-    "maven": _prepare_insights_url(RECOMMENDER_SETTINGS.maven_service_host),
+    "pypi": _prepare_insights_url(RECOMMENDER_SETTINGS.pypi_insights_base_url),
+    "npm": _prepare_insights_url(RECOMMENDER_SETTINGS.npm_insights_base_url),
+    "maven": _prepare_insights_url(RECOMMENDER_SETTINGS.maven_insights_base_url),
 }
 
 

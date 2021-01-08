@@ -114,7 +114,7 @@ class GraphDB:
         }
 
         # Query Gremlin with packages list to get their version information
-        gremlin_response = post_http_request(url=SETTINGS.gremlin_base_url, payload=payload)
+        gremlin_response = post_http_request(url=SETTINGS.gremlin_url, payload=payload)
         if gremlin_response is None:
             return []
         response = get_response_data(gremlin_response, [{0: 0}])
@@ -291,7 +291,7 @@ class License:
     @staticmethod
     def invoke_license_analysis_service(user_stack_packages, alt_packages, comp_packages):
         """Pass given args to stack_license analysis."""
-        license_url = AGGREGATOR_SETTINGS.license_base_url + "/api/v1/stack_license"
+        license_url = AGGREGATOR_SETTINGS.license_analysis_base_url + "/api/v1/stack_license"
 
         payload = {
             "packages": user_stack_packages,
@@ -421,9 +421,9 @@ def _prepare_insights_url(base_url: AnyHttpUrl) -> AnyHttpUrl:
 
 
 ECOSYSTEM_TO_INSIGHTS_URL = {
-    "pypi": _prepare_insights_url(RECOMMENDER_SETTINGS.pypi_service_host),
-    "npm": _prepare_insights_url(RECOMMENDER_SETTINGS.npm_service_host),
-    "maven": _prepare_insights_url(RECOMMENDER_SETTINGS.maven_service_host),
+    "pypi": _prepare_insights_url(RECOMMENDER_SETTINGS.pypi_insights_base_url),
+    "npm": _prepare_insights_url(RECOMMENDER_SETTINGS.npm_insights_base_url),
+    "maven": _prepare_insights_url(RECOMMENDER_SETTINGS.maven_insights_base_url),
 }
 
 

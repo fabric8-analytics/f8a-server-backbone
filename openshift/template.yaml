@@ -26,10 +26,8 @@ objects:
         - command:
           - /bin/entrypoint.sh
           env:
-          - name: BAYESIAN_GREMLIN_HTTP_SERVICE_HOST
-            value: bayesian-gremlin-http
-          - name: BAYESIAN_GREMLIN_HTTP_SERVICE_PORT
-            value: "8182"
+          - name: GREMLIN_URL
+            value: "http://bayesian-gremlin-http:8182"
           - name: DEPLOYMENT_PREFIX
             valueFrom:
               configMapKeyRef:
@@ -46,22 +44,14 @@ objects:
             value: bayesian-pgbouncer
           - name: PGBOUNCER_SERVICE_PORT
             value: "5432"
-          - name: LICENSE_SERVICE_HOST
-            value: f8a-license-analysis
-          - name: LICENSE_SERVICE_PORT
-            value: "6162"
-          - name: CHESTER_SERVICE_HOST
-            value: f8a-npm-insights
-          - name: PYPI_SERVICE_HOST
-            value: f8a-pypi-insights
-          - name: GOLANG_SERVICE_HOST
-            value: f8a-golang-insights
-          - name: MAVEN_SERVICE_HOST
-            value: f8a-hpf-insights-maven
-          - name: HPF_SERVICE_HOST
-            value: f8a-hpf-insights
-          - name: SERVICE_PORT
-            value: "6006"
+          - name: LICENSE_ANALYSIS_BASE_URL
+            value: "http://f8a-license-analysis:6162"
+          - name: NPM_INSIGHTS_BASE_URL
+            value: "http://f8a-npm-insights:6006"
+          - name: PYPI_INSIGHTS_BASE_URL
+            value: "http://f8a-pypi-insights:6006"
+          - name: MAVEN_INSIGHTS_BASE_URL
+            value: "http://f8a-hpf-insights-maven:6006"
           - name: POSTGRESQL_DATABASE
             valueFrom:
               secretKeyRef:

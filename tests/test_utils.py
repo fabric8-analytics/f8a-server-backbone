@@ -169,7 +169,7 @@ def test_post_http_request(_mock1):
     """Test error response for gremlin."""
     payload = {'gremlin': ''}
     with raises(RequestException):
-        post_http_request(url=SETTINGS.gremlin_base_url, payload=payload)
+        post_http_request(url=SETTINGS.gremlin_url, payload=payload)
 
 
 def test_select_from_db():
