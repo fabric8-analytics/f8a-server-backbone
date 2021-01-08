@@ -132,7 +132,7 @@ class RecommendationTask:
             time.time() - started_at,
         )
 
-        def extract_version(data):
+        def extract_version(data: Dict) -> str:
             # all versions are not vulnerable if latest_non_cve_version doesn't exist.
             # all versions are vulnerable if latest_non_cve_version is empty.
             recommended_version = data.get(
@@ -141,8 +141,10 @@ class RecommendationTask:
             version = recommended_version[0] if len(recommended_version) else ""
             return version
 
-        def has_valid_version(data):
-            return extract_version(data) not in ["", "-1"]
+        INVALID_VERSIONS = ["", "-1"]
+
+        def has_valid_version(data: Dict) -> bool:
+            return str(extract_version(data)) not in INVALID_VERSIONS
 
         def get_recommendation_statistics(package_name: str) -> Dict[str, str]:
             # below dict has cooccurrence_probability, cooccurrence_count, topic_list
