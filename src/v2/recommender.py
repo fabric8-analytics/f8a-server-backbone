@@ -142,7 +142,7 @@ class RecommendationTask:
             return version
 
         def has_valid_version(data):
-            return extract_version(data) != ""
+            return extract_version(data) not in ["", "-1"]
 
         def get_recommendation_statistics(package_name: str) -> Dict[str, str]:
             # below dict has cooccurrence_probability, cooccurrence_count, topic_list
