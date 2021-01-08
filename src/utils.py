@@ -324,21 +324,21 @@ def post_http_request(url: str, payload: Dict):
 
 def post_gremlin(query: str, bindings: Dict = None) -> Dict:
     """Post the given query and bindings to gremlin endpoint."""
+    payload = {
+        'gremlin': query,
+    }
+    if bindings:
+        payload['bindings'] = bindings
     try:
-        payload = {
-            'gremlin': query,
-        }
-        if bindings:
-            payload['bindings'] = bindings
         response = get_session_retry().post(url=GREMLIN_SERVER_URL_REST, json=payload)
         response.raise_for_status()
-        return response.json()
     except Exception as e:
         logger.error(traceback.format_exc())
-        logger.error(
-            "HTTP error {code}. Error retrieving data for {query}.".format(
-                code=response.status_code, query=payload))
+        logger.error("HTTP error %d. Error retrieving data for %s.",
+                     response.status_code, payload)
         raise GremlinExeception from e
+    else:
+        return response.json()
 
 
 def get_response_data(json_response, data_default):

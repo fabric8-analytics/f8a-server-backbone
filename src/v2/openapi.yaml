@@ -360,8 +360,6 @@ components:
         watchers:
           type: string
           example: "100K"
-        first_release_date:
-          type: string
         total_releases:
           type: string
           example: "12"
@@ -487,7 +485,6 @@ components:
         - recommendation_status
         - companion
         - manifest_file_path
-        - usage_outliers
       properties:
         _audit:
           $ref: '#/components/schemas/Audit'
@@ -513,11 +510,6 @@ components:
         manifest_file_path:
           type: string
           example: pom.xml
-        usage_outliers:
-          type: array
-          items:
-            type: object
-            properties: {}
       description: Application stack recommendations
 
     Audit:

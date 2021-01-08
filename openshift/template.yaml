@@ -56,6 +56,8 @@ objects:
             value: f8a-pypi-insights
           - name: GOLANG_SERVICE_HOST
             value: f8a-golang-insights
+          - name: MAVEN_SERVICE_HOST
+            value: f8a-hpf-insights-maven
           - name: HPF_SERVICE_HOST
             value: f8a-hpf-insights
           - name: SERVICE_PORT
