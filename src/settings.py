@@ -2,7 +2,7 @@
 
 
 from typing import Dict
-from pydantic import BaseSettings, HttpUrl, AnyHttpUrl
+from pydantic import BaseSettings, HttpUrl, AnyHttpUrl, Field
 
 
 class AggregatorSettings(BaseSettings):
@@ -30,6 +30,15 @@ class Settings(BaseSettings):
     gremlin_url: AnyHttpUrl = "http://bayesian-gremlin-http:8182"
 
 
+class GunicornSettings(BaseSettings):
+    """Gunicorn settings"""
+
+    workers: int = Field(default=2, env="WORKERS_COUNT")
+    worker_class: str = Field(default="sync", env="WORKERS_CLASS")
+    timeout: int = Field(default=120, env="WORKER_TIMEOUT")
+
+
 SETTINGS = Settings()
 RECOMMENDER_SETTINGS = RecommenderSettings()
 AGGREGATOR_SETTINGS = AggregatorSettings()
+GUNICORN_SETTINGS = GunicornSettings()
