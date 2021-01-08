@@ -14,7 +14,7 @@ from urllib.parse import quote
 from typing import Dict, List, Tuple, Set
 from f8a_utils.gh_utils import GithubUtils
 
-from src.settings import AggregatorSettings
+from src.settings import AGGREGATOR_SETTINGS
 from src.utils import (select_latest_version, server_create_analysis,
                        persist_data_in_db, post_gremlin, GREMLIN_QUERY_SIZE,
                        format_date)
@@ -171,8 +171,8 @@ def _has_vulnerability(pkg: PackageDetails) -> bool:
 # (fixme) link to snyk package should be identified during ingestion.
 def get_snyk_package_link(ecosystem: str, package: str) -> str:
     """Prepare snyk package link based on ecosystem and package name."""
-    ecosystem = AggregatorSettings().snyk_ecosystem_map.get(ecosystem, ecosystem)
-    return AggregatorSettings().snyk_package_url_format.format(ecosystem=ecosystem,
+    ecosystem = AGGREGATOR_SETTINGS.snyk_ecosystem_map.get(ecosystem, ecosystem)
+    return AGGREGATOR_SETTINGS.snyk_package_url_format.format(ecosystem=ecosystem,
                                                                package=quote(package, safe=''))
 
 
@@ -302,14 +302,10 @@ class Aggregator:
                                      analyzed_dependencies=package_details,
                                      unknown_dependencies=unknown_dependencies,
                                      license_analysis=license_analysis,
-                                     registration_link=AggregatorSettings().snyk_signin_url)
+                                     registration_link=AGGREGATOR_SETTINGS.snyk_signin_url)
 
     def initiate_unknown_package_ingestion(self):
         """Ingestion of Unknown dependencies."""
-        if AggregatorSettings().disable_unknown_package_flow:
-            logger.warning('Skipping unknown flow %s', self.get_all_unknown_packages())
-            return
-
         ecosystem = self._normalized_packages.ecosystem
         try:
             for dep in self.get_all_unknown_packages():
@@ -342,7 +338,7 @@ class StackAggregator:
         return aggregator
 
     @staticmethod
-    def execute(request: Dict, persist=True):
+    def execute(request: Dict, persist=True, disable_ingestion=AGGREGATOR_SETTINGS.disable_unknown_package_flow):
         """Task code."""
         # (fixme): Use timestamp instead of str representation.
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
@@ -361,7 +357,10 @@ class StackAggregator:
                 '%s Aggregation process completed, result persisted into RDS',
                 output.external_request_id)
 
-        aggregator.initiate_unknown_package_ingestion()
+        if disable_ingestion:
+            logger.warning('Skipping unknown flow %s', aggregator.get_all_unknown_packages())
+        else:
+            aggregator.initiate_unknown_package_ingestion()
         # result attribute is added to keep a compatibility with v1
         # otherwise metric accumulator related handling has to be
         # customized for v2.
@@ -383,10 +382,7 @@ class GoAggregator(Aggregator):
 
     def initiate_unknown_package_ingestion(self):
         """Ingestion of Unknown dependencies."""
-        if AggregatorSettings().disable_unknown_package_flow:
-            logger.warning('Skipping unknown flow %s', self.get_all_unknown_packages())
-            return
-        logger.error('Ingestion is Not active for Golang.')
+        logger.error('Unknown ingestion is not implemented for golang')
 
     def _get_package_details_with_vulnerabilities(self) -> List[Dict[str, object]]:
         """Get package data from graph along with vulnerability."""

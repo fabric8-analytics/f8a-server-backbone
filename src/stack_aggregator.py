@@ -12,9 +12,9 @@ from flask import current_app
 import requests
 import copy
 from collections import defaultdict
-from src.settings import AggregatorSettings
-from src.utils import (select_latest_version, server_create_analysis, LICENSE_SCORING_URL_REST,
-                       post_http_request, GREMLIN_SERVER_URL_REST, persist_data_in_db,
+from src.settings import AGGREGATOR_SETTINGS, SETTINGS
+from src.utils import (select_latest_version, server_create_analysis,
+                       post_http_request, persist_data_in_db,
                        GREMLIN_QUERY_SIZE, format_date)
 import logging
 
@@ -27,7 +27,7 @@ def get_recommended_version(ecosystem, name, version):
             ".out('has_version').not(out('has_cve')).values('version');"\
         .format(eco=ecosystem, pkg=name)
     payload = {'gremlin': query}
-    result = post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
+    result = post_http_request(url=SETTINGS.gremlin_base_url, payload=payload)
     if result:
         versions = result['result']['data']
         if len(versions) == 0:
@@ -269,7 +269,7 @@ def _extract_license_outliers(license_service_output):
 
 def perform_license_analysis(license_score_list, dependencies):
     """Pass given license_score_list to stack_license analysis and process response."""
-    license_url = LICENSE_SCORING_URL_REST + "/api/v1/stack_license"
+    license_url = AGGREGATOR_SETTINGS.license_base_url + "/api/v1/stack_license"
 
     payload = {
         "packages": license_score_list
@@ -510,7 +510,7 @@ def get_tr_dependency_data(epv_set):
             i = 1
             # call_gremlin in batch
             payload = {'gremlin': query}
-            result = post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
+            result = post_http_request(url=SETTINGS.gremlin_base_url, payload=payload)
             if result:
                 tr_epv_list['result']['data'] += result['result']['data']
             query = "epv=[];"
@@ -519,7 +519,7 @@ def get_tr_dependency_data(epv_set):
     if i > 1:
         payload = {'gremlin': query}
         time_start = time.time()
-        result = post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
+        result = post_http_request(url=SETTINGS.gremlin_base_url, payload=payload)
         logger.info('elapsed_time for gremlin call: {}'.format(time.time() - time_start))
         if result:
             tr_epv_list['result']['data'] += result['result']['data']
@@ -571,7 +571,7 @@ def get_dependency_data(epv_set):
             i = 1
             # call_gremlin in batch
             payload = {'gremlin': query}
-            result = post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
+            result = post_http_request(url=SETTINGS.gremlin_base_url, payload=payload)
             if result:
                 epv_list['result']['data'] += result['result']['data']
             query = "epv=[];"
@@ -579,7 +579,7 @@ def get_dependency_data(epv_set):
 
     if i > 1:
         payload = {'gremlin': query}
-        result = post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
+        result = post_http_request(url=SETTINGS.gremlin_base_url, payload=payload)
         if result:
             epv_list['result']['data'] += result['result']['data']
 
@@ -606,7 +606,7 @@ class StackAggregator:
     """Aggregate stack data from components."""
 
     @staticmethod
-    def execute(aggregated=None, persist=True):
+    def execute(aggregated=None, persist=True, disable_ingestion=AGGREGATOR_SETTINGS.disable_unknown_package_flow):
         """Task code."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         stack_data = []
@@ -663,7 +663,7 @@ class StackAggregator:
                          'result': stack_data}
         # Ingestion of Unknown dependencies
         logger.info("Unknown ingestion flow process initiated.")
-        if AggregatorSettings().disable_unknown_package_flow:
+        if disable_ingestion:
             logger.warning('Skipping unknown flow %s', unknown_dep_list)
         else:
             try:

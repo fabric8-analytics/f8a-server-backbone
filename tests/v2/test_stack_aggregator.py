@@ -79,8 +79,6 @@ def test_with_2_public_vuln(_mock_license, _mock_gremlin, monkeypatch):
     with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
         _mock_gremlin.return_value = json.load(fin)
 
-    monkeypatch.setenv('SNYK_PACKAGE_URL_FORMAT', 'https://abc.io/vuln/{ecosystem}:{package}')
-    monkeypatch.setenv('SNYK_SIGNIN_URL', 'https://abc.io/login')
     resp = StackAggregator().execute(_request_body(), persist=False)
     _mock_license.assert_called_once()
     _mock_gremlin.assert_called()
@@ -99,14 +97,12 @@ def test_with_2_public_vuln(_mock_license, _mock_gremlin, monkeypatch):
 
     # check analyzed_dependencies
     result = StackAggregatorResult(**result)
-    assert result.registration_link == 'https://abc.io/login'
     assert len(result.analyzed_dependencies) == 2
     assert _FLASK in result.analyzed_dependencies
     assert _SIX not in result.analyzed_dependencies
 
     # check vuln
     django_index = result.analyzed_dependencies.index(_DJANGO)
-    assert result.analyzed_dependencies[django_index].url == 'https://abc.io/vuln/pip:django'
     assert len(result.analyzed_dependencies[django_index].public_vulnerabilities) == 2
     assert len(result.analyzed_dependencies[django_index].private_vulnerabilities) == 0
     assert isinstance(result.analyzed_dependencies[django_index].public_vulnerabilities[0],
@@ -215,8 +211,7 @@ def test_unknown_flow_with_disabled_flag(_mock_gremlin, _mock_unknown, monkeypat
     payload['packages'].append(_SIX.dict())
 
     # Disabled unknown flow check
-    monkeypatch.setenv('DISABLE_UNKNOWN_PACKAGE_FLOW', '1')
-    StackAggregator().execute(payload, persist=False)
+    StackAggregator().execute(payload, persist=False, disable_ingestion=True)
     _mock_unknown.assert_not_called()
 
 

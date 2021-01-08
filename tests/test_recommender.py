@@ -43,40 +43,6 @@ def mocked_requests_get(*args, **_kwargs):
     return MockResponse({"url": args[0]}, 200)
 
 
-class TestRecommendationTask(TestCase):
-    """Test for the recommendation task class."""
-
-    @mock.patch('requests.get', side_effect=mocked_requests_get)
-    @mock.patch('requests.Session.post', side_effect=mocked_requests_get)
-    def test_call_insights_recommender_npm(self, _mock_get, _mock_post):
-        """Test if the correct service is called for the correct ecosystem."""
-        with mock.patch.dict('src.recommender.os.environ', {
-                'GOLANG_SERVICE_HOST': 'golang-insights',
-                'CHESTER_SERVICE_HOST': 'npm-insights',
-                'PYPI_SERVICE_HOST': 'pypi-insights',
-                'PGM_SERVICE_HOST': 'pgm',
-                'SERVICE_PORT': '6006',
-                'HPF_SERVICE_HOST': 'hpf-insights',
-             }):
-            # Test whether the correct service is called for NPM.
-            called_url_json = RecommendationTask.call_insights_recommender([{"ecosystem": "npm"}])
-            self.assertTrue('npm-insights' in called_url_json['url'])
-            # Test whether the correct service is called for PYPI.
-            called_url_json = RecommendationTask.call_insights_recommender([{
-                "ecosystem": "pypi"
-            }])
-            self.assertTrue('pypi-insights' in called_url_json['url'])
-            # Test whether the correct service is called for golang.
-            called_url_json = RecommendationTask.call_insights_recommender([{
-                "ecosystem": "golang"
-            }])
-            self.assertTrue('golang-insights' in called_url_json['url'])
-            # Now test whether the correct service is called for maven.
-            called_url_json = RecommendationTask.call_insights_recommender(
-                [{"ecosystem": "maven", "package_list": ["org.slf4j:slf4j-api"]}])
-            self.assertTrue('hpf-insights' in called_url_json['url'])
-
-
 def mocked_response_graph(*args, **_kwargs):
     """Mock the call to the insights service."""
     class MockResponse:
