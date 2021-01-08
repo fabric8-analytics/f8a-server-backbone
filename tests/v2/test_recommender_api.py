@@ -29,21 +29,30 @@ def test_invalid_request_payload(client):
 def test_golang_empty_response(client):
     """Test golang ecosystem, it should return empty result."""
     response = client.post(
-        "/api/v2/recommender",
+        "/api/v2/recommender?persist=false",
         data=json.dumps(
             RecommenderRequest(
-                registration_status="",
-                external_request_id="",
+                registration_status="REGISTERED",
+                external_request_id="foo",
                 ecosystem="golang",
-                manifest_file_path="",
+                manifest_file_path="/foo.bar",
                 packages=[],
             ).dict()
         ),
         content_type="application/json",
     )
     assert response.status_code == 200
-    json_val = json.loads(response.data.decode("utf8"))
-    assert json_val == {}
+    response = get_json_from_response(response)
+    assert response["result"] == {
+        "companion": [],
+        "external_request_id": "foo",
+        "manifest_file_path": "/foo.bar",
+        "manifest_name": None,
+        "recommendation_status": "success",
+        "registration_status": "REGISTERED",
+        "usage_outliers": [],
+        "uuid": None,
+    }
 
 
 class _Response:

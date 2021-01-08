@@ -132,7 +132,7 @@ class RecommendationTask:
             time.time() - started_at,
         )
 
-        def extract_version(data):
+        def extract_version(data: Dict) -> str:
             # all versions are not vulnerable if latest_non_cve_version doesn't exist.
             # all versions are vulnerable if latest_non_cve_version is empty.
             recommended_version = data.get(
@@ -141,8 +141,10 @@ class RecommendationTask:
             version = recommended_version[0] if len(recommended_version) else ""
             return version
 
-        def has_valid_version(data):
-            return extract_version(data) != ""
+        INVALID_VERSIONS = ["", "-1"]
+
+        def has_valid_version(data: Dict) -> bool:
+            return str(extract_version(data)) not in INVALID_VERSIONS
 
         def get_recommendation_statistics(package_name: str) -> Dict[str, str]:
             # below dict has cooccurrence_probability, cooccurrence_count, topic_list
@@ -170,16 +172,19 @@ class RecommendationTask:
         """Execute task."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         request = RecommenderRequest(**arguments)
-        if request.ecosystem == "golang":
-            logging.warning("Recommendation is yet to be implemented for golang")
-            return {}
-
-        normalized_packages = NormalizedPackages(request.packages, request.ecosystem)
-        insights_response = self._get_insights_response(normalized_packages)
+        if request.ecosystem != "golang":
+            normalized_packages = NormalizedPackages(
+                request.packages, request.ecosystem
+            )
+            insights_response = self._get_insights_response(normalized_packages)
+            companion = self._get_recommended_package_details(insights_response[0])
+        else:
+            companion = []
+            logging.warning("Recommendation is not yet implemented for golang")
 
         result = StackRecommendationResult(
             **arguments,
-            companion=self._get_recommended_package_details(insights_response[0]),
+            companion=companion,
         )
 
         recommendation = result.dict()
