@@ -80,7 +80,7 @@ def test_execute(_mock_get, _mock_post):
 @mock.patch('requests.Session.post', side_effect=mock_dependency_response)
 @mock.patch('src.stack_aggregator.server_create_analysis')
 def test_execute_unknown_with_disable_unknown_package_flow(_mock_unknown, _mock_get,
-                                                           _mock_post, monkeypatch):
+                                                           _mock_post):
     """Test the function execute."""
     with open("tests/data/stack_aggregator_execute_input.json", "r") as f:
         payload = json.loads(f.read())

@@ -11,7 +11,7 @@ from src.utils import (
     convert_version_to_proper_semantic as cvs, format_date,
     version_info_tuple as vt, select_latest_version as slv,
     get_osio_user_count, create_package_dict, post_http_request,
-    server_create_analysis, select_from_db, total_time_elapsed, post_gremlin,
+    select_from_db, total_time_elapsed, post_gremlin,
     GremlinExeception, RequestException)
 
 METRICS_COLLECTION_URL = "http://{base_url}:{port}/api/v1/prometheus".format(
@@ -247,4 +247,3 @@ if __name__ == '__main__':
     test_get_osio_user_count()
     test_post_http_request()
     test_create_package_dict()
-    test_server_create_analysis()

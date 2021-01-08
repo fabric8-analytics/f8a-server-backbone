@@ -1,5 +1,4 @@
 """Tests for the recommender module."""
-from unittest import TestCase
 from unittest import mock
 import json
 import logging

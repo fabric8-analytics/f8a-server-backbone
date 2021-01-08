@@ -74,7 +74,7 @@ def _go_request_body():
 
 @mock.patch('src.v2.stack_aggregator.post_gremlin')
 @mock.patch('src.v2.stack_aggregator.get_license_analysis_for_stack')
-def test_with_2_public_vuln(_mock_license, _mock_gremlin, monkeypatch):
+def test_with_2_public_vuln(_mock_license, _mock_gremlin):
     """Test basic request and response."""
     with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
         _mock_gremlin.return_value = json.load(fin)
@@ -201,7 +201,7 @@ def test_with_2_public_vuln_for_registered(_mock_license, _mock_gremlin):
 
 @mock.patch('src.v2.stack_aggregator.server_create_analysis')
 @mock.patch('src.v2.stack_aggregator.post_gremlin')
-def test_unknown_flow_with_disabled_flag(_mock_gremlin, _mock_unknown, monkeypatch):
+def test_unknown_flow_with_disabled_flag(_mock_gremlin, _mock_unknown):
     """Test unknown flow."""
     with open("tests/v2/data/graph_response_2_public_vuln.json", "r") as fin:
         _mock_gremlin.return_value = json.load(fin)

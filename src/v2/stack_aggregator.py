@@ -173,7 +173,7 @@ def get_snyk_package_link(ecosystem: str, package: str) -> str:
     """Prepare snyk package link based on ecosystem and package name."""
     ecosystem = AGGREGATOR_SETTINGS.snyk_ecosystem_map.get(ecosystem, ecosystem)
     return AGGREGATOR_SETTINGS.snyk_package_url_format.format(ecosystem=ecosystem,
-                                                               package=quote(package, safe=''))
+                                                              package=quote(package, safe=''))
 
 
 class Aggregator:
@@ -338,7 +338,8 @@ class StackAggregator:
         return aggregator
 
     @staticmethod
-    def execute(request: Dict, persist=True, disable_ingestion=AGGREGATOR_SETTINGS.disable_unknown_package_flow):
+    def execute(request: Dict, persist=True,
+                disable_ingestion=AGGREGATOR_SETTINGS.disable_unknown_package_flow):
         """Task code."""
         # (fixme): Use timestamp instead of str representation.
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")

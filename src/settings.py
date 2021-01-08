@@ -24,10 +24,12 @@ class RecommenderSettings(BaseSettings):
     unknown_packages_threshold: float = 0.3
     max_companion_packages: int = 5
 
+
 class Settings(BaseSettings):
     """General settings."""
 
     gremlin_url: AnyHttpUrl = "http://bayesian-gremlin-http:8182"
+
 
 SETTINGS = Settings()
 RECOMMENDER_SETTINGS = RecommenderSettings()

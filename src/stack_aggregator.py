@@ -606,7 +606,8 @@ class StackAggregator:
     """Aggregate stack data from components."""
 
     @staticmethod
-    def execute(aggregated=None, persist=True, disable_ingestion=AGGREGATOR_SETTINGS.disable_unknown_package_flow):
+    def execute(aggregated=None, persist=True,
+                disable_ingestion=AGGREGATOR_SETTINGS.disable_unknown_package_flow):
         """Task code."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         stack_data = []
