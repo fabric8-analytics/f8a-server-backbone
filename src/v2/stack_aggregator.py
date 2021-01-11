@@ -342,8 +342,7 @@ class StackAggregator:
         return aggregator
 
     @staticmethod
-    def execute(request: Dict, persist=True,
-                disable_ingestion=AGGREGATOR_SETTINGS.disable_unknown_package_flow):
+    def execute(request: Dict, persist=True):
         """Task code."""
         # (fixme): Use timestamp instead of str representation.
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
@@ -362,10 +361,7 @@ class StackAggregator:
                 '%s Aggregation process completed, result persisted into RDS',
                 output.external_request_id)
 
-        if disable_ingestion:
-            logger.warning('Skipping unknown flow %s', aggregator.get_all_unknown_packages())
-        else:
-            aggregator.initiate_unknown_package_ingestion()
+        aggregator.initiate_unknown_package_ingestion()
         # result attribute is added to keep a compatibility with v1
         # otherwise metric accumulator related handling has to be
         # customized for v2.

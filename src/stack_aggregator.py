@@ -606,8 +606,7 @@ class StackAggregator:
     """Aggregate stack data from components."""
 
     @staticmethod
-    def execute(aggregated=None, persist=True,
-                disable_ingestion=AGGREGATOR_SETTINGS.disable_unknown_package_flow):
+    def execute(aggregated=None, persist=True):
         """Task code."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         stack_data = []
@@ -664,16 +663,13 @@ class StackAggregator:
                          'result': stack_data}
         # Ingestion of Unknown dependencies
         logger.info("Unknown ingestion flow process initiated.")
-        if disable_ingestion:
-            logger.warning('Skipping unknown flow %s', unknown_dep_list)
-        else:
-            try:
-                for dep in unknown_dep_list:
-                    server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=True,
-                                           force=False, force_graph_sync=True)
-            except Exception as e:
-                logger.error('Ingestion has been failed for ' + dep['name'])
-                logger.error(e)
-                pass
+        try:
+            for dep in unknown_dep_list:
+                server_create_analysis(ecosystem, dep['name'], dep['version'], api_flow=True,
+                                       force=False, force_graph_sync=True)
+        except Exception as e:
+            logger.error('Ingestion has been failed for ' + dep['name'])
+            logger.error(e)
+            pass
 
         return persiststatus
