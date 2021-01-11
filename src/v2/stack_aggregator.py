@@ -13,9 +13,10 @@ from urllib.parse import quote
 
 from typing import Dict, List, Tuple, Set
 from f8a_utils.gh_utils import GithubUtils
+from f8a_utils.ingestion_utils import unknown_package_flow
 
 from src.settings import AGGREGATOR_SETTINGS
-from src.utils import (select_latest_version, server_create_analysis,
+from src.utils import (select_latest_version,
                        persist_data_in_db, post_gremlin, GREMLIN_QUERY_SIZE,
                        format_date)
 from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails,
@@ -26,6 +27,7 @@ from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails
 from src.v2.normalized_packages import NormalizedPackages, GoNormalizedPackages
 from src.v2.license_service import (get_license_analysis_for_stack,
                                     get_license_service_request_payload)
+from f8a_utils import ingestion_utils
 
 logger = logging.getLogger(__name__)
 _TRUE = ['true', True, 1, '1']
@@ -307,14 +309,16 @@ class Aggregator:
     def initiate_unknown_package_ingestion(self):
         """Ingestion of Unknown dependencies."""
         ecosystem = self._normalized_packages.ecosystem
+        pkg_list = self.get_all_unknown_packages()
+        unknown_pkgs = set(map(lambda pkg: ingestion_utils.Package(package=pkg.name,
+                                                                   version=pkg.version), pkg_list))
         try:
-            for dep in self.get_all_unknown_packages():
-                server_create_analysis(ecosystem, dep.name, dep.version, api_flow=True,
-                                       force=False, force_graph_sync=True)
-        except Exception as e:  # pylint:disable=W0703,C0103
-            logger.error('Ingestion failed for {%s, %s, %s}',
-                         ecosystem, dep.name, dep.version)
-            logger.error(e)
+            unknown_package_flow(ecosystem, unknown_pkgs)
+        except Exception as e:
+            logger.error('Unknown ingestion failed with %s', e)
+        else:
+            logger.debug('Unknown ingestion executed for %s packages in %s ecosystem',
+                         len(pkg_list), ecosystem)
 
 
 class StackAggregator:
@@ -380,10 +384,6 @@ class GoAggregator(Aggregator):
         super().__init__(request, normalized_packages)
         self._normalized_packages = normalized_packages
         self.filtered_vul = {}
-
-    def initiate_unknown_package_ingestion(self):
-        """Ingestion of Unknown dependencies."""
-        logger.error('Unknown ingestion is not implemented for golang')
 
     def _get_package_details_with_vulnerabilities(self) -> List[Dict[str, object]]:
         """Get package data from graph along with vulnerability."""
