@@ -9,12 +9,12 @@ import logging
 import time
 from typing import List, Dict
 
-from pydantic import BaseModel
+from pydantic import BaseModel, AnyHttpUrl
 
 from src.utils import get_session_retry, persist_data_in_db, post_gremlin
 from src.v2.stack_aggregator import get_github_details, get_snyk_package_link
 from src.v2.normalized_packages import NormalizedPackages
-from src.settings import RecommenderSettings
+from src.settings import RECOMMENDER_SETTINGS
 
 from src.v2.models import (
     RecommenderRequest,
@@ -33,9 +33,9 @@ class InsightsRequest(BaseModel):
     transitive_stack: List[str] = []
     package_list: List[str]
     unknown_packages_ratio_threshold: float = (
-        RecommenderSettings().unknown_packages_threshold
+        RECOMMENDER_SETTINGS.unknown_packages_threshold
     )
-    comp_package_count_threshold: int = RecommenderSettings().max_companion_packages
+    comp_package_count_threshold: int = RECOMMENDER_SETTINGS.max_companion_packages
 
 
 class InsightsCallException(Exception):
@@ -46,19 +46,15 @@ class InsightsWithEmptyPackageException(Exception):
     """Exception for empty request packages."""
 
 
-def _prepare_insights_url(host: str) -> str:
-    assert host
-    url = "http://{host}:{port}".format(
-        host=host, port=RecommenderSettings().service_port
-    )
-    endpoint = "{url}/api/v1/companion_recommendation".format(url=url)
-    return endpoint
+def _prepare_insights_url(base_url: AnyHttpUrl) -> AnyHttpUrl:
+    assert base_url
+    return "{url}/api/v1/companion_recommendation".format(url=base_url)
 
 
 ECOSYSTEM_TO_INSIGHTS_URL = {
-    "pypi": _prepare_insights_url(RecommenderSettings().pypi_service_host),
-    "npm": _prepare_insights_url(RecommenderSettings().chester_service_host),
-    "maven": _prepare_insights_url(RecommenderSettings().maven_service_host),
+    "pypi": _prepare_insights_url(RECOMMENDER_SETTINGS.pypi_insights_base_url),
+    "npm": _prepare_insights_url(RECOMMENDER_SETTINGS.npm_insights_base_url),
+    "maven": _prepare_insights_url(RECOMMENDER_SETTINGS.maven_insights_base_url),
 }
 
 

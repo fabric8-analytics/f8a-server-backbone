@@ -15,7 +15,7 @@ from typing import Dict, List, Tuple, Set
 from f8a_utils.gh_utils import GithubUtils
 from f8a_utils.ingestion_utils import unknown_package_flow
 
-from src.settings import AggregatorSettings
+from src.settings import AGGREGATOR_SETTINGS
 from src.utils import (select_latest_version,
                        persist_data_in_db, post_gremlin, GREMLIN_QUERY_SIZE,
                        format_date)
@@ -173,9 +173,9 @@ def _has_vulnerability(pkg: PackageDetails) -> bool:
 # (fixme) link to snyk package should be identified during ingestion.
 def get_snyk_package_link(ecosystem: str, package: str) -> str:
     """Prepare snyk package link based on ecosystem and package name."""
-    ecosystem = AggregatorSettings().snyk_ecosystem_map.get(ecosystem, ecosystem)
-    return AggregatorSettings().snyk_package_url_format.format(ecosystem=ecosystem,
-                                                               package=quote(package, safe=''))
+    ecosystem = AGGREGATOR_SETTINGS.snyk_ecosystem_map.get(ecosystem, ecosystem)
+    return AGGREGATOR_SETTINGS.snyk_package_url_format.format(ecosystem=ecosystem,
+                                                              package=quote(package, safe=''))
 
 
 class Aggregator:
@@ -304,7 +304,7 @@ class Aggregator:
                                      analyzed_dependencies=package_details,
                                      unknown_dependencies=unknown_dependencies,
                                      license_analysis=license_analysis,
-                                     registration_link=AggregatorSettings().snyk_signin_url)
+                                     registration_link=AGGREGATOR_SETTINGS.snyk_signin_url)
 
     def initiate_unknown_package_ingestion(self):
         """Ingestion of Unknown dependencies."""
@@ -380,20 +380,6 @@ class GoAggregator(Aggregator):
         super().__init__(request, normalized_packages)
         self._normalized_packages = normalized_packages
         self.filtered_vul = {}
-
-    def initiate_unknown_package_ingestion(self):
-        """Ingestion of Unknown dependencies."""
-        ecosystem = self._normalized_packages.ecosystem
-        pkg_list = self.get_all_unknown_packages()
-        unknown_pkgs = set(map(lambda pkg: ingestion_utils.Package(package=pkg.name,
-                                                                   version=pkg.version), pkg_list))
-        try:
-            unknown_package_flow(ecosystem, unknown_pkgs)
-        except Exception as e:
-            logger.error('Unknown ingestion failed with %s', e)
-        else:
-            logger.debug('Unknown ingestion executed for %s packages in %s ecosystem',
-                         len(pkg_list), ecosystem)
 
     def _get_package_details_with_vulnerabilities(self) -> List[Dict[str, object]]:
         """Get package data from graph along with vulnerability."""
