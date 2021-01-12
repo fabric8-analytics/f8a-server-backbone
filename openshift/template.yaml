@@ -83,7 +83,7 @@ objects:
             value: ${WORKER_TIMEOUT}
           - name: WORKERS_COUNT
             value: "4"
-          - name: WORKERS_CLASS
+          - name: WORKER_CLASS
             value: "sync"
           - name: FLASK_LOGGING_LEVEL
             value: ${FLASK_LOGGING_LEVEL}
