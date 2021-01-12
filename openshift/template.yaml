@@ -91,6 +91,11 @@ objects:
             value: "metrics-accumulator"
           - name: METRICS_ENDPOINT_URL_PORT
             value: "5200"
+          - name: APP_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: jobs
+                key: flask-app-secret-key
 
           image: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${IMAGE_TAG}"
           name: f8a-server-backbone
