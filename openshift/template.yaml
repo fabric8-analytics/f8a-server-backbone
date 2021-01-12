@@ -81,10 +81,12 @@ objects:
             value: "5000"
           - name: WORKER_TIMEOUT
             value: ${WORKER_TIMEOUT}
+          - name: WORKER_CONNECTIONS
+            value: "1024"
+          - name: WORKER_CLASS
+            value: "gevent"
           - name: WORKERS_COUNT
             value: "4"
-          - name: WORKERS_CLASS
-            value: "sync"
           - name: FLASK_LOGGING_LEVEL
             value: ${FLASK_LOGGING_LEVEL}
           - name: METRICS_ENDPOINT_URL
