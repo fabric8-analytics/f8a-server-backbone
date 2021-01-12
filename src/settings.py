@@ -31,11 +31,12 @@ class Settings(BaseSettings):
 
 
 class GunicornSettings(BaseSettings):
-    """Gunicorn settings"""
+    """Gunicorn settings."""
 
     workers: int = Field(default=2, env="WORKERS_COUNT")
-    worker_class: str = Field(default="sync", env="WORKERS_CLASS")
+    worker_class: str = Field(default="sync", env="WORKER_CLASS")
     timeout: int = Field(default=120, env="WORKER_TIMEOUT")
+    preload: bool = Field(default=True, env="WORKER_PRELOAD")
 
 
 SETTINGS = Settings()
