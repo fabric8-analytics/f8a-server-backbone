@@ -7,7 +7,7 @@ workers = GUNICORN_SETTINGS.workers
 worker_class = GUNICORN_SETTINGS.worker_class
 timeout = GUNICORN_SETTINGS.timeout
 preload_app = GUNICORN_SETTINGS.preload
-reload = preload_app is True
+reload = preload_app is not True
 
 
 def when_ready(server):  # noqa
