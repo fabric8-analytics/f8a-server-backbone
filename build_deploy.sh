@@ -13,9 +13,6 @@ docker build  --no-cache \
               -t ${IMG}  \
               -f ./Dockerfile.rhel .
 
-# Run tests
-./qa/runtests.sh
-
 # push the image
 skopeo copy --dest-creds "${QUAY_USER}:${QUAY_TOKEN}" \
     "docker-daemon:${IMG}" \
