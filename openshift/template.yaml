@@ -79,11 +79,11 @@ objects:
                 key: aws_secret_access_key
           - name: API_BACKBONE_SERVICE_PORT
             value: "5000"
-          - name: API_BACKBONE_SERVICE_TIMEOUT
-            value: ${API_BACKBONE_SERVICE_TIMEOUT}
-          - name: NUMBER_WORKER_PROCESS
+          - name: WORKER_TIMEOUT
+            value: ${WORKER_TIMEOUT}
+          - name: WORKERS_COUNT
             value: "4"
-          - name: CLASS_TYPE
+          - name: WORKER_CLASS
             value: "sync"
           - name: FLASK_LOGGING_LEVEL
             value: ${FLASK_LOGGING_LEVEL}
@@ -210,11 +210,11 @@ parameters:
   name: API_BACKBONE_SERVICE_PORT
   value: "5000"
 
-- description: API Service Timeout
-  displayName: API Service Timeout
+- description: Worker Timeout
+  displayName: Worker Timeout
   required: true
-  name: API_BACKBONE_SERVICE_TIMEOUT
-  value: "300"
+  name: WORKER_TIMEOUT
+  value: "120"
 
 - description: "Flask logging level (see: https://docs.python.org/3/library/logging.html#levels)"
   displayName: Flask logging level
