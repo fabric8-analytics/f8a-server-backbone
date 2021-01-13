@@ -85,7 +85,7 @@ objects:
             value: "1024"
           - name: WORKER_CLASS
             value: "gevent"
-          - name: WORKERS_COUNT
+          - name: WORKER_COUNT
             value: "4"
           - name: FLASK_LOGGING_LEVEL
             value: ${FLASK_LOGGING_LEVEL}
