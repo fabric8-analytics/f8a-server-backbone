@@ -26,10 +26,8 @@ objects:
         - command:
           - /bin/entrypoint.sh
           env:
-          - name: BAYESIAN_GREMLIN_HTTP_SERVICE_HOST
-            value: bayesian-gremlin-http
-          - name: BAYESIAN_GREMLIN_HTTP_SERVICE_PORT
-            value: "8182"
+          - name: GREMLIN_URL
+            value: "http://bayesian-gremlin-http:8182"
           - name: DEPLOYMENT_PREFIX
             valueFrom:
               configMapKeyRef:
@@ -46,20 +44,14 @@ objects:
             value: bayesian-pgbouncer
           - name: PGBOUNCER_SERVICE_PORT
             value: "5432"
-          - name: LICENSE_SERVICE_HOST
-            value: f8a-license-analysis
-          - name: LICENSE_SERVICE_PORT
-            value: "6162"
-          - name: CHESTER_SERVICE_HOST
-            value: f8a-npm-insights
-          - name: PYPI_SERVICE_HOST
-            value: f8a-pypi-insights
-          - name: GOLANG_SERVICE_HOST
-            value: f8a-golang-insights
-          - name: HPF_SERVICE_HOST
-            value: f8a-hpf-insights
-          - name: SERVICE_PORT
-            value: "6006"
+          - name: LICENSE_ANALYSIS_BASE_URL
+            value: "http://f8a-license-analysis:6162"
+          - name: NPM_INSIGHTS_BASE_URL
+            value: "http://f8a-npm-insights:6006"
+          - name: PYPI_INSIGHTS_BASE_URL
+            value: "http://f8a-pypi-insights:6006"
+          - name: MAVEN_INSIGHTS_BASE_URL
+            value: "http://f8a-hpf-insights-maven:6006"
           - name: POSTGRESQL_DATABASE
             valueFrom:
               secretKeyRef:
@@ -87,20 +79,25 @@ objects:
                 key: aws_secret_access_key
           - name: API_BACKBONE_SERVICE_PORT
             value: "5000"
-          - name: API_BACKBONE_SERVICE_TIMEOUT
-            value: ${API_BACKBONE_SERVICE_TIMEOUT}
-          - name: NUMBER_WORKER_PROCESS
+          - name: WORKER_TIMEOUT
+            value: ${WORKER_TIMEOUT}
+          - name: WORKER_CONNECTIONS
+            value: "1024"
+          - name: WORKER_CLASS
+            value: "gevent"
+          - name: WORKER_COUNT
             value: "4"
-          - name: CLASS_TYPE
-            value: "sync"
           - name: FLASK_LOGGING_LEVEL
             value: ${FLASK_LOGGING_LEVEL}
           - name: METRICS_ENDPOINT_URL
             value: "metrics-accumulator"
           - name: METRICS_ENDPOINT_URL_PORT
             value: "5200"
-          - name: DISABLE_UNKNOWN_PACKAGE_FLOW
-            value: ${DISABLE_UNKNOWN_PACKAGE_FLOW}
+          - name: APP_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: jobs
+                key: flask-app-secret-key
 
           image: "${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${IMAGE_TAG}"
           name: f8a-server-backbone
@@ -215,21 +212,14 @@ parameters:
   name: API_BACKBONE_SERVICE_PORT
   value: "5000"
 
-- description: API Service Timeout
-  displayName: API Service Timeout
+- description: Worker Timeout
+  displayName: Worker Timeout
   required: true
-  name: API_BACKBONE_SERVICE_TIMEOUT
-  value: "300"
+  name: WORKER_TIMEOUT
+  value: "120"
 
 - description: "Flask logging level (see: https://docs.python.org/3/library/logging.html#levels)"
   displayName: Flask logging level
   required: false
   name: FLASK_LOGGING_LEVEL
   value: "INFO"
-
-- description: Flag to enable or disable the unknown package ingetion flow
-  displayName: DISABLE UNKNOWN PACKAGE FLOW
-  required: false
-  name: DISABLE_UNKNOWN_PACKAGE_FLOW
-  value: "0"
-

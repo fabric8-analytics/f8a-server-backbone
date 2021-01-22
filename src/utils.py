@@ -22,6 +22,8 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import sessionmaker
 
+from src.settings import SETTINGS
+
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +41,6 @@ class RequestException(Exception):
 
 
 logger = logging.getLogger(__file__)
-GREMLIN_SERVER_URL_REST = "http://{host}:{port}".format(
-    host=os.environ.get("BAYESIAN_GREMLIN_HTTP_SERVICE_HOST", "localhost"),
-    port=os.environ.get("BAYESIAN_GREMLIN_HTTP_SERVICE_PORT", "8182"))
-
-LICENSE_SCORING_URL_REST = "http://{host}:{port}".format(
-    host=os.environ.get("LICENSE_SERVICE_HOST", "localhost"),
-    port=os.environ.get("LICENSE_SERVICE_PORT", "6162"))
 
 zero_version = sv.Version("0.0.0")
 # Create Postgres Connection Session
@@ -104,7 +99,7 @@ def get_osio_user_count(ecosystem, name, version):
         'gremlin': str_gremlin
     }
 
-    json_response = post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
+    json_response = post_http_request(url=SETTINGS.gremlin_url, payload=payload)
     return json_response.get('result').get('data', ['-1'])[0]
 
 
@@ -324,21 +319,21 @@ def post_http_request(url: str, payload: Dict):
 
 def post_gremlin(query: str, bindings: Dict = None) -> Dict:
     """Post the given query and bindings to gremlin endpoint."""
+    payload = {
+        'gremlin': query,
+    }
+    if bindings:
+        payload['bindings'] = bindings
     try:
-        payload = {
-            'gremlin': query,
-        }
-        if bindings:
-            payload['bindings'] = bindings
-        response = get_session_retry().post(url=GREMLIN_SERVER_URL_REST, json=payload)
+        response = get_session_retry().post(url=SETTINGS.gremlin_url, json=payload)
         response.raise_for_status()
-        return response.json()
     except Exception as e:
         logger.error(traceback.format_exc())
-        logger.error(
-            "HTTP error {code}. Error retrieving data for {query}.".format(
-                code=response.status_code, query=payload))
+        logger.error("HTTP error %d. Error retrieving data for %s.",
+                     response.status_code, payload)
         raise GremlinExeception from e
+    else:
+        return response.json()
 
 
 def get_response_data(json_response, data_default):

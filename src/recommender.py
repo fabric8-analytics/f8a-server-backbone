@@ -70,8 +70,10 @@ from collections import Counter, defaultdict
 import re
 import logging
 
+from pydantic import AnyHttpUrl
+
+from src.settings import AGGREGATOR_SETTINGS, RECOMMENDER_SETTINGS, SETTINGS
 from src.utils import (create_package_dict, get_session_retry, select_latest_version,
-                       GREMLIN_SERVER_URL_REST, LICENSE_SCORING_URL_REST,
                        convert_version_to_proper_semantic, get_response_data,
                        version_info_tuple, persist_data_in_db, post_http_request)
 from src.stack_aggregator import extract_user_stack_package_licenses
@@ -112,7 +114,7 @@ class GraphDB:
         }
 
         # Query Gremlin with packages list to get their version information
-        gremlin_response = post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
+        gremlin_response = post_http_request(url=SETTINGS.gremlin_url, payload=payload)
         if gremlin_response is None:
             return []
         response = get_response_data(gremlin_response, [{0: 0}])
@@ -289,7 +291,7 @@ class License:
     @staticmethod
     def invoke_license_analysis_service(user_stack_packages, alt_packages, comp_packages):
         """Pass given args to stack_license analysis."""
-        license_url = LICENSE_SCORING_URL_REST + "/api/v1/stack_license"
+        license_url = AGGREGATOR_SETTINGS.license_analysis_base_url + "/api/v1/stack_license"
 
         payload = {
             "packages": user_stack_packages,
@@ -413,41 +415,20 @@ def set_valid_cooccurrence_probability(package_list=[]):
     return new_package_list
 
 
+def _prepare_insights_url(base_url: AnyHttpUrl) -> AnyHttpUrl:
+    assert base_url
+    return "{url}/api/v1/companion_recommendation".format(url=base_url)
+
+
+ECOSYSTEM_TO_INSIGHTS_URL = {
+    "pypi": _prepare_insights_url(RECOMMENDER_SETTINGS.pypi_insights_base_url),
+    "npm": _prepare_insights_url(RECOMMENDER_SETTINGS.npm_insights_base_url),
+    "maven": _prepare_insights_url(RECOMMENDER_SETTINGS.maven_insights_base_url),
+}
+
+
 class RecommendationTask:
     """Recommendation task."""
-
-    _analysis_name = 'recommendation_v2'
-    description = 'Get Recommendation'
-    kronos_ecosystems = ['maven']
-    chester_ecosystems = ['npm']
-    hpf_ecosystems = ['maven']
-    pypi_ecosystems = ['pypi']
-    golang_ecosystem = ['golang']
-
-    @staticmethod
-    def get_insights_url(payload):
-        """Get the insights url based on the ecosystem."""
-        if payload and 'ecosystem' in payload[0]:
-            if payload[0]['ecosystem'] in RecommendationTask.chester_ecosystems:
-                INSIGHTS_SERVICE_HOST = os.getenv("CHESTER_SERVICE_HOST")
-            elif payload[0]['ecosystem'] in RecommendationTask.pypi_ecosystems:
-                INSIGHTS_SERVICE_HOST = os.getenv("PYPI_SERVICE_HOST")
-            elif payload[0]['ecosystem'] in RecommendationTask.golang_ecosystem:
-                INSIGHTS_SERVICE_HOST = os.environ.get("GOLANG_SERVICE_HOST")
-            else:
-                INSIGHTS_SERVICE_HOST = os.getenv("HPF_SERVICE_HOST") + "-" + payload[0][
-                    'ecosystem']
-
-            INSIGHTS_URL_REST = "http://{host}:{port}".format(host=INSIGHTS_SERVICE_HOST,
-                                                              port=os.getenv("SERVICE_PORT"))
-
-            insights_url = INSIGHTS_URL_REST + "/api/v1/companion_recommendation"
-
-            return insights_url
-
-        else:
-            logger.error('Payload information not passed in the call, Quitting! inights '
-                         'recommender\'s call')
 
     @staticmethod
     def call_insights_recommender(payload):
@@ -459,7 +440,8 @@ class RecommendationTask:
         try:
             # TODO remove hardcodedness for payloads with multiple ecosystems
 
-            insights_url = RecommendationTask.get_insights_url(payload)
+            insights_url = ECOSYSTEM_TO_INSIGHTS_URL.get(payload[0]['ecosystem'], None)
+            assert insights_url
             response = get_session_retry().post(insights_url, json=payload)
 
             if response.status_code != 200:
@@ -519,13 +501,6 @@ class RecommendationTask:
                 'comp_package_count_threshold': int(os.environ.get(
                     'MAX_COMPANION_PACKAGES', 5))
             }
-            if details['ecosystem'] in self.kronos_ecosystems:
-                insights_payload.update({
-                    'alt_package_count_threshold': int(os.environ.get('MAX_ALTERNATE_PACKAGES', 2)),
-                    'outlier_probability_threshold': float(os.environ.get('OUTLIER_THRESHOLD',
-                                                                          0.6)),
-                    'user_persona': "1",  # TODO - remove janus hardcoded value
-                })
             input_task_for_insights_recommender = [insights_payload]
 
             # Call PGM and get the response

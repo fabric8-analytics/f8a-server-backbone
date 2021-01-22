@@ -114,16 +114,6 @@ def test_recommendation_api_endpoint(_mock_object, client):
     assert jsn['external_request_id'] is not None
 
 
-@mock.patch('requests.Session.post', return_value=Response2)
-def test_recommendation_api_endpoint_exception(_mock_object, client):
-    """Check the /recommender REST API endpoint."""
-    rec_resp = client.post(api_route_for("recommender"),
-                           data=json.dumps(payload), content_type='application/json')
-    jsn = get_json_from_response(rec_resp)
-    assert jsn['recommendation'] == 'pgm_error'
-    assert jsn['external_request_id'] == payload['external_request_id']
-
-
 if __name__ == '__main__':
     test_readiness_endpoint()
     test_liveness_endpoint()

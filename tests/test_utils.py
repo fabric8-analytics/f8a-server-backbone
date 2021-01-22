@@ -5,12 +5,13 @@ import semantic_version as sv
 from unittest import mock
 from pytest import raises
 from tests.test_rest_api import response
+from src.settings import SETTINGS
 from src.utils import push_data, get_time_delta
 from src.utils import (
-    convert_version_to_proper_semantic as cvs, GREMLIN_SERVER_URL_REST, format_date,
+    convert_version_to_proper_semantic as cvs, format_date,
     version_info_tuple as vt, select_latest_version as slv,
     get_osio_user_count, create_package_dict, post_http_request,
-    server_create_analysis, select_from_db, total_time_elapsed, post_gremlin,
+    select_from_db, total_time_elapsed, post_gremlin,
     GremlinExeception, RequestException)
 
 METRICS_COLLECTION_URL = "http://{base_url}:{port}/api/v1/prometheus".format(
@@ -168,13 +169,7 @@ def test_post_http_request(_mock1):
     """Test error response for gremlin."""
     payload = {'gremlin': ''}
     with raises(RequestException):
-        post_http_request(url=GREMLIN_SERVER_URL_REST, payload=payload)
-
-
-def test_server_create_analysis():
-    """Test server_create_analysis."""
-    rec_resp = server_create_analysis("npm", "hjhjhjh", "1.1")
-    assert rec_resp is None
+        post_http_request(url=SETTINGS.gremlin_url, payload=payload)
 
 
 def test_select_from_db():
@@ -252,4 +247,3 @@ if __name__ == '__main__':
     test_get_osio_user_count()
     test_post_http_request()
     test_create_package_dict()
-    test_server_create_analysis()
