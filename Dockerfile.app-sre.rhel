@@ -1,0 +1,29 @@
+# This Dockerfile will replace Dockerfile.rhel once we migrate the service as part of APPSRE-2801
+
+# base image source https://github.com/rhdt/EL-Dockerfiles/blob/master/base/python3/Dockerfile
+
+FROM quay.io/app-sre/rhel-base-python3:latest
+
+ENV F8A_WORKER_VERSION=fefc764 \
+    F8A_UTIL_VERSION=098d3d6
+LABEL name="f8analytics backbone services" \
+      description="Stack aggregation and recommendation service." \
+      git-sha="46e443d" \
+      email-ids="yzainee@redhat.com,deepshar@redhat.com" \
+      git-url="https://github.com/fabric8-analytics/f8a-server-backbone" \
+      git-path="/" \
+      target-file="Dockerfile" \
+      app-license="GPL-3.0"
+
+COPY ./requirements.txt /
+
+RUN pip3 install --upgrade pip
+RUN pip3 install -r requirements.txt && rm requirements.txt
+
+COPY ./src /src
+
+ADD scripts/entrypoint.sh /bin/entrypoint.sh
+
+RUN chmod 777 /bin/entrypoint.sh
+
+ENTRYPOINT ["/bin/entrypoint.sh"]
