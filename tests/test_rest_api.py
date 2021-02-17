@@ -90,32 +90,3 @@ def test_liveness_endpoint(client):
     assert response.status_code == 200
     json_data = get_json_from_response(response)
     assert json_data == {}, "Empty JSON response expected"
-
-
-@mock.patch('src.stack_aggregator.StackAggregator.execute', return_value=response)
-def test_stack_api_endpoint(_mock, client):
-    """Check the /stack_aggregator REST API endpoint."""
-    stack_resp = client.post(api_route_for("stack_aggregator"),
-                             data=json.dumps(payload),
-                             content_type='application/json')
-    _mock.assert_called_once()
-    jsn = get_json_from_response(stack_resp)
-    assert jsn['external_request_id'] is not None
-
-
-@mock.patch('src.recommender.RecommendationTask.execute', return_value=response)
-def test_recommendation_api_endpoint(_mock_object, client):
-    """Check the /recommender REST API endpoint."""
-    rec_resp = client.post(api_route_for("recommender"),
-                           data=json.dumps(payload), content_type='application/json')
-    _mock_object.assert_called_once()
-    jsn = get_json_from_response(rec_resp)
-    assert jsn['recommendation'] == 'success'
-    assert jsn['external_request_id'] is not None
-
-
-if __name__ == '__main__':
-    test_readiness_endpoint()
-    test_liveness_endpoint()
-    test_stack_api_endpoint()
-    test_recommendation_api_endpoint()

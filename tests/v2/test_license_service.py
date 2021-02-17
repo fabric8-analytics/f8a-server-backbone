@@ -56,7 +56,7 @@ def test_get_license_analysis_for_stack_with_empty_param(_mock_post):
 def test_get_license_analysis_for_stack_unknown_licenses(_mock_post):
     """Test for unknown license result."""
     # really unknown
-    with open("tests/data/license_unknown.json", "r") as f:
+    with open("tests/v2/data/license_unknown.json", "r") as f:
         _mock_post.return_value = json.loads(f.read())
 
     result = la.get_license_analysis_for_stack(_get_normalized_packages())
@@ -74,7 +74,7 @@ def test_get_license_analysis_for_stack_unknown_licenses(_mock_post):
 def test_get_license_analysis_for_stack_conflict_packages(_mock_post):
     """Test for unknown license result."""
     # conflict_packages
-    with open("tests/data/license_component_conflict.json", "r") as f:
+    with open("tests/v2/data/license_component_conflict.json", "r") as f:
         _mock_post.return_value = json.loads(f.read())
     result = la.get_license_analysis_for_stack(_get_normalized_packages())
     _mock_post.assert_called_once()

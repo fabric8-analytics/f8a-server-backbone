@@ -8,9 +8,8 @@ from tests.test_rest_api import response
 from src.settings import SETTINGS
 from src.utils import push_data, get_time_delta
 from src.utils import (
-    convert_version_to_proper_semantic as cvs, format_date,
-    version_info_tuple as vt, select_latest_version as slv,
-    get_osio_user_count, create_package_dict, post_http_request,
+    format_date,
+    post_http_request,
     select_from_db, total_time_elapsed, post_gremlin,
     GremlinExeception, RequestException)
 
@@ -76,29 +75,6 @@ def mock_get_osio_user_count(*_args, **_kwargs):
     return MockResponse(resp, 200)
 
 
-def test_semantic_versioning():
-    """Check the function cvs()."""
-    package_name = "test_package"
-    version = "-1"
-    assert cvs(version, package_name) == sv.Version("0.0.0")
-    version = ""
-    assert cvs(version, package_name) == sv.Version("0.0.0")
-    version = None
-    assert cvs(version, package_name) == sv.Version("0.0.0")
-    version = "1.5.2.RELEASE"
-    assert cvs(version, package_name) == sv.Version("1.5.2+RELEASE")
-    version = "1.5-2.RELEASE"
-    assert cvs(version, package_name) == sv.Version("1.5.2+RELEASE")
-    version = "2"
-    assert cvs(version, package_name) == sv.Version("2.0.0")
-    version = "2.3"
-    assert cvs(version, package_name) == sv.Version("2.3.0")
-    version = "2.0.rc1"
-    assert cvs(version, package_name) == sv.Version("2.0.0+rc1")
-    version = "[1.4)"
-    assert cvs(version, package_name) == sv.Version("0.0.0")
-
-
 def test_format_date():
     """Check the function format_date()."""
     date1 = '2019-05-21 06:44:15'
@@ -109,59 +85,6 @@ def test_format_date():
     assert format_date(date2) == 'N/A'
     assert format_date(date3) == 'N/A'
     assert format_date(date4) == 'N/A'
-
-
-def test_version_info_tuple():
-    """Check the function vt()."""
-    # TODO: reduce cyclomatic complexity
-    version_str = "2.0.rc1"
-    package_name = "test_package"
-    version_obj = cvs(version_str, package_name)
-    version_info = vt(version_obj)
-    assert len(version_info) == 4
-    assert version_info[0] == version_obj.major
-    assert version_info[1] == version_obj.minor
-    assert version_info[2] == version_obj.patch
-    assert version_info[3] == version_obj.build
-    version_obj = ""
-    version_info = vt(version_obj)
-    assert len(version_info) == 4
-    assert version_info[0] == 0
-    assert version_info[1] == 0
-    assert version_info[2] == 0
-    assert version_info[3] == tuple()
-
-
-def test_select_latest_version():
-    """Check fucntion slv()."""
-    input_version = "1.2.2"
-    libio = "1.2.3"
-    anitya = "1.3.4"
-    package_name = "test_package"
-    result_version = slv(input_version, libio, anitya, package_name)
-    assert result_version == anitya
-    input_version = ""
-    libio = ""
-    anitya = ""
-    result_version = slv(input_version, libio, anitya, package_name)
-    assert result_version == ""
-
-
-@mock.patch('requests.get', side_effect=mock_get_osio_user_count)
-@mock.patch('requests.Session.post', side_effect=mock_get_osio_user_count)
-def test_get_osio_user_count(_mock_get, _mock_post):
-    """Test the function get_osio_user_count."""
-    out = get_osio_user_count("maven", "io.vertx:vertx-core", "3.4.2")
-    assert isinstance(out, int)
-
-
-@mock.patch('src.utils.get_osio_user_count', return_value=1)
-def test_create_package_dict(_mock_count):
-    """Test the function get_osio_user_count."""
-    with open('tests/data/companion_pkg_graph.json', 'r') as f:
-        resp = json.loads(f.read())
-    out = create_package_dict(resp)
-    assert len(out) > 1
 
 
 @mock.patch('requests.Session.post', side_effect=mock_error_response)
@@ -238,12 +161,3 @@ def test_post_gremlin_normal(_mock_post):
     kwargs = _mock_post.call_args_list[0][1]['json']
     assert kwargs['gremlin'] == 'gremlin_query'
     assert kwargs['bindings'] == {'val': 123}
-
-
-if __name__ == '__main__':
-    test_semantic_versioning()
-    test_version_info_tuple()
-    test_select_latest_version()
-    test_get_osio_user_count()
-    test_post_http_request()
-    test_create_package_dict()

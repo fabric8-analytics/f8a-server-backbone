@@ -10,8 +10,6 @@ from flask import Flask, request
 from flask_cors import CORS
 from raven.contrib.flask import Sentry
 
-from src.recommender import RecommendationTask as RecommendationTaskV1
-from src.stack_aggregator import StackAggregator as StackAggregatorV1
 from src.utils import push_data, total_time_elapsed
 from src.v2.recommender import RecommendationTask as RecommendationTaskV2
 from src.v2.stack_aggregator import StackAggregator as StackAggregatorV2
@@ -124,18 +122,6 @@ def _stack_aggregator(handler):
                 external_request_id, time.time() - stack_aggregator_started_at)
 
     return flask.jsonify(s)
-
-
-@app.route('/api/v1/recommender', methods=['POST'])
-def recommender_v1():
-    """Handle POST requests that are sent to /api/v1/recommender REST API endpoint."""
-    return _recommender(RecommendationTaskV1())
-
-
-@app.route('/api/v1/stack_aggregator', methods=['POST'])
-def stack_aggregator_v1():
-    """Handle POST requests that are sent to /api/v1/stack_aggregator REST API endpoint."""
-    return _stack_aggregator(StackAggregatorV1())
 
 
 @app.route('/api/v2/recommender', methods=['POST'])
