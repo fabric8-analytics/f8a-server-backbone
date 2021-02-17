@@ -9,5 +9,5 @@ pydantic
 psycopg2-binary
 sqlalchemy
 raven[flask]
-f8a_worker @ git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@cf7b8a7#egg=f8a_worker
-f8a_utils @ git+https://github.com/fabric8-analytics/fabric8-analytics-utils.git@95ebbf2#egg=f8a_utils
+f8a_worker @ git+https://github.com/fabric8-analytics/fabric8-analytics-worker.git@af1680a#egg=f8a_worker
+f8a_utils @ git+https://github.com/fabric8-analytics/fabric8-analytics-utils.git@839e022#egg=f8a_utils
