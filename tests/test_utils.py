@@ -1,7 +1,5 @@
 """Tests for the 'utils' module."""
 import os
-import json
-import semantic_version as sv
 from unittest import mock
 from pytest import raises
 from tests.test_rest_api import response

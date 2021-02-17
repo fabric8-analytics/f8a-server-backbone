@@ -1,6 +1,5 @@
 """Tests for the REST API of the backbone service."""
 import json
-from unittest import mock
 
 payload = {
     "external_request_id": "req-id",

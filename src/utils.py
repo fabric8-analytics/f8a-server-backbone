@@ -10,13 +10,10 @@ import requests
 import semantic_version as sv
 
 from typing import Dict
-from f8a_utils.versions import get_versions_for_ep
 from f8a_worker.models import WorkerResult
-from f8a_worker.setup_celery import init_celery
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from requests_futures.sessions import FuturesSession
-from selinon import run_flow
 from sqlalchemy import create_engine
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
