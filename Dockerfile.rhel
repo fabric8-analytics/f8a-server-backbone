@@ -1,6 +1,8 @@
+# This Dockerfile will replace Dockerfile.rhel once we migrate the service as part of APPSRE-2801
+
 # base image source https://github.com/rhdt/EL-Dockerfiles/blob/master/base/python3/Dockerfile
 
-FROM quay.io/openshiftio/rhel-base-python3:latest
+FROM quay.io/app-sre/rhel-base-python3:latest
 
 ENV F8A_WORKER_VERSION=fefc764 \
     F8A_UTIL_VERSION=098d3d6
