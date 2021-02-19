@@ -1,37 +1,7 @@
 """Tests for the REST API of the backbone service."""
 import json
 from unittest import mock
-
-payload = {
-    "external_request_id": "req-id",
-    "result": [{
-        "summary": [],
-        "details": [{
-            "ecosystem": "maven",
-            "description": "Exposes an HTTP API using Vert.x",
-            "_resolved": [{
-                "package": "io.vertx:vertx-web",
-                "version": "3.4.2"
-            }, {
-                "package": "io.vertx:vertx-core",
-                "version": "3.4.2"
-            }],
-            "manifest_file_path": "/home/JohnDoe",
-            "manifest_file": "pom.xml",
-            "declared_licenses": ["Apache License, Version 2.0"],
-            "name": "Vert.x - HTTP",
-            "dependencies": ["io.vertx:vertx-web 3.4.2", "io.vertx:vertx-core 3.4.2"],
-            "version": "1.0.0-SNAPSHOT",
-            "devel_dependencies": [
-                "com.jayway.restassured:rest-assured 2.9.0",
-                "io.openshift:openshift-test-utils 2",
-                "org.assertj:assertj-core 3.6.2", "junit:junit 4.12",
-                "io.vertx:vertx-unit 3.4.2", "io.vertx:vertx-web-client 3.4.2",
-                "com.jayway.awaitility:awaitility 1.7.0"], "homepage": None
-        }],
-        "status": "success"
-    }]
-}
+from tests.v2.test_stack_aggregator import _request_body
 
 response = {
     "recommendation": "success",
@@ -71,11 +41,6 @@ def get_json_from_response(response):
     return json.loads(response.data.decode('utf8'))
 
 
-def api_route_for(route):
-    """Construct an URL to the endpoint for given route."""
-    return '/api/v1/' + route
-
-
 def test_readiness_endpoint(client):
     """Test the /api/readiness endpoint."""
     response = client.get("/api/readiness")
@@ -92,30 +57,23 @@ def test_liveness_endpoint(client):
     assert json_data == {}, "Empty JSON response expected"
 
 
-@mock.patch('src.stack_aggregator.StackAggregator.execute', return_value=response)
+@mock.patch('src.v2.stack_aggregator.StackAggregator.execute', return_value=response)
 def test_stack_api_endpoint(_mock, client):
     """Check the /stack_aggregator REST API endpoint."""
-    stack_resp = client.post(api_route_for("stack_aggregator"),
-                             data=json.dumps(payload),
+    stack_resp = client.post("/api/v2/stack_aggregator",
+                             data=json.dumps(_request_body()),
                              content_type='application/json')
     _mock.assert_called_once()
     jsn = get_json_from_response(stack_resp)
     assert jsn['external_request_id'] is not None
 
 
-@mock.patch('src.recommender.RecommendationTask.execute', return_value=response)
+@mock.patch('src.v2.recommender.RecommendationTask.execute', return_value=response)
 def test_recommendation_api_endpoint(_mock_object, client):
     """Check the /recommender REST API endpoint."""
-    rec_resp = client.post(api_route_for("recommender"),
-                           data=json.dumps(payload), content_type='application/json')
+    rec_resp = client.post("/api/v2/recommender",
+                           data=json.dumps(_request_body()), content_type='application/json')
     _mock_object.assert_called_once()
     jsn = get_json_from_response(rec_resp)
     assert jsn['recommendation'] == 'success'
     assert jsn['external_request_id'] is not None
-
-
-if __name__ == '__main__':
-    test_readiness_endpoint()
-    test_liveness_endpoint()
-    test_stack_api_endpoint()
-    test_recommendation_api_endpoint()

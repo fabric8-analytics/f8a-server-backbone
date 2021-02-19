@@ -16,8 +16,7 @@ from f8a_utils.gh_utils import GithubUtils
 from f8a_utils.ingestion_utils import unknown_package_flow
 
 from src.settings import AGGREGATOR_SETTINGS
-from src.utils import (select_latest_version,
-                       persist_data_in_db, post_gremlin, GREMLIN_QUERY_SIZE,
+from src.utils import (persist_data_in_db, post_gremlin, GREMLIN_QUERY_SIZE,
                        format_date)
 from src.v2.models import (StackAggregatorRequest, GitHubDetails, PackageDetails,
                            VulnerabilityFields,
@@ -144,12 +143,7 @@ def get_package_details(component: Dict) -> PackageDataWithVulnerabilities:
     recommended_latest_version = pkg_node.get("latest_non_cve_version", [""])[0]
     licenses = version_node.get("declared_licenses", [])
 
-    latest_version = select_latest_version(
-        pkg.version,
-        pkg_node.get("libio_latest_version", [""])[0],
-        pkg_node.get("latest_version", [""])[0],
-        pkg.name
-    )
+    latest_version = pkg_node.get("latest_version", [pkg.version])[0]
     return pkg, PackageDataWithVulnerabilities(**pkg.dict(), ecosystem=ecosystem,
                                                latest_version=latest_version,
                                                github=github_details, licenses=licenses,
