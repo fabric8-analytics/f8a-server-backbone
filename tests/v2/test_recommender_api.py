@@ -112,7 +112,22 @@ def test_recommendation_response_with_empty_package_request(
         ),
         content_type="application/json",
     )
-    assert response.status_code == 500
+    assert response.status_code == 200
+    response = get_json_from_response(response)
+    assert response == {
+        "external_request_id": "foo",
+        "recommendation": "success",
+        "result": {
+            "companion": [],
+            "external_request_id": "foo",
+            "manifest_file_path": "/foo.bar",
+            "manifest_name": None,
+            "recommendation_status": "success",
+            "registration_status": "FREETIER",
+            "usage_outliers": [],
+            "uuid": None,
+        },
+    }
 
 
 @mock.patch("src.v2.recommender.post_gremlin", return_value={"result": {"data": []}})
