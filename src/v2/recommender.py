@@ -42,10 +42,6 @@ class InsightsCallException(Exception):
     """Exception related to insight service call failures."""
 
 
-class InsightsWithEmptyPackageException(Exception):
-    """Exception for empty request packages."""
-
-
 def _prepare_insights_url(base_url: AnyHttpUrl) -> AnyHttpUrl:
     assert base_url
     return "{url}/api/v1/companion_recommendation".format(url=base_url)
@@ -90,9 +86,6 @@ class RecommendationTask:
         package_list = list(
             map(lambda epv: epv.name, normalized_packages.direct_dependencies)
         )
-        if not package_list:
-            raise InsightsWithEmptyPackageException("Request package list is empty")
-
         insights_payload = InsightsRequest(
             ecosystem=normalized_packages.ecosystem,
             transitive_stack=list(
@@ -172,8 +165,12 @@ class RecommendationTask:
             normalized_packages = NormalizedPackages(
                 request.packages, request.ecosystem
             )
-            insights_response = self._get_insights_response(normalized_packages)
-            companion = self._get_recommended_package_details(insights_response[0])
+            if normalized_packages.direct_dependencies:
+                insights_response = self._get_insights_response(normalized_packages)
+                companion = self._get_recommended_package_details(insights_response[0])
+            else:
+                companion = []
+                logging.warning("empty direct_dependencies, skip recommendation")
         else:
             companion = []
             logging.warning("Recommendation is not yet implemented for golang")
