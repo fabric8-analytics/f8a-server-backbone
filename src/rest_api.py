@@ -40,41 +40,17 @@ def _recommender(handler):
     external_request_id = 'None'
     recommender_started_at = time.time()
 
-    r = {'recommendation': 'failure', 'external_request_id': None}
-    # (fixme) Create decorator for metrics handling.
-    metrics_payload = {
-        'pid': os.getpid(),
-        'hostname': os.environ.get("HOSTNAME"),
-        'endpoint': request.endpoint,
-        'request_method': request.method,
-        'status_code': 200
-    }
-
     input_json = request.get_json()
     external_request_id = input_json['external_request_id']
     logger.info('%s recommender/ request', external_request_id)
-
-    try:
-        check_license = request.args.get('check_license', 'false') == 'true'
-        persist = request.args.get('persist', 'true') == 'true'
-        r = handler.execute(input_json, persist=persist,
-                            check_license=check_license)
-    except Exception as e:
-        r = {
-            'recommendation': 'unexpected error',
-            'external_request_id': input_json.get('external_request_id'),
-            'message': '%s' % e
-        }
-        metrics_payload['status_code'] = 400
-        metrics_payload['value'] = 0
-        push_data(metrics_payload)
-        logger.error('%s failed %s', external_request_id, r)
-        raise e
-
+    check_license = request.args.get('check_license', 'false') == 'true'
+    persist = request.args.get('persist', 'true') == 'true'
+    r = handler.execute(input_json, persist=persist,
+                        check_license=check_license)
     logger.info('%s took %0.2f seconds for _recommender',
                 external_request_id, time.time() - recommender_started_at)
 
-    return flask.jsonify(r), metrics_payload['status_code']
+    return flask.jsonify(r)
 
 
 def _stack_aggregator(handler):

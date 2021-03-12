@@ -88,11 +88,11 @@ objects:
           - name: WORKER_TIMEOUT
             value: ${WORKER_TIMEOUT}
           - name: WORKER_CONNECTIONS
-            value: "1024"
+            value: ${WORKER_CONNECTIONS}
           - name: WORKER_CLASS
-            value: "gevent"
+            value: ${WORKER_CLASS}
           - name: WORKER_COUNT
-            value: "4"
+            value: ${WORKER_COUNT}
           - name: FLASK_LOGGING_LEVEL
             value: ${FLASK_LOGGING_LEVEL}
           - name: METRICS_ENDPOINT_URL
@@ -220,12 +220,6 @@ parameters:
   name: API_BACKBONE_SERVICE_PORT
   value: "5000"
 
-- description: Worker Timeout
-  displayName: Worker Timeout
-  required: true
-  name: WORKER_TIMEOUT
-  value: "120"
-
 - description: "Flask logging level (see: https://docs.python.org/3/library/logging.html#levels)"
   displayName: Flask logging level
   required: false
@@ -236,3 +230,27 @@ parameters:
   displayName: Private pull secret name
   name: IMAGE_PULL_SECRET_NAME
   value: "quay.io"
+
+- description: Gevent Worker Timeout
+  displayName: Gevent Worker Timeout
+  required: true
+  name: WORKER_TIMEOUT
+  value: "120"
+
+- description: Gevent Worker connections
+  displayName: Gevent Worker connections
+  required: true
+  name: WORKER_CONNECTIONS
+  value: "1024"
+
+- description: Gevent Worker class
+  displayName: Gevent Worker class
+  required: true
+  name: WORKER_CLASS
+  value: "gevent"
+
+- description: Gevent Worker Count
+  displayName: Gevent Worker Count
+  required: true
+  name: WORKER_COUNT
+  value: "2"

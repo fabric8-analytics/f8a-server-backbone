@@ -502,6 +502,9 @@ components:
           enum:
             - success
             - pgm_error
+            - invalid_ecosystem
+            - invalid_payload
+            - insights_call_failure
           default: success
         companion:
           type: array

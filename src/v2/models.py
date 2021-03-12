@@ -169,6 +169,9 @@ class RecommendedPackageData(PackageDetails):  # noqa: D101
 class RecommendationStatus(str, Enum):  # noqa: D101
     success = 'success'
     pgm_error = 'pgm_error'
+    invalid_ecosystem = 'invalid_ecosystem'
+    invalid_payload = 'invalid_payload'
+    insights_call_failure = 'insights_call_failure'
 
 
 class Audit(BaseModel):  # noqa: D101
