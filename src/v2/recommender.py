@@ -100,6 +100,9 @@ class RecommendationTask:
         package_list = list(
             map(lambda epv: epv.name, normalized_packages.direct_dependencies)
         )
+        if not package_list:
+            raise InsightsWithEmptyPackageException("Request package list is empty")
+
         insights_payload = InsightsRequest(
             ecosystem=normalized_packages.ecosystem,
             transitive_stack=list(
