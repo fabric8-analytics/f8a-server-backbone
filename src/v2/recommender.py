@@ -96,12 +96,12 @@ class RecommendationTask:
         except KeyError as e:
             raise InsightsNotSupportedEcosystems from e
 
+        if not request.packages:
+            raise InsightsWithEmptyPackageException("Request package list is empty")
         normalized_packages = NormalizedPackages(request.packages, request.ecosystem)
         package_list = list(
             map(lambda epv: epv.name, normalized_packages.direct_dependencies)
         )
-        if not package_list:
-            raise InsightsWithEmptyPackageException("Request package list is empty")
 
         insights_payload = InsightsRequest(
             ecosystem=normalized_packages.ecosystem,
