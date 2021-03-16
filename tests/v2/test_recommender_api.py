@@ -48,7 +48,7 @@ def test_golang_empty_response(client):
         "external_request_id": "foo",
         "manifest_file_path": "/foo.bar",
         "manifest_name": None,
-        "recommendation_status": "success",
+        "recommendation_status": "invalid_ecosystem",
         "registration_status": "REGISTERED",
         "usage_outliers": [],
         "uuid": None,
@@ -81,16 +81,30 @@ def test_recommendation_response_with_insight_error(
         "/api/v2/recommender?persist=false",
         data=json.dumps(
             RecommenderRequest(
-                registration_status="",
-                external_request_id="",
+                registration_status="FREETIER",
+                external_request_id="foo",
                 ecosystem="npm",
-                manifest_file_path="",
+                manifest_file_path="/foo.bar",
                 packages=[Package(name="request", version="2.88.2")],
             ).dict()
         ),
         content_type="application/json",
     )
-    assert response.status_code == 500
+    assert response.status_code == 200
+    response = get_json_from_response(response)
+    assert response == {
+        "external_request_id": "foo",
+        "result": {
+            "companion": [],
+            "external_request_id": "foo",
+            "manifest_file_path": "/foo.bar",
+            "manifest_name": None,
+            "recommendation_status": "insights_call_failure",
+            "registration_status": "FREETIER",
+            "usage_outliers": [],
+            "uuid": None,
+        },
+    }
 
 
 @mock.patch("src.v2.recommender.post_gremlin", return_value={"result": {"data": []}})
@@ -116,13 +130,12 @@ def test_recommendation_response_with_empty_package_request(
     response = get_json_from_response(response)
     assert response == {
         "external_request_id": "foo",
-        "recommendation": "success",
         "result": {
             "companion": [],
             "external_request_id": "foo",
             "manifest_file_path": "/foo.bar",
             "manifest_name": None,
-            "recommendation_status": "success",
+            "recommendation_status": "invalid_payload",
             "registration_status": "FREETIER",
             "usage_outliers": [],
             "uuid": None,
@@ -167,7 +180,6 @@ def test_recommendation_response_with_empty_insight_response(
     response = get_json_from_response(response)
     assert response == {
         "external_request_id": "foo",
-        "recommendation": "success",
         "result": {
             "companion": [],
             "external_request_id": "foo",

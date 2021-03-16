@@ -21,6 +21,7 @@ from src.v2.models import (
     StackRecommendationResult,
     Ecosystem,
     RecommendedPackageData,
+    RecommendationStatus,
 )
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,14 @@ class InsightsCallException(Exception):
     """Exception related to insight service call failures."""
 
 
+class InsightsWithEmptyPackageException(Exception):
+    """Exception for empty request packages."""
+
+
+class InsightsNotSupportedEcosystems(Exception):
+    """Exception for empty request packages."""
+
+
 def _prepare_insights_url(base_url: AnyHttpUrl) -> AnyHttpUrl:
     assert base_url
     return "{url}/api/v1/companion_recommendation".format(url=base_url)
@@ -58,13 +67,12 @@ class RecommendationTask:
     """Recommendation task."""
 
     @staticmethod
-    def _call(payload: InsightsRequest):
+    def _call(insights_url: str, payload: InsightsRequest):
         """Call the PGM model.
 
         Calls the PGM model with the normalized manifest information to get
         the relevant packages.
         """
-        insights_url = ECOSYSTEM_TO_INSIGHTS_URL.get(payload.ecosystem, None)
         assert insights_url
         try:
             started_at = time.time()
@@ -82,10 +90,19 @@ class RecommendationTask:
             )
             return json_response
 
-    def _get_insights_response(self, normalized_packages: NormalizedPackages):
+    def _get_insights_response(self, request: RecommenderRequest):
+        try:
+            insights_url = ECOSYSTEM_TO_INSIGHTS_URL[request.ecosystem]
+        except KeyError as e:
+            raise InsightsNotSupportedEcosystems from e
+
+        if not request.packages:
+            raise InsightsWithEmptyPackageException("Request package list is empty")
+        normalized_packages = NormalizedPackages(request.packages, request.ecosystem)
         package_list = list(
             map(lambda epv: epv.name, normalized_packages.direct_dependencies)
         )
+
         insights_payload = InsightsRequest(
             ecosystem=normalized_packages.ecosystem,
             transitive_stack=list(
@@ -94,7 +111,7 @@ class RecommendationTask:
             package_list=package_list,
         )
         # Call PGM and get the response
-        return self._call(insights_payload)
+        return self._call(insights_url, insights_payload)
 
     def _get_recommended_package_details(
         self, insights_response
@@ -161,23 +178,28 @@ class RecommendationTask:
         """Execute task."""
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         request = RecommenderRequest(**arguments)
-        if request.ecosystem != "golang":
-            normalized_packages = NormalizedPackages(
-                request.packages, request.ecosystem
-            )
-            if normalized_packages.direct_dependencies:
-                insights_response = self._get_insights_response(normalized_packages)
-                companion = self._get_recommended_package_details(insights_response[0])
-            else:
-                companion = []
-                logging.warning("empty direct_dependencies, skip recommendation")
-        else:
+        try:
+            insights_response = self._get_insights_response(request)
+        except InsightsWithEmptyPackageException:
             companion = []
-            logging.warning("Recommendation is not yet implemented for golang")
+            recommendation_status = RecommendationStatus.invalid_payload
+            logging.exception("empty package")
+        except InsightsCallException:
+            companion = []
+            recommendation_status = RecommendationStatus.insights_call_failure
+            logging.exception("call failure")
+        except InsightsNotSupportedEcosystems:
+            companion = []
+            recommendation_status = RecommendationStatus.invalid_ecosystem
+            logging.exception("not supported")
+        else:
+            companion = self._get_recommended_package_details(insights_response[0])
+            recommendation_status = RecommendationStatus.success
 
         result = StackRecommendationResult(
             **arguments,
             companion=companion,
+            recommendation_status=recommendation_status,
         )
 
         recommendation = result.dict()
@@ -188,7 +210,7 @@ class RecommendationTask:
             "version": "v2",
         }
 
-        external_request_id = request.external_request_id
+        external_request_id = result.external_request_id
         if persist:
             persist_data_in_db(
                 external_request_id=external_request_id,
@@ -202,7 +224,6 @@ class RecommendationTask:
                 external_request_id,
             )
         return {
-            "recommendation": "success",
             "external_request_id": external_request_id,
             "result": recommendation,
         }

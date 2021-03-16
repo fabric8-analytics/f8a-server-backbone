@@ -10,7 +10,7 @@ from flask import Flask, request
 from flask_cors import CORS
 from raven.contrib.flask import Sentry
 
-from src.utils import push_data, total_time_elapsed
+from src.utils import push_data, total_time_elapsed, get_time_delta
 from src.v2.recommender import RecommendationTask as RecommendationTaskV2
 from src.v2.stack_aggregator import StackAggregator as StackAggregatorV2
 
@@ -62,15 +62,17 @@ def _recommender(handler):
     except Exception as e:
         r = {
             'recommendation': 'unexpected error',
-            'external_request_id': input_json.get('external_request_id'),
-            'message': '%s' % e
+            'external_request_id': external_request_id,
+            'message': str(e)
         }
         metrics_payload['status_code'] = 400
-        metrics_payload['value'] = 0
         push_data(metrics_payload)
-        logger.error('%s failed %s', external_request_id, r)
-        raise e
-
+        logger.exception('%s failed %s', external_request_id, r)
+    try:
+        metrics_payload['value'] = get_time_delta(audit_data=r['result']['_audit'])
+        push_data(metrics_payload)
+    except KeyError:
+        pass
     logger.info('%s took %0.2f seconds for _recommender',
                 external_request_id, time.time() - recommender_started_at)
 
@@ -113,7 +115,7 @@ def _stack_aggregator(handler):
         }
         metrics_payload['status_code'] = 400
         # Pushing Individual Metrics Data to Accumulator
-        metrics_payload['value'] = 0
+        metrics_payload['value'] = 0.0
         push_data(metrics_payload)
         logger.error('%s failed %s', external_request_id, s)
         raise e
