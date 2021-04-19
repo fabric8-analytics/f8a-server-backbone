@@ -8,7 +8,10 @@ LABEL name="f8analytics backbone services" \
       target-file="Dockerfile" \
       app-license="GPL-3.0"
 
+ENV LANG=en_US.UTF-8 PYTHONDONTWRITEBYTECODE=1
+
 RUN pip3 install --upgrade --no-cache-dir pip
+
 COPY ./requirements.txt /
 RUN pip3 install --no-cache-dir -r /requirements.txt
 
