@@ -12,10 +12,10 @@ ENV LANG=en_US.UTF-8 PYTHONDONTWRITEBYTECODE=1
 
 RUN pip3 install --upgrade --no-cache-dir pip
 
-COPY ./requirements.txt /
-RUN pip3 install --no-cache-dir -r /requirements.txt
+COPY ./requirements.txt /opt/app-root
+RUN pip3 install --no-cache-dir -r /opt/app-root/requirements.txt
 
-COPY ./src /src
+COPY ./src /opt/app-root/src/src
 ADD scripts/entrypoint.sh /bin/entrypoint.sh
 
 ENTRYPOINT ["bash", "/bin/entrypoint.sh"]
