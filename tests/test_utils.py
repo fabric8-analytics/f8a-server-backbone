@@ -1,10 +1,9 @@
 """Tests for the 'utils' module."""
-import os
 from unittest import mock
 from pytest import raises
 from tests.test_rest_api import response
 from src.settings import SETTINGS
-from src.utils import push_data, get_time_delta
+from src.utils import get_time_delta
 from src.utils import (
     format_date,
     post_http_request,
