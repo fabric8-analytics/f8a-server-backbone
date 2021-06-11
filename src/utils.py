@@ -46,10 +46,6 @@ worker_count = int(os.getenv('FUTURES_SESSION_WORKER_COUNT', '100'))
 _session = FuturesSession(max_workers=worker_count)
 GREMLIN_QUERY_SIZE = int(os.environ.get("GREMLIN_QUERY_SIZE", 50))
 
-METRICS_COLLECTION_URL = "http://{base_url}:{port}/api/v1/prometheus".format(
-    base_url=os.environ.get("METRICS_ENDPOINT_URL"),
-    port=os.environ.get("METRICS_ENDPOINT_URL_PORT"))
-
 
 class Postgres:
     """Postgres connection session handler."""
@@ -180,17 +176,6 @@ def get_time_delta(audit_data):
                 datetime.datetime.strptime(audit_data['ended_at'], fmt) -
                 datetime.datetime.strptime(audit_data['started_at'], fmt)).total_seconds()
         return timedelta
-    return None
-
-
-def push_data(metrics_payload, url=METRICS_COLLECTION_URL):
-    """
-    Pushes individual Payload data (SA or RE Data) to specified url.
-
-    :param audit_data: Audit Data
-    :return: Request Object
-    """
-    _session.post(url=url, json=metrics_payload)
     return None
 
 
