@@ -1,19 +1,14 @@
 """Tests for the 'utils' module."""
-import os
 from unittest import mock
 from pytest import raises
 from tests.test_rest_api import response
 from src.settings import SETTINGS
-from src.utils import push_data, get_time_delta
+from src.utils import get_time_delta
 from src.utils import (
     format_date,
     post_http_request,
     select_from_db, total_time_elapsed, post_gremlin,
     GremlinExeception, RequestException)
-
-METRICS_COLLECTION_URL = "http://{base_url}:{port}/api/v1/prometheus".format(
-    base_url='metrics-accumulator-deepak1725-fabric8-analytics.devtools-dev.ext.devshift.net',
-    port=80)
 
 
 def mock_error_response(*_args, **_kwargs):
@@ -117,20 +112,6 @@ def test_total_time_elapsed_no_param(_mock1):
     """Test Select from DB."""
     sf_db = total_time_elapsed(sa_audit_data={}, external_request_id="req-id")
     assert sf_db is None
-
-
-def test_push_data():
-    """Check the Push Data Method."""
-    metrics_payload = {
-        'pid': os.getpid(),
-        'hostname': os.environ.get("HOSTNAME"),
-        'endpoint': "pi_v1.test__slashless",
-        'request_method': "GET",
-        'status_code': 200,
-        'value': 0.001,
-    }
-    response_obj = push_data(metrics_payload, url=METRICS_COLLECTION_URL)
-    assert response_obj is None
 
 
 def test_get_time_delta():

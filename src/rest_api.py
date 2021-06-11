@@ -10,7 +10,6 @@ from flask import Flask, request
 from flask_cors import CORS
 from raven.contrib.flask import Sentry
 
-from src.utils import push_data, total_time_elapsed, get_time_delta
 from src.v2.recommender import RecommendationTask as RecommendationTaskV2
 from src.v2.stack_aggregator import StackAggregator as StackAggregatorV2
 
@@ -41,15 +40,6 @@ def _recommender(handler):
     recommender_started_at = time.time()
 
     r = {'recommendation': 'failure', 'external_request_id': None}
-    # (fixme) Create decorator for metrics handling.
-    metrics_payload = {
-        'pid': os.getpid(),
-        'hostname': os.environ.get("HOSTNAME"),
-        'endpoint': request.endpoint,
-        'request_method': request.method,
-        'status_code': 200
-    }
-
     input_json = request.get_json()
     external_request_id = input_json['external_request_id']
     logger.info('%s recommender/ request', external_request_id)
@@ -65,18 +55,11 @@ def _recommender(handler):
             'external_request_id': external_request_id,
             'message': str(e)
         }
-        metrics_payload['status_code'] = 400
-        push_data(metrics_payload)
         logger.exception('%s failed %s', external_request_id, r)
-    try:
-        metrics_payload['value'] = get_time_delta(audit_data=r['result']['_audit'])
-        push_data(metrics_payload)
-    except KeyError:
-        pass
     logger.info('%s took %0.2f seconds for _recommender',
                 external_request_id, time.time() - recommender_started_at)
 
-    return flask.jsonify(r), metrics_payload['status_code']
+    return flask.jsonify(r), 200
 
 
 def _stack_aggregator(handler):
@@ -86,37 +69,18 @@ def _stack_aggregator(handler):
     assert handler
     s = {'stack_aggregator': 'failure', 'external_request_id': None}
     input_json = request.get_json()
-    # (fixme) Create decorator for metrics handling.
-    metrics_payload = {
-        'pid': os.getpid(),
-        'hostname': os.environ.get("HOSTNAME"),
-        'endpoint': request.endpoint,
-        'request_method': request.method,
-        'status_code': 200
-    }
-
     external_request_id = input_json['external_request_id']
     logger.info('%s stack_aggregator/ request', external_request_id)
 
     try:
         persist = request.args.get('persist', 'true') == 'true'
         s = handler.execute(input_json, persist=persist)
-        if s.get('result', {}).get('_audit'):
-            # Creating and Pushing Total Metrics Data to Accumulator
-            metrics_payload['value'] = total_time_elapsed(
-                sa_audit_data=s['result']['_audit'],
-                external_request_id=input_json['external_request_id'])
-            push_data(metrics_payload)
     except Exception as e:
         s = {
             'stack_aggregator': 'unexpected error',
             'external_request_id': input_json.get('external_request_id'),
             'message': '%s' % e
         }
-        metrics_payload['status_code'] = 400
-        # Pushing Individual Metrics Data to Accumulator
-        metrics_payload['value'] = 0.0
-        push_data(metrics_payload)
         logger.error('%s failed %s', external_request_id, s)
         raise e
 
