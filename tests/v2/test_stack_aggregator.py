@@ -110,10 +110,10 @@ def test_with_2_public_vuln(_mock_license, _mock_gremlin):
     flask_index = result.analyzed_dependencies.index(_FLASK)
     assert len(result.analyzed_dependencies[flask_index].public_vulnerabilities) == 0
     # check transitive vuln
-    assert len(result.analyzed_dependencies[flask_index].vulnerable_dependencies) == 1
-    assert _DJANGO in result.analyzed_dependencies[flask_index].vulnerable_dependencies
+    assert len(result.analyzed_dependencies[flask_index].vulnerable_dependencies) == 0
+    assert _DJANGO not in result.analyzed_dependencies[flask_index].vulnerable_dependencies
     assert len(result.analyzed_dependencies[flask_index].
-               vulnerable_dependencies[0].public_vulnerabilities) == 2
+               vulnerable_dependencies) == 0
 
 
 @mock.patch('src.v2.stack_aggregator.post_gremlin')
@@ -152,10 +152,10 @@ def test_with_1_public_1_pvt_vuln(_mock_license, _mock_gremlin):
     assert len(result.analyzed_dependencies[flask_index].public_vulnerabilities) == 0
     assert len(result.analyzed_dependencies[flask_index].private_vulnerabilities) == 0
     # check transitive vuln
-    assert len(result.analyzed_dependencies[flask_index].vulnerable_dependencies) == 1
-    assert _DJANGO in result.analyzed_dependencies[flask_index].vulnerable_dependencies
+    assert len(result.analyzed_dependencies[flask_index].vulnerable_dependencies) == 0
+    assert _DJANGO not in result.analyzed_dependencies[flask_index].vulnerable_dependencies
     assert len(result.analyzed_dependencies[flask_index].
-               vulnerable_dependencies[0].public_vulnerabilities) == 1
+               vulnerable_dependencies) == 0
 
 
 @mock.patch('src.v2.stack_aggregator.post_gremlin')
@@ -193,10 +193,10 @@ def test_with_2_public_vuln_for_registered(_mock_license, _mock_gremlin):
     flask_index = result.analyzed_dependencies.index(_FLASK)
     assert len(result.analyzed_dependencies[flask_index].public_vulnerabilities) == 0
     # check transitive vuln
-    assert len(result.analyzed_dependencies[flask_index].vulnerable_dependencies) == 1
-    assert _DJANGO in result.analyzed_dependencies[flask_index].vulnerable_dependencies
+    assert len(result.analyzed_dependencies[flask_index].vulnerable_dependencies) == 0
+    assert _DJANGO not in result.analyzed_dependencies[flask_index].vulnerable_dependencies
     assert len(result.analyzed_dependencies[flask_index].
-               vulnerable_dependencies[0].public_vulnerabilities) == 2
+               vulnerable_dependencies) == 0
 
 
 @mock.patch('src.v2.stack_aggregator.unknown_package_flow')

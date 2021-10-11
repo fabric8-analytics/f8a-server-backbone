@@ -190,7 +190,6 @@ class Aggregator:
         package_details: List[Tuple[Package, PackageDetails]] = []
         for pkg in graph_response:
             package_details.append(get_package_details(pkg))
-
         # covert list of (pkg, package_details) into map
         return dict(package_details)
 
@@ -255,6 +254,8 @@ class Aggregator:
                 continue  # pragma: no cover
             transitive_details = []
             for transitive in transitives:
+                if transitive in self._normalized_packages.dependency_graph:
+                    continue
                 transitive_detail = self._normalized_package_details.get(transitive)
                 if _has_vulnerability(transitive_detail):
                     transitive_detail = transitive_detail.copy()
