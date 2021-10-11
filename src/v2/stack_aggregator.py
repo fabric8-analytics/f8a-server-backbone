@@ -344,7 +344,6 @@ class StackAggregator:
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         aggregator = StackAggregator.process_request(request)
         output = aggregator.get_result()
-        print(output)
         output_dict = output.dict()
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         # (fixme): Remove _ to make it as part of pydantic model.
