@@ -184,13 +184,13 @@ class Aggregator:
         self._normalized_package_details = None
         self._result = None
 
+
     def get_package_details_from_graph(self) -> Dict[Package, PackageDetails]:
         """Get dependency data from graph."""
         graph_response = self._get_package_details_with_vulnerabilities()
         package_details: List[Tuple[Package, PackageDetails]] = []
         for pkg in graph_response:
             package_details.append(get_package_details(pkg))
-
         # covert list of (pkg, package_details) into map
         return dict(package_details)
 
@@ -255,6 +255,8 @@ class Aggregator:
                 continue  # pragma: no cover
             transitive_details = []
             for transitive in transitives:
+                if transitive in self._normalized_packages.dependency_graph:
+                    continue
                 transitive_detail = self._normalized_package_details.get(transitive)
                 if _has_vulnerability(transitive_detail):
                     transitive_detail = transitive_detail.copy()
@@ -342,6 +344,7 @@ class StackAggregator:
         started_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         aggregator = StackAggregator.process_request(request)
         output = aggregator.get_result()
+        print(output)
         output_dict = output.dict()
         ended_at = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")
         # (fixme): Remove _ to make it as part of pydantic model.
