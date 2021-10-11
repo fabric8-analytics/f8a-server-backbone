@@ -184,7 +184,6 @@ class Aggregator:
         self._normalized_package_details = None
         self._result = None
 
-
     def get_package_details_from_graph(self) -> Dict[Package, PackageDetails]:
         """Get dependency data from graph."""
         graph_response = self._get_package_details_with_vulnerabilities()
