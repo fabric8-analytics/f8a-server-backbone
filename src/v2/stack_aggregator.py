@@ -7,6 +7,7 @@ by stack-analyses endpoint
 import datetime
 import inspect
 import time
+import json
 import logging
 from collections import defaultdict
 from urllib.parse import quote
@@ -246,22 +247,130 @@ class Aggregator:
     def _get_denormalized_package_details(self) -> List[PackageDetails]:
         """Pack PackageDetails according to it's dependency graph structure."""
         package_details = []
+        ignore = None
+        packages_to_ignore = {}
+        all_vulnerabilities_to_ignore = {}
+
+        # Check if ignore JSON is provided
+        if self._request.ignore:
+            ignore = json.loads(self._request.ignore)
+
+        if ignore:
+            packages_to_ignore = ignore.get("packages", {})
+
+            # Make a list of all Vulnerability IDs in case a direct dependency
+            # is also present as transitive to other dependency.
+            all_vulnerabilities_to_ignore = sum(packages_to_ignore.values(), [])
+
         for package, transitives in self._normalized_packages.dependency_graph.items():
+            ignore_all_transitives = False
+            ignored_vulnerability_count = None
+            ignored_trans_vulnerability_count = None
             package_detail = self._normalized_package_details.get(package)
+
             if package_detail:
                 package_detail = package_detail.copy()
+
+                # Checl if current package is availabe in list of packages to be ignored.
+                if package_detail.name in packages_to_ignore:
+
+                    # Number of vulnerabilities before ignoring.
+                    vuln_before_ignoring = \
+                        len(package_detail.public_vulnerabilities) + \
+                        len(package_detail.private_vulnerabilities)
+
+                    # If list of vulnerability IDs are provided for current package
+                    # then ignore selected vulnerabilities else ignore all
+                    if packages_to_ignore[package_detail.name]:
+                        public_vulnerabilities = [
+                            vuln for vuln in package_detail.public_vulnerabilities
+                            if vuln.id not in all_vulnerabilities_to_ignore]
+                        private_vulnerabilities = [
+                            vuln for vuln in package_detail.private_vulnerabilities
+                            if vuln.id not in all_vulnerabilities_to_ignore]
+
+                        # Reassign new vulnerabilities after ignoring selected IDs.
+                        package_detail.public_vulnerabilities = public_vulnerabilities
+                        package_detail.private_vulnerabilities = private_vulnerabilities
+
+                        # Number of vulnerabilities after ignoring.
+                        vuln_after_ignoring = \
+                            len(package_detail.public_vulnerabilities) + \
+                            len(package_detail.private_vulnerabilities)
+                    else:
+                        # Ignore all vulnerabilities.
+                        ignore_all_transitives = True
+                        package_detail.public_vulnerabilities = []
+                        package_detail.private_vulnerabilities = []
+
+                        # Set 0 as all vulnerabilities are ignored
+                        vuln_after_ignoring = 0
+
+                    # Get number of vulnerabilities ignored in current package.
+                    ignored_vulnerability_count = vuln_before_ignoring - vuln_after_ignoring
             else:
                 continue  # pragma: no cover
             transitive_details = []
+
             for transitive in transitives:
                 if transitive in self._normalized_packages.dependency_graph:
                     continue
                 transitive_detail = self._normalized_package_details.get(transitive)
+
                 if _has_vulnerability(transitive_detail):
                     transitive_detail = transitive_detail.copy()
+
+                    # Number of transitive vulnerabilities before ignoring.
+                    trans_vuln_before_ignoring = \
+                        len(transitive_detail.public_vulnerabilities) + \
+                        len(transitive_detail.private_vulnerabilities)
+
+                    # User asked to ignore all vulnerabilities of direct dependency
+                    # hence all transitive vulnerabilities are also ignored.
+                    if ignore_all_transitives:
+                        ignored_trans_vulnerability_count = trans_vuln_before_ignoring
+                        continue
+
+                    # Ignore selected vulnerabilities
+                    trans_public_vulnerabilities = [
+                        vuln for vuln in transitive_detail.public_vulnerabilities
+                        if vuln.id not in all_vulnerabilities_to_ignore]
+                    trans_private_vulnerabilities = [
+                        vuln for vuln in transitive_detail.private_vulnerabilities
+                        if vuln.id not in all_vulnerabilities_to_ignore]
+
+                    trans_public_vuln_after_ignoring = 0
+                    if trans_public_vulnerabilities:
+                        # Reassign new public vulnerabilities after ignoring selected IDs.
+                        transitive_detail.public_vulnerabilities = trans_public_vulnerabilities
+
+                        # Number of public vulnerabilities after ignoring.
+                        trans_public_vuln_after_ignoring = \
+                            len(transitive_detail.public_vulnerabilities)
+
+                    trans_private_vuln_after_ignoring = 0
+                    if trans_private_vulnerabilities:
+                        # Reassign new private vulnerabilities after ignoring selected IDs.
+                        transitive_detail.private_vulnerabilities = trans_private_vulnerabilities
+
+                        # Number of private vulnerabilities after ignoring.
+                        trans_private_vuln_after_ignoring = \
+                            len(transitive_detail.private_vulnerabilities)
+
+                    # Get number of transitive vulnerabilities ignored in current package.
+                    ignored_trans_vulnerability_count = trans_vuln_before_ignoring - (
+                            trans_public_vuln_after_ignoring + trans_private_vuln_after_ignoring)
+
+                    if not trans_public_vulnerabilities and not trans_private_vulnerabilities:
+                        # Skip the iteration if no vulnerabilities are left after ignoring.
+                        continue
                 else:
                     continue  # pragma: no cover
+
                 transitive_details.append(transitive_detail)
+
+            package_detail.ignored_vulnerability_count = ignored_vulnerability_count
+            package_detail.ignored_trans_vulnerability_count = ignored_trans_vulnerability_count
             package_detail.dependencies = list(transitives)
             package_detail.vulnerable_dependencies = transitive_details
             package_details.append(package_detail)

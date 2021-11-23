@@ -158,6 +158,8 @@ class PackageDataWithVulnerabilities(PackageDetails):  # noqa: D101
     vulnerable_dependencies: Optional[List['PackageDataWithVulnerabilities']] = Field(
         None, description='List of dependencies which are vulnerable.'
     )
+    ignored_vulnerability_count: Optional[int] = None
+    ignored_trans_vulnerability_count: Optional[int] = None
 
 
 class RecommendedPackageData(PackageDetails):  # noqa: D101
@@ -209,6 +211,7 @@ class StackAggregatorRequest(BaseModel):  # noqa: D101
     manifest_name: Optional[str]
     manifest_file_path: str
     packages: List['Package']
+    ignore: Optional[str]
 
     @validator('ecosystem', pre=True)
     def _normalize_ecosystem(ecosystem):
