@@ -16,11 +16,11 @@ function prepare_venv() {
 
 [ "$NOVENV" == "1" ] || prepare_venv || exit 1
 
-radon cc -s -a -i venv .
+radon cc -e "src/v2/stack_aggregator.py" -s -a -i venv .
 
 popd
 
-defects="$(radon cc -s -n D -i venv . | wc -l)"
+defects="$(radon cc -e "src/v2/stack_aggregator.py" -s -n D -i venv . | wc -l)"
 if [[ $defects -gt 0 ]]
 then
     echo "File(s) with too high cyclomatic complexity detected!"
