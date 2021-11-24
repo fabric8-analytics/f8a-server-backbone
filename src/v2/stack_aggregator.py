@@ -264,8 +264,8 @@ class Aggregator:
 
         for package, transitives in self._normalized_packages.dependency_graph.items():
             ignore_all_transitives = False
-            ignored_vulnerability_count = None
-            ignored_trans_vulnerability_count = None
+            ignored_vulnerability_count = 0
+            ignored_trans_vulnerability_count = 0
             package_detail = self._normalized_package_details.get(package)
 
             if package_detail:
@@ -328,7 +328,7 @@ class Aggregator:
                     # User asked to ignore all vulnerabilities of direct dependency
                     # hence all transitive vulnerabilities are also ignored.
                     if ignore_all_transitives:
-                        ignored_trans_vulnerability_count = trans_vuln_before_ignoring
+                        ignored_trans_vulnerability_count += trans_vuln_before_ignoring
                         continue
 
                     # Ignore selected vulnerabilities
@@ -358,7 +358,7 @@ class Aggregator:
                             len(transitive_detail.private_vulnerabilities)
 
                     # Get number of transitive vulnerabilities ignored in current package.
-                    ignored_trans_vulnerability_count = trans_vuln_before_ignoring - (
+                    ignored_trans_vulnerability_count += trans_vuln_before_ignoring - (
                             trans_public_vuln_after_ignoring + trans_private_vuln_after_ignoring)
 
                     if not trans_public_vulnerabilities and not trans_private_vulnerabilities:
