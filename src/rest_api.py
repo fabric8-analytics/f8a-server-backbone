@@ -5,7 +5,7 @@ import logging
 import os
 import time
 
-from f8a_worker.setup_celery import init_selinon
+from f8a_worker.setup_celery import init_celery, init_selinon
 from flask import Flask, request
 from flask_cors import CORS
 from raven.contrib.flask import Sentry
@@ -20,7 +20,8 @@ CORS(app)
 SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
 sentry = Sentry(app, dsn=SENTRY_DSN, logging=True, level=logging.ERROR)
 
-init_selinon()
+init_celery(app)
+init_selinon(app)
 
 
 @app.route('/api/readiness')
