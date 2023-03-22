@@ -20,7 +20,7 @@ CORS(app)
 SENTRY_DSN = os.environ.get("SENTRY_DSN", "")
 sentry = Sentry(app, dsn=SENTRY_DSN, logging=True, level=logging.ERROR)
 
-init_selinon()
+init_selinon(app)
 
 
 @app.route('/api/readiness')
